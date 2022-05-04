@@ -29,5 +29,5 @@ cd ohana
 make
 
 # Run
-make run
+CONFIG_FILE=config.example.yaml make run
 ```

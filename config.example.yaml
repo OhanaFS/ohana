@@ -1,0 +1,4 @@
+environment: development
+http:
+  bind: 127.0.0.1:8000
+  base_url: http://localhost:8000
