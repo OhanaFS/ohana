@@ -31,3 +31,16 @@ make
 # Run
 CONFIG_FILE=config.example.yaml make run
 ```
+
+### Conventions
+
+- Code formatting
+
+  To ensure style consistency, make sure you install
+  [gofmt](https://pkg.go.dev/cmd/gofmt) to automatically format your code. Most
+  editors should include this by default in their language extensions.
+  [Enable formatting in VSCode](https://code.visualstudio.com/docs/languages/go#_formatting).
+
+- Try to wrap comments to at most 80 characters wide.
+- We also try to follow
+  [Uber's Go Style Guide](https://github.com/uber-go/guide/blob/master/style.md).
