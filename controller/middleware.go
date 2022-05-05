@@ -1,4 +1,4 @@
-package boundary
+package controller
 
 import (
 	"net/http"

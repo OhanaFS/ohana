@@ -1,8 +1,8 @@
-.PHONY: run upx clean clean-db test deps dev-up dev-down
+.PHONY: run upx clean clean-db test docker
 
 TARGET = bin/ohana
 
-all: deps clean test $(TARGET) upx
+all: clean test $(TARGET) upx
 
 $(TARGET): $(shell find . -name '*.go')
 	mkdir -p bin
@@ -25,10 +25,9 @@ clean:
 	rm -rf $(TARGET)
 	rm -rf coverage.*
 
-test: deps
+test:
 	go test -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
 
-deps:
-	go mod download
-
+docker:
+	docker build -f ./.docker/Dockerfile -t ohana .

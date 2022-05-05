@@ -12,8 +12,9 @@ const (
 )
 
 type Config struct {
-	Environment string     `yaml:"environment"`
-	HTTP        HttpConfig `yaml:"http"`
+	Environment string         `yaml:"environment"`
+	HTTP        HttpConfig     `yaml:"http"`
+	Database    DatabaseConfig `yaml:"database"`
 }
 
 type HttpConfig struct {
@@ -21,6 +22,11 @@ type HttpConfig struct {
 	Bind string `yaml:"bind"`
 	// BaseURL is the publicly accessible URL for the HTTP server.
 	BaseURL string `yaml:"base_url"`
+}
+
+type DatabaseConfig struct {
+	// ConnectionString is the connection string for the database.
+	ConnectionString string `yaml:"connection_string"`
 }
 
 // LoadConfig tries to load the configuration from the file specified in the

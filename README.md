@@ -32,6 +32,9 @@ make
 CONFIG_FILE=config.example.yaml make run
 ```
 
+Then try out one of the routes! Go to https://127.0.0.1:8000/v1/_health in your
+browser and you should see something.
+
 ### Conventions
 
 - Code formatting

@@ -5,8 +5,9 @@ import (
 
 	"go.uber.org/fx"
 
-	"github.com/OhanaFS/ohana/boundary"
 	"github.com/OhanaFS/ohana/config"
+	"github.com/OhanaFS/ohana/controller"
+	"github.com/OhanaFS/ohana/service"
 )
 
 var (
@@ -20,12 +21,20 @@ func main() {
 
 	fx.New(
 		fx.Provide(
+			// Shared providers
 			config.LoadConfig,
 			config.NewLogger,
-			boundary.NewRouter,
+			controller.NewRouter,
+
+			// Services
+			service.NewHealth,
 		),
 		fx.Invoke(
-			boundary.NewServer,
+			// HTTP Server
+			controller.NewServer,
+
+			// Register routes
+			controller.RegisterHealth,
 		),
 	).Run()
 }
