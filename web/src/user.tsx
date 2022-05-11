@@ -35,14 +35,14 @@ export function User() {
           />
           <Box sx={{ flex: 1 }}>
             <Text size="sm" weight={500}>
-              Handsome Guy
+              Cute Guy
             </Text>
             <Text color="dimmed" size="xs">
-              handsomeuser@ohana.tech
+              username
             </Text>
           </Box>
 
-          {theme.dir === 'ltr' ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          {/* {theme.dir === 'ltr' ? <ChevronRight size={18} /> : <ChevronLeft size={18} />} */}
         </Group>
       </UnstyledButton>
     </Box>
