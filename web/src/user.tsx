@@ -1,5 +1,4 @@
 import React from 'react';
-import { ChevronRight, ChevronLeft } from 'tabler-icons-react';
 import { UnstyledButton, Group, Avatar, Text, Box, useMantineTheme } from '@mantine/core';
 
 export function User() {

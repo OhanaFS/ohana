@@ -3,7 +3,6 @@ import {
   AppShell,
   Navbar,
   Header,
-  Text,
   Title,
   MediaQuery,
   Burger,
