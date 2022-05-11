@@ -2,6 +2,7 @@ import { AppShell, Navbar, Header, Title } from '@mantine/core';
 import { MainLinks } from './MainLinks';
 import { User } from './user';
 
+
 type AppBaseProps = {
     children: React.ReactNode;
 }
@@ -9,7 +10,7 @@ export default function AppBase(props: AppBaseProps) {
     return (
       <AppShell
       padding="md"
-      navbar={<Navbar width={{ base: 300 }} height={750} p="md">
+      navbar={<Navbar width={{ sm: 300 }} p="md">
         <Navbar.Section grow mt="md">
           <MainLinks />
         </Navbar.Section>
