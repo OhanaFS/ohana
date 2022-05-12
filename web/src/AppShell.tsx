@@ -13,6 +13,9 @@ import { User } from './user';
 
 type AppBaseProps = {
     children: React.ReactNode;
+    image: string
+    name: string;
+    username: string;
 }
 
 export default function AppBase(props: AppBaseProps) {
@@ -34,7 +37,7 @@ export default function AppBase(props: AppBaseProps) {
           <MainLinks />
         </Navbar.Section>
         <Navbar.Section>
-          <User />
+          <User name={props.name} username={props.username} image={props.image} />
         </Navbar.Section> 
       </Navbar>}
       header={

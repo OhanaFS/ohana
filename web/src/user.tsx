@@ -1,7 +1,13 @@
 import React from 'react';
 import { UnstyledButton, Group, Avatar, Text, Box, useMantineTheme } from '@mantine/core';
 
-export function User() {
+interface FullName {
+  image: string
+  name: string;
+  username: string;
+}
+
+export function User(props:FullName) {
   const theme = useMantineTheme();
 
   return (
@@ -29,15 +35,15 @@ export function User() {
       >
         <Group>
           <Avatar
-            src="https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80"
+            src={props.image}
             radius="xl"
           />
           <Box sx={{ flex: 1 }}>
             <Text size="sm" weight={500}>
-              Cute Guy
+              {props.name}
             </Text>
             <Text color="dimmed" size="xs">
-              username
+              {props.username}
             </Text>
           </Box>
 
