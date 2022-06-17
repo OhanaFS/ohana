@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/OhanaFS/ohana/dbfs"
 
 	"go.uber.org/fx"
 
@@ -24,6 +25,7 @@ func main() {
 			// Shared providers
 			config.LoadConfig,
 			config.NewLogger,
+			config.NewDatabase,
 			controller.NewRouter,
 
 			// Services
@@ -35,6 +37,9 @@ func main() {
 
 			// Register routes
 			controller.RegisterHealth,
+
+			// DB
+			dbfs.InitDB,
 		),
 	).Run()
 }

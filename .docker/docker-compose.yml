@@ -1,0 +1,28 @@
+version: "3.1"
+
+services:
+  ohana:
+    build: Dockerfile
+    networks:
+      - backend
+
+  db:
+    image: postgres:14.2
+    restart: always
+    volumes:
+      - "postDB:/var/lib/postgresql/data"
+    environment:
+      - POSTGRES_PASSWORD=ohanaMeansFamily
+      - POSTGRES_USER=ohanaAdmin
+      - POSTGRES_DB=ohana
+    networks:
+      - backend
+    ports:
+      - "5432:5432"
+
+volumes:
+  postDB:
+
+
+networks:
+  backend:
