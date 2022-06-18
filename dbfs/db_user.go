@@ -45,7 +45,7 @@ type UserInterface interface {
 	DeactivateUser(tx *gorm.DB) error
 	DeleteUser(tx *gorm.DB) error
 	ActivateUser(tx *gorm.DB) error
-	HasPermission(tx *gorm.DB, file *File, needed PermissionNeeded)
+	HasPermission(tx *gorm.DB, file *File, needed PermissionNeeded) error
 	AddToGroup(tx *gorm.DB, group *Group) error
 }
 
@@ -184,7 +184,7 @@ func (user *User) GetGroupsWithUser(tx *gorm.DB) (*[]Group, error) {
 }
 
 // HasPermission verifies that the user has the permission requested to a file.
-func (user *User) HasPermission(db *gorm.DB, file *File, needed PermissionNeeded) {
+func (user *User) HasPermission(db *gorm.DB, file *File, needed PermissionNeeded) error {
 	//TODO implement me
 	panic("implement me")
 }

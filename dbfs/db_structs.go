@@ -16,18 +16,18 @@ type Server struct {
 type FileVersion struct {
 	FileID            string `gorm:"primaryKey"`
 	VersionNo         uint   `gorm:"primaryKey"`
-	FileName          string
+	FileName          string `gorm:"not null"`
 	MIMEType          string
-	EntryType         int8
+	EntryType         int8         `gorm:"not null"`
 	ParentFolder      *FileVersion `gorm:"foreignKey:FileID,VersionNo"`
 	DataID            string
 	DataIDVersion     uint
-	Size              uint
-	ActualSize        uint
-	CreatedTime       time.Time
-	ModifiedUser      User `gorm:"foreignKey:UserID;references:FileID,VersionNo"`
-	ModifiedTime      time.Time
-	VersioningMode    int8
+	Size              uint      `gorm:"not null"`
+	ActualSize        uint      `gorm:"not null"`
+	CreatedTime       time.Time `gorm:"not null"`
+	ModifiedUser      User      `gorm:"foreignKey:UserID;references:FileID,VersionNo"`
+	ModifiedTime      time.Time `gorm:"not null; autoUpdateTime"`
+	VersioningMode    int8      `gorm:"not null"`
 	Checksum          string
 	DataShardsCount   uint8
 	EncryptionKey     string
@@ -35,8 +35,8 @@ type FileVersion struct {
 	PasswordHint      string
 	LinkFileID        *FileVersion `gorm:"foreignKey:FileID,VersionNo"`
 	LastChecked       time.Time
-	Status            int8
-	HandledServer     string
+	Status            int8   `gorm:"not null"`
+	HandledServer     string `gorm:"not null"`
 	Patch             bool
 	PatchBaseVersion  uint
 }
