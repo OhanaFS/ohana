@@ -56,21 +56,6 @@ type Fragment struct {
 
 // Fragment should reference FileVersion
 
-type Permission struct {
-	FileID     string `gorm:"primaryKey"`
-	User       User   `gorm:"foreignKey:UserID"`
-	Group      Group  `gorm:"foreignKey:GroupID"`
-	CanRead    bool
-	CanWrite   bool
-	CanExecute bool
-	CanShare   bool
-	VersionNo  uint
-	Audit      bool
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	DeletedAt  gorm.DeletedAt `gorm:"index"`
-}
-
 type PermissionHistory struct {
 	FileID     string `gorm:"primaryKey"`
 	VersionNo  uint   `gorm:"primaryKey"`

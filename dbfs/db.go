@@ -36,4 +36,5 @@ type PermissionNeeded struct {
 	Write   bool
 	Execute bool
 	Share   bool
+	Audit   bool
 }
