@@ -41,7 +41,7 @@ type UserInterface interface {
 	ModifyUsername(tx *gorm.DB, newUsername string) error
 	ModifyAccountType(tx *gorm.DB, newStatus int8) error
 	MapToNewAccount(tx *gorm.DB, newID string) error
-	GetGroupsWithUser(tx *gorm.DB) (*[]Group, error)
+	GetGroupsWithUser(tx *gorm.DB) ([]Group, error)
 	DeactivateUser(tx *gorm.DB) error
 	DeleteUser(tx *gorm.DB) error
 	ActivateUser(tx *gorm.DB) error
@@ -65,7 +65,7 @@ func CreateNewUser(tx *gorm.DB, username string, name string, accountType int8, 
 
 	// Create the account
 
-	UserAccount := &User{
+	userAccount := &User{
 		UserID:      uuid.New().String(),
 		Name:        name,
 		Username:    username,
@@ -74,7 +74,7 @@ func CreateNewUser(tx *gorm.DB, username string, name string, accountType int8, 
 		AccountType: accountType,
 	}
 
-	result := tx.Create(&UserAccount)
+	result := tx.Create(&userAccount)
 
 	if result.Error != nil {
 		if err, ok := result.Error.(sqlite3.Error); ok && err.Code == sqlite3.ErrConstraint {
@@ -82,7 +82,7 @@ func CreateNewUser(tx *gorm.DB, username string, name string, accountType int8, 
 		}
 		return nil, result.Error
 	} else {
-		return UserAccount, nil
+		return userAccount, nil
 	}
 
 }
@@ -174,13 +174,13 @@ func (user *User) ActivateUser(tx *gorm.DB) error {
 }
 
 // GetGroupsWithUser refreshes user object with group data.
-func (user *User) GetGroupsWithUser(tx *gorm.DB) (*[]Group, error) {
+func (user *User) GetGroupsWithUser(tx *gorm.DB) ([]Group, error) {
 
 	var groups []Group
 
 	err := tx.Preload(clause.Associations).Model(&user).Association("Groups").Find(&groups)
 
-	return &groups, err
+	return groups, err
 }
 
 // HasPermission verifies that the user has the permission requested to a file.

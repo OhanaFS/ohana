@@ -85,7 +85,7 @@ func TestGroups(t *testing.T) {
 		assert.Nil(err)
 
 		UserIDs := user1.UserID + user2.UserID
-		for _, u := range *users {
+		for _, u := range users {
 			assert.Contains(UserIDs, u.UserID)
 		}
 
@@ -94,7 +94,7 @@ func TestGroups(t *testing.T) {
 		assert.Nil(err)
 
 		UserIDs = user2.UserID + user3.UserID
-		for _, u := range *users {
+		for _, u := range users {
 			assert.Contains(UserIDs, u.UserID)
 		}
 
@@ -103,7 +103,7 @@ func TestGroups(t *testing.T) {
 		assert.Nil(err)
 
 		UserIDs = user4.UserID
-		for _, u := range *users {
+		for _, u := range users {
 			assert.Contains(UserIDs, u.UserID)
 		}
 
@@ -123,7 +123,7 @@ func TestGroups(t *testing.T) {
 		assert.Nil(err)
 
 		UserIDs := user1.UserID + user2.UserID
-		for _, u := range *users {
+		for _, u := range users {
 			assert.Contains(UserIDs, u.UserID)
 		}
 
@@ -137,7 +137,7 @@ func TestGroups(t *testing.T) {
 
 		groups, err := testUser.GetGroupsWithUser(db)
 
-		assert.Equal(len(*groups), 0)
+		assert.Equal(len(groups), 0)
 
 	})
 
@@ -202,7 +202,7 @@ func TestGroups(t *testing.T) {
 
 		users, err := group2.GetUsers(db)
 		assert.Nil(err)
-		assert.Equal(1, len(*users))
+		assert.Equal(1, len(users))
 
 	})
 
@@ -214,7 +214,7 @@ func TestGroups(t *testing.T) {
 
 		assert.Nil(err)
 
-		assert.Equal(2, len(*groups))
+		assert.Equal(2, len(groups))
 
 	})
 

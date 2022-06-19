@@ -18,7 +18,7 @@ type GroupInterface interface {
 	ModifyName(tx *gorm.DB, newGroupName string) error
 	Activate(tx *gorm.DB) error
 	Deactivate(tx *gorm.DB) error
-	GetUsers(tx *gorm.DB) (*[]User, error)
+	GetUsers(tx *gorm.DB) ([]User, error)
 	ModifyMappedGroupID(tx *gorm.DB, newMappedGroup string) error
 	HasPermission(tx *gorm.DB, file *File, needed PermissionNeeded)
 }
@@ -46,9 +46,9 @@ func CreateNewGroup(tx *gorm.DB, name string, mappedGroupID string) (*Group, err
 // GetGroupsLikeName returns groups based on "search"
 // Does not automatically return users associated.
 // To see users associated with Group, use GetUsers()
-func GetGroupsLikeName(tx *gorm.DB, groupName string) (*[]Group, error) {
+func GetGroupsLikeName(tx *gorm.DB, groupName string) ([]Group, error) {
 
-	var groups *[]Group
+	var groups []Group
 
 	err := tx.Where("group_name like ?", "%"+groupName+"%").Find(&groups).Error
 
@@ -111,12 +111,12 @@ func (g *Group) Deactivate(tx *gorm.DB) error {
 }
 
 // GetUsers returns the users associated with a group.
-func (g *Group) GetUsers(tx *gorm.DB) (*[]User, error) {
+func (g *Group) GetUsers(tx *gorm.DB) ([]User, error) {
 
 	var users []User
 	err := tx.Preload(clause.Associations).Model(&g).Association("Users").Find(&users)
 
-	return &users, err
+	return users, err
 }
 
 // ModifyMappedGroupID modifies the mapped group ID and saves it instantly.
