@@ -20,7 +20,7 @@ type GroupInterface interface {
 	Deactivate(tx *gorm.DB) error
 	GetUsers(tx *gorm.DB) ([]User, error)
 	ModifyMappedGroupID(tx *gorm.DB, newMappedGroup string) error
-	HasPermission(tx *gorm.DB, file *File, needed PermissionNeeded)
+	HasPermission(tx *gorm.DB, file *File, needed PermissionNeeded) (bool, error)
 }
 
 // CreateNewGroup creates a new group
@@ -124,10 +124,4 @@ func (g *Group) ModifyMappedGroupID(tx *gorm.DB, newMappedGroup string) error {
 	g.MappedGroupID = newMappedGroup
 
 	return tx.Save(&g).Error
-}
-
-// HasPermission will verify that a group has the permission required.
-func (g *Group) HasPermission(tx *gorm.DB, file *File, needed PermissionNeeded) {
-	//TODO implement me
-	panic("implement me")
 }

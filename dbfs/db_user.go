@@ -45,7 +45,7 @@ type UserInterface interface {
 	DeactivateUser(tx *gorm.DB) error
 	DeleteUser(tx *gorm.DB) error
 	ActivateUser(tx *gorm.DB) error
-	HasPermission(tx *gorm.DB, file *File, needed PermissionNeeded) error
+	HasPermission(tx *gorm.DB, file *File, needed PermissionNeeded) (bool, error)
 	AddToGroup(tx *gorm.DB, group *Group) error
 }
 
@@ -183,16 +183,10 @@ func (user *User) GetGroupsWithUser(tx *gorm.DB) ([]Group, error) {
 	return groups, err
 }
 
-// HasPermission verifies that the user has the permission requested to a file.
-func (user *User) HasPermission(db *gorm.DB, file *File, needed PermissionNeeded) error {
-	//TODO implement me
-	panic("implement me")
-}
-
 // AddToGroup appends the user to a given group.
 func (user *User) AddToGroup(tx *gorm.DB, group *Group) error {
 
-	// Checking to ensure that there's no duplicate associaiton
+	// Checking to ensure that there's no duplicate association
 	for _, existingGroup := range user.Groups {
 		if existingGroup.GroupID == group.GroupID {
 			return nil

@@ -71,17 +71,17 @@ func TestUsers(t *testing.T) {
 
 	})
 
-	t.Run("Attempt to De-acctivate and activate a user", func(t *testing.T) {
+	t.Run("Attempt to De-activate and activate a user", func(t *testing.T) {
 		assert := assert.New(t)
 
 		assert.Equal(true, user1.Activated)
 
-		user1.DeactivateUser(db)
-
+		err = user1.DeactivateUser(db)
+		assert.Nil(err)
 		assert.Equal(false, user1.Activated)
 
-		user1.ActivateUser(db)
-
+		err = user1.ActivateUser(db)
+		assert.Nil(err)
 		assert.Equal(true, user1.Activated)
 
 	})

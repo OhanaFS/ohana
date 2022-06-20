@@ -12,6 +12,7 @@ var (
 	ErrFileNotFound   = errors.New("file or folder not found")
 	ErrFolderExists   = errors.New("folder already exists")
 	ErrFolderNotEmpty = errors.New("folder contains files")
+	ErrNoPermission   = errors.New("no permission")
 )
 
 type File struct {
@@ -60,7 +61,7 @@ type FileInterface interface {
 	PasswordUnprotect(tx *gorm.DB, password string, user User) error
 	Move(tx *gorm.DB, newParent *File, user User) error
 	Delete(tx *gorm.DB, user User) error
-	AddPermission(tx *gorm.DB, permission *Permission, user User) error
+	AddPermission(tx *gorm.DB, permission PermissionNeeded, requestUser User, users ...User) error
 	RemovePermission(tx *gorm.DB, permission *Permission, user User) error
 	UpdatePermission(tx *gorm.DB, oldPermission *Permission, newPermission *Permission, user User) error
 	UpdateFile(tx *gorm.DB, user User) error
@@ -272,20 +273,24 @@ func CreateFolderByParentID(tx *gorm.DB, id string, folderName string, user User
 		return nil, ErrFileNotFound
 	}
 
-	// TODO: Check if the user has the right permissions
+	// Check if the user has read permissions
 
-	/*
-		err = user.HasPermission(tx, parentFolder, PermissionNeeded{Read: true})
+	hasPermissions, err := user.HasPermission(tx, parentFolder, PermissionNeeded{Read: true})
 
-		if err != nil{
-			if errors.Is(err, ErrNoPermission){
-				return ErrFileNotFound
-			}
-		}
+	if err != nil {
+		return nil, err
+	} else if !hasPermissions {
+		return nil, ErrFileNotFound
+	}
 
-		err = user.HasPermission(tx, parentFolder, PermissionNeeded{Write: true})
+	// Check if the user has write permissions
+	hasPermissions, err = user.HasPermission(tx, parentFolder, PermissionNeeded{Write: true})
 
-	*/
+	if err != nil {
+		return nil, err
+	} else if !hasPermissions {
+		return nil, ErrNoPermission
+	}
 
 	// Check that folder doesn't exist
 
@@ -301,15 +306,6 @@ func CreateFolderByParentID(tx *gorm.DB, id string, folderName string, user User
 	if rows >= 1 {
 		return nil, ErrFolderExists
 	}
-
-	//// If found
-	//if err == nil {
-	//	return nil, ErrFolderExists
-	//} else { // Other error handling
-	//	if !(errors.Is(err, gorm.ErrRecordNotFound)) {
-	//		return nil, err
-	//	}
-	//}
 
 	newFolder := &File{
 		FileID:             uuid.New().String(),
@@ -331,18 +327,30 @@ func CreateFolderByParentID(tx *gorm.DB, id string, folderName string, user User
 		HandledServer:      "",
 	}
 
-	err = tx.Save(newFolder).Error
+	// Transaction
+
+	err = tx.Transaction(func(tx *gorm.DB) error {
+		err = tx.Save(newFolder).Error
+
+		if err != nil {
+			return err
+		}
+
+		// TODO: Create Versions
+
+		err = createPermissions(tx, newFolder)
+
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 
 	if err != nil {
 		return nil, err
 	}
-
-	// TODO: Create Versions
-
-	// TODO:  Create Permissions
-
 	return newFolder, nil
-
 }
 
 // DeleteFileByID deletes a file based on the FileID given.
@@ -525,9 +533,30 @@ func (f File) Delete(tx *gorm.DB, user User) error {
 
 }
 
-func (f File) AddPermission(tx *gorm.DB, permission *Permission, user User) error {
-	//TODO implement me
-	panic("implement me")
+// AddPermission adds permissions to a file or folder based on a PermissionNeeded struct given.
+// takes in file/folder, permission needed, user requesting, and users to apply to
+func (f *File) AddPermission(tx *gorm.DB, permission PermissionNeeded, requestUser User, users ...User) error {
+
+	// Checking if the user has permission to share
+	permissionsRequiredToShare := permission
+
+	permissionsRequiredToShare.Share = true
+
+	hasPermission, err := requestUser.HasPermission(tx, f, permissionsRequiredToShare)
+	if err != nil {
+		return err
+	}
+	if hasPermission {
+		err := upsertUsersPermission(tx, f, permission, users...)
+		if err != nil {
+			return err
+		} else {
+			return nil
+		}
+	} else {
+		return ErrNoPermission
+	}
+
 }
 
 func (f File) RemovePermission(tx *gorm.DB, permission *Permission, user User) error {
@@ -543,4 +572,19 @@ func (f File) UpdatePermission(tx *gorm.DB, oldPermission *Permission, newPermis
 func (f File) UpdateFile(tx *gorm.DB, user User) error {
 	//TODO implement me
 	panic("implement me")
+}
+
+// IsFileOrEmptyFolder returns true if the file is a file or an empty folder (useful for permissions)
+func (f File) IsFileOrEmptyFolder(tx *gorm.DB, user User) (bool, error) {
+	if f.EntryType == 0 {
+		return true, nil
+	} else {
+		// check that no contents exist
+		ls, err := ListFilesByFolderID(tx, f.FileID, user)
+		if err != nil {
+			return false, err
+		} else {
+			return len(ls) == 0, nil
+		}
+	}
 }
