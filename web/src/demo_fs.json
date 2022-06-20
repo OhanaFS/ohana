@@ -3,7 +3,7 @@
     "fileMap": {
         "qwerty123456": {
             "id": "qwerty123456",
-            "name": "Chonky Demo",
+            "name": "Ohana Demo",
             "isDir": true,
             "childrenIds": [
                 "e598a85f843c",
@@ -1539,7 +1539,7 @@
         },
         "zHy": {
             "id": "zHy",
-            "name": "chonky-sphere-v2.png",
+            "name": "sphere-v2.png",
             "thumbnailUrl": "/chonky-sphere-v2.png",
             "modDate": "2020-10-24T19:10:17.659Z",
             "size": 322,

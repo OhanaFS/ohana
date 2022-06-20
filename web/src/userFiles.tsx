@@ -308,10 +308,10 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
     setCurrentFolderId,
     deleteFiles,
     moveFiles,
-    createFolder
+    createFolder,
   );
   const fileActions = useMemo(
-    () => [ChonkyActions.CreateFolder, ChonkyActions.DeleteFiles],
+    () => [ChonkyActions.CreateFolder, ChonkyActions.DeleteFiles, ChonkyActions.UploadFiles, ChonkyActions.DownloadFiles],
     []
   );
   const thumbnailGenerator = useCallback(
@@ -321,8 +321,8 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   );
 
   return (
-    <AppBase name='Cute Guy' username='@person' image='https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80'>
-      <div style={{ height: 400 }}>
+    <AppBase name='Alex Simmons' username='@alex' image='https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80'>
+      <div style={{ height: '100%' }}>
         <FullFileBrowser
           files={files}
           folderChain={folderChain}
