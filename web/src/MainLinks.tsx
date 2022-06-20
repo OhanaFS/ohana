@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home2, Star, Share } from 'tabler-icons-react';
+import { IconHome2, IconStar, IconShare } from '@tabler/icons';
 import { ThemeIcon, UnstyledButton, Group, Text } from '@mantine/core';
 
 interface MainLinkProps {
@@ -36,9 +36,9 @@ function MainLink({ icon, color, label }: MainLinkProps) {
 }
 
 const data = [
-  { icon: <Home2 size={16} />, color: 'blue', label: 'Home' },
-  { icon: <Star size={16} />, color: 'teal', label: 'Favourites' },
-  { icon: <Share size={16} />, color: 'violet', label: 'Shared' },
+  { icon: <IconHome2 size={16} />, color: 'blue', label: 'Home' },
+  { icon: <IconStar size={16} />, color: 'teal', label: 'Favourites' },
+  { icon: <IconShare size={16} />, color: 'violet', label: 'Shared' },
 ];
 
 export function MainLinks() {
