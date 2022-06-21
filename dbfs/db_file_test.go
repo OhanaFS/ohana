@@ -84,7 +84,7 @@ func TestFile(t *testing.T) {
 
 		_, err = dbfs.CreateFolderByParentID(db, rootFolder.FileID, "Test3", superUser)
 
-		Assert.Error(dbfs.ErrFolderExists, err)
+		Assert.Error(dbfs.ErrFileFolderExists, err)
 
 		// Listing files
 
@@ -304,6 +304,21 @@ func TestFile(t *testing.T) {
 		hasPermission, err = user1.HasPermission(db, subFolder2, dbfs.PermissionNeeded{Read: true})
 		Assert.Error(dbfs.ErrFileNotFound, err)
 		Assert.Equal(false, hasPermission)
+
+		// Creating a folder under /TestPerms/perm1
+
+		subFolder3, err := dbfs.CreateFolderByPath(db, "/TestPerms/perm1/perm3", *user1)
+		Assert.Error(err, dbfs.ErrNoPermission)
+		subFolder3, err = dbfs.CreateFolderByPath(db, "/TestPerms/perm1/perm3", superUser)
+		Assert.Nil(err)
+
+		// Check that user has permissions to /TestPerms/perm1/perm3
+		hasPermission, err = user1.HasPermission(db, subFolder3, dbfs.PermissionNeeded{Read: true})
+		Assert.Equal(true, hasPermission)
+		Assert.Nil(err)
+		hasPermission, err = superUser.HasPermission(db, subFolder3, dbfs.PermissionNeeded{Read: true})
+		Assert.Equal(true, hasPermission)
+		Assert.Nil(err)
 
 	})
 
