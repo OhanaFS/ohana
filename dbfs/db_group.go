@@ -20,7 +20,7 @@ type GroupInterface interface {
 	Deactivate(tx *gorm.DB) error
 	GetUsers(tx *gorm.DB) ([]User, error)
 	ModifyMappedGroupID(tx *gorm.DB, newMappedGroup string) error
-	HasPermission(tx *gorm.DB, file *File, needed PermissionNeeded) (bool, error)
+	HasPermission(tx *gorm.DB, file *File, needed *PermissionNeeded) (bool, error)
 }
 
 // CreateNewGroup creates a new group

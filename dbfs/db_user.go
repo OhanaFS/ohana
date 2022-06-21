@@ -45,7 +45,7 @@ type UserInterface interface {
 	DeactivateUser(tx *gorm.DB) error
 	DeleteUser(tx *gorm.DB) error
 	ActivateUser(tx *gorm.DB) error
-	HasPermission(tx *gorm.DB, file *File, needed PermissionNeeded) (bool, error)
+	HasPermission(tx *gorm.DB, file *File, needed *PermissionNeeded) (bool, error)
 	AddToGroup(tx *gorm.DB, group *Group) error
 }
 

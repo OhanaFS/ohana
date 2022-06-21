@@ -41,9 +41,6 @@ type PermissionInterface interface {
 	// updateMetadataPermission: Ran after upsert, modify on permissions on Files to ensure that the
 	// CreatedAt, UpdatedAt, DeletedAt times match with File
 	updateMetadataPermission(tx *gorm.DB, file *File) error
-
-	// deleteFilePermissions deletes permission entries when file/folder gets deleted
-	deleteFilePermissions(tx *gorm.DB, file *File) error
 }
 
 // createPermissions takes in the parent file and copies it to the new File
@@ -131,8 +128,27 @@ func createPermissions(tx *gorm.DB, newFile *File, additionalPermissions ...Perm
 
 // Upsert functions updates the users or groups with the new permissions given.
 // will return error if permissions get narrower than parent folder
-// TODO: Cascade down to children
-func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded PermissionNeeded, users ...User) error {
+func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *PermissionNeeded, requestUser *User, users ...User) error {
+
+	isFileOrEmptyFolder, err := file.IsFileOrEmptyFolder(tx, requestUser)
+	if err != nil {
+		return err
+	}
+
+	if !isFileOrEmptyFolder {
+		// recursively go down
+		ls, err := ListFilesByPath(tx, file.FileID, requestUser)
+
+		if err != nil {
+			return err
+		}
+
+		for _, lsFile := range ls {
+			if err := upsertUsersPermission(tx, &lsFile, permissionNeeded, requestUser, users...); err != nil {
+				return err
+			}
+		}
+	}
 
 	var oldPermissionRecords []Permission
 
@@ -160,7 +176,7 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded PermissionN
 					existingPermissions.CanRead = true
 				} else if existingPermissions.CanRead && !permissionNeeded.Read {
 					// Check if parent has permission
-					hasPermission, err := user.HasPermission(tx, &parentFile, PermissionNeeded{Read: true})
+					hasPermission, err := user.HasPermission(tx, &parentFile, &PermissionNeeded{Read: true})
 
 					if err != nil {
 						return err
@@ -178,7 +194,7 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded PermissionN
 					existingPermissions.CanWrite = true
 				} else if existingPermissions.CanWrite && !permissionNeeded.Write {
 					// Check if parent has permission
-					hasPermission, err := user.HasPermission(tx, &parentFile, PermissionNeeded{Write: true})
+					hasPermission, err := user.HasPermission(tx, &parentFile, &PermissionNeeded{Write: true})
 
 					if err != nil {
 						return err
@@ -196,7 +212,7 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded PermissionN
 					existingPermissions.CanExecute = true
 				} else if existingPermissions.CanExecute && !permissionNeeded.Execute {
 					// Check if parent has permission
-					hasPermission, err := user.HasPermission(tx, &parentFile, PermissionNeeded{Execute: true})
+					hasPermission, err := user.HasPermission(tx, &parentFile, &PermissionNeeded{Execute: true})
 
 					if err != nil {
 						return err
@@ -214,7 +230,7 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded PermissionN
 					existingPermissions.CanShare = true
 				} else if existingPermissions.CanShare && !permissionNeeded.Share {
 					// Check if parent has permission
-					hasPermission, err := user.HasPermission(tx, &parentFile, PermissionNeeded{Share: true})
+					hasPermission, err := user.HasPermission(tx, &parentFile, &PermissionNeeded{Share: true})
 
 					if err != nil {
 						return err
@@ -232,7 +248,7 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded PermissionN
 					existingPermissions.Audit = true
 				} else if existingPermissions.Audit && !permissionNeeded.Audit {
 					// Check if parent has permission
-					hasPermission, err := user.HasPermission(tx, &parentFile, PermissionNeeded{Audit: true})
+					hasPermission, err := user.HasPermission(tx, &parentFile, &PermissionNeeded{Audit: true})
 
 					if err != nil {
 						return err
@@ -275,10 +291,19 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded PermissionN
 	}
 
 	return nil
+
+}
+
+// deleteFilePermissions deletes permission entries when file/folder gets deleted
+func deleteFilePermissions(tx *gorm.DB, file *File) error {
+	if err := tx.Where("file_id = ?", file.FileID).Delete(&Permission{}).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 // HasPermission verifies that the user has the permission requested to a file.
-func (user *User) HasPermission(tx *gorm.DB, file *File, needed PermissionNeeded) (bool, error) {
+func (user *User) HasPermission(tx *gorm.DB, file *File, needed *PermissionNeeded) (bool, error) {
 
 	hasPermission := false
 
@@ -383,7 +408,7 @@ func (user *User) HasPermission(tx *gorm.DB, file *File, needed PermissionNeeded
 }
 
 // HasPermission will verify that a group has the permission required.
-func (g *Group) HasPermission(tx *gorm.DB, file *File, needed PermissionNeeded) (bool, error) {
+func (g *Group) HasPermission(tx *gorm.DB, file *File, needed *PermissionNeeded) (bool, error) {
 	// Get all permissions for the group for that file
 
 	var permission Permission

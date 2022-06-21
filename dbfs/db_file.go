@@ -54,25 +54,25 @@ type File struct {
 type FileInterface interface {
 
 	// Browse Functions (Local)
-	GetFileFragments(tx *gorm.DB, user User) ([]Fragment, error)
-	GetFileMeta(tx *gorm.DB, user User) error // retrieves all associations (fragments, permissions, etc)
-	GetOldVersion(tx *gorm.DB, user User, versionNo int) (*FileVersion, error)
+	GetFileFragments(tx *gorm.DB, user *User) ([]Fragment, error)
+	GetFileMeta(tx *gorm.DB, user *User) error // retrieves all associations (fragments, permissions, etc)
+	GetOldVersion(tx *gorm.DB, user *User, versionNo int) (*FileVersion, error)
 
 	// Create Functions (Local)
-	CreateSubFolder(tx *gorm.DB, folderName string, user User) (*File, error)
+	CreateSubFolder(tx *gorm.DB, folderName string, user *User) (*File, error)
 
 	// Update Functions (Local)
-	UpdateFragments(tx *gorm.DB, fragments []Fragment, user User) error
-	UpdateMetaData(tx *gorm.DB, file *File, user User) error
-	Rename(tx *gorm.DB, newName string, user User) error
-	PasswordProtect(tx *gorm.DB, password string, hint string, user User) error
-	PasswordUnprotect(tx *gorm.DB, password string, user User) error
-	Move(tx *gorm.DB, newParent *File, user User) error
-	Delete(tx *gorm.DB, user User) error
-	AddPermission(tx *gorm.DB, permission PermissionNeeded, requestUser User, users ...User) error
-	RemovePermission(tx *gorm.DB, permission *Permission, user User) error
-	UpdatePermission(tx *gorm.DB, oldPermission *Permission, newPermission *Permission, user User) error
-	UpdateFile(tx *gorm.DB, user User) error
+	UpdateFragments(tx *gorm.DB, fragments []Fragment, user *User) error
+	UpdateMetaData(tx *gorm.DB, file *File, user *User) error
+	Rename(tx *gorm.DB, newName string, user *User) error
+	PasswordProtect(tx *gorm.DB, password string, hint string, user *User) error
+	PasswordUnprotect(tx *gorm.DB, password string, user *User) error
+	Move(tx *gorm.DB, newParent *File, user *User) error
+	Delete(tx *gorm.DB, user *User) error
+	AddPermission(tx *gorm.DB, permission *PermissionNeeded, requestUser *User, users ...User) error
+	RemovePermission(tx *gorm.DB, permission *Permission, user *User) error
+	UpdatePermission(tx *gorm.DB, oldPermission *Permission, newPermission *Permission, user *User) error
+	UpdateFile(tx *gorm.DB, user *User) error
 }
 
 var _ FileInterface = &File{}
@@ -90,7 +90,7 @@ func GetRootFolder(tx *gorm.DB) (*File, error) {
 }
 
 // GetFileByPath returns a File object based on the path given
-func GetFileByPath(tx *gorm.DB, path string, user User) (*File, error) {
+func GetFileByPath(tx *gorm.DB, path string, user *User) (*File, error) {
 
 	paths := pathStringToArray(path, true)
 
@@ -121,7 +121,7 @@ func GetFileByPath(tx *gorm.DB, path string, user User) (*File, error) {
 }
 
 // GetFileByID returns a File object based on the FileID given
-func GetFileByID(tx *gorm.DB, id string, user User) (*File, error) {
+func GetFileByID(tx *gorm.DB, id string, user *User) (*File, error) {
 	file := &File{FileID: id}
 
 	err := tx.First(file).Error
@@ -130,7 +130,7 @@ func GetFileByID(tx *gorm.DB, id string, user User) (*File, error) {
 		return nil, ErrFileNotFound
 	}
 
-	hasPermission, err := user.HasPermission(tx, file, PermissionNeeded{Read: true})
+	hasPermission, err := user.HasPermission(tx, file, &PermissionNeeded{Read: true})
 
 	if !hasPermission {
 		return nil, ErrNoPermission
@@ -143,7 +143,7 @@ func GetFileByID(tx *gorm.DB, id string, user User) (*File, error) {
 }
 
 // ListFilesByPath returns an array of File objects based on the path given
-func ListFilesByPath(tx *gorm.DB, path string, user User) ([]File, error) {
+func ListFilesByPath(tx *gorm.DB, path string, user *User) ([]File, error) {
 
 	paths := pathStringToArray(path, true)
 
@@ -163,7 +163,7 @@ func ListFilesByPath(tx *gorm.DB, path string, user User) ([]File, error) {
 }
 
 // ListFilesByFolderID returns an array of File objects based on the FileID/FolderID given
-func ListFilesByFolderID(tx *gorm.DB, id string, user User) ([]File, error) {
+func ListFilesByFolderID(tx *gorm.DB, id string, user *User) ([]File, error) {
 
 	// An easy way to check for permissions.
 	_, err := GetFileByID(tx, id, user)
@@ -206,7 +206,7 @@ func pathStringToArray(path string, fromRoot bool) []string {
 
 // transverseByPath Returns an array of FileIDs based on the transversal path of pathStringToArray()
 // For Example, passing in ["foo", "bar"] will return ["root FileID", "foo FileID", "bar FileID"]
-func transverseByPath(tx *gorm.DB, fileNames []string, user User) ([]File, error) {
+func transverseByPath(tx *gorm.DB, fileNames []string, user *User) ([]File, error) {
 
 	files := make([]File, len(fileNames)+1)
 
@@ -246,7 +246,7 @@ func transverseByPath(tx *gorm.DB, fileNames []string, user User) ([]File, error
 }
 
 // CreateFolderByPath creates a folder based on the path given and returns the folder (File Object)
-func CreateFolderByPath(tx *gorm.DB, path string, user User) (*File, error) {
+func CreateFolderByPath(tx *gorm.DB, path string, user *User) (*File, error) {
 
 	paths := pathStringToArray(path, true)
 
@@ -266,12 +266,12 @@ func CreateFolderByPath(tx *gorm.DB, path string, user User) (*File, error) {
 }
 
 // CreateFile if no error, will continue to call create Fragment for each and update
-func CreateFile(user User) (*File, error) {
+func CreateFile(user *User) (*File, error) {
 	panic("implement")
 }
 
 // CreateFolderByParentID creates a folder based on the id given and returns the folder (File Object)
-func CreateFolderByParentID(tx *gorm.DB, id string, folderName string, user User) (*File, error) {
+func CreateFolderByParentID(tx *gorm.DB, id string, folderName string, user *User) (*File, error) {
 
 	// Check that the id exists
 
@@ -289,13 +289,13 @@ func CreateFolderByParentID(tx *gorm.DB, id string, folderName string, user User
 
 // DeleteFileByID deletes a file based on the FileID given.
 // TODO: IMPLEMENT
-func DeleteFileByID(id string, user User) error {
+func DeleteFileByID(id string, user *User) error {
 	panic("implement")
 }
 
 // DeleteFolderByID deletes a folder based on the FileID given.
 // Will not delete if there is contents in the folder
-func DeleteFolderByID(tx *gorm.DB, id string, user User) error {
+func DeleteFolderByID(tx *gorm.DB, id string, user *User) error {
 
 	folder, err := GetFileByID(tx, id, user)
 
@@ -305,7 +305,7 @@ func DeleteFolderByID(tx *gorm.DB, id string, user User) error {
 
 	// Check if user has permissions to delete folder
 
-	hasPermission, err := user.HasPermission(tx, folder, PermissionNeeded{Write: true})
+	hasPermission, err := user.HasPermission(tx, folder, &PermissionNeeded{Write: true})
 
 	if !hasPermission {
 		return ErrNoPermission
@@ -330,7 +330,7 @@ func DeleteFolderByID(tx *gorm.DB, id string, user User) error {
 
 // DeleteFolderByIDCascade deletes a folder based on the FileID given.
 // Will delete all inner contents.
-func DeleteFolderByIDCascade(tx *gorm.DB, id string, user User) error {
+func DeleteFolderByIDCascade(tx *gorm.DB, id string, user *User) error {
 
 	// Checking if the user has permissions
 
@@ -350,7 +350,7 @@ func DeleteFolderByIDCascade(tx *gorm.DB, id string, user User) error {
 
 			for _, file := range files {
 				err := tx.Transaction(func(tx2 *gorm.DB) error {
-					return deleteSubFoldersCascade(tx, file, user)
+					return deleteSubFoldersCascade(tx, &file, user)
 				})
 				if err != nil {
 					return err
@@ -369,7 +369,7 @@ func DeleteFolderByIDCascade(tx *gorm.DB, id string, user User) error {
 
 // deleteSubFoldersCascade - supporter function for DeleteFolderByIDCascade
 // Recursively goes through all folders and deletes them.
-func deleteSubFoldersCascade(tx *gorm.DB, file File, user User) error {
+func deleteSubFoldersCascade(tx *gorm.DB, file *File, user *User) error {
 
 	// Checking for user permission is currently OFF as the way the DB is designed
 	// where subdirectories must contain the same permissions at the parent
@@ -389,7 +389,7 @@ func deleteSubFoldersCascade(tx *gorm.DB, file File, user User) error {
 
 		for _, file := range files {
 			err = tx.Transaction(func(tx *gorm.DB) error {
-				return deleteSubFoldersCascade(tx, file, user)
+				return deleteSubFoldersCascade(tx, &file, user)
 			})
 			if err != nil {
 				return err
@@ -397,7 +397,7 @@ func deleteSubFoldersCascade(tx *gorm.DB, file File, user User) error {
 		}
 	}
 
-	if err := deleteFilePermissions(tx, &file); err != nil {
+	if err := deleteFilePermissions(tx, file); err != nil {
 		return err
 	}
 
@@ -407,15 +407,15 @@ func deleteSubFoldersCascade(tx *gorm.DB, file File, user User) error {
 
 // GetFileFragments returns the fragments associated with the File
 // TODO: IMPLEMENT
-func (f File) GetFileFragments(tx *gorm.DB, user User) ([]Fragment, error) {
+func (f File) GetFileFragments(tx *gorm.DB, user *User) ([]Fragment, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
 // GetFileMeta returns the file metadata including the permissions associated with the File/Folder
-func (f *File) GetFileMeta(tx *gorm.DB, user User) error {
+func (f *File) GetFileMeta(tx *gorm.DB, user *User) error {
 
-	_, err := user.HasPermission(tx, f, PermissionNeeded{Read: true})
+	_, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
 	if err != nil {
 		return ErrFileNotFound
 	}
@@ -425,17 +425,17 @@ func (f *File) GetFileMeta(tx *gorm.DB, user User) error {
 
 // GetOldVersion returns the FileVersion object of the File requested.
 // TODO: IMPLEMENT
-func (f File) GetOldVersion(tx *gorm.DB, user User, versionNo int) (*FileVersion, error) {
+func (f File) GetOldVersion(tx *gorm.DB, user *User, versionNo int) (*FileVersion, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
 // CreateSubFolder creates a subfolder of the parent folder
-func (f *File) CreateSubFolder(tx *gorm.DB, folderName string, user User) (*File, error) {
+func (f *File) CreateSubFolder(tx *gorm.DB, folderName string, user *User) (*File, error) {
 
 	// Check if user has read permission (if not 404)
 
-	hasPermissions, err := user.HasPermission(tx, f, PermissionNeeded{Read: true})
+	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
 	if err != nil {
 		return nil, err
 	} else if !hasPermissions {
@@ -443,7 +443,7 @@ func (f *File) CreateSubFolder(tx *gorm.DB, folderName string, user User) (*File
 	}
 
 	// Check if user has write permission (if not 403)
-	hasPermissions, err = user.HasPermission(tx, f, PermissionNeeded{Write: true})
+	hasPermissions, err = user.HasPermission(tx, f, &PermissionNeeded{Write: true})
 	if err != nil {
 		return nil, err
 	} else if !hasPermissions {
@@ -509,21 +509,21 @@ func (f *File) CreateSubFolder(tx *gorm.DB, folderName string, user User) (*File
 	return newFolder, nil
 }
 
-func (f File) UpdateFragments(tx *gorm.DB, fragments []Fragment, user User) error {
+func (f File) UpdateFragments(tx *gorm.DB, fragments []Fragment, user *User) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (f File) UpdateMetaData(tx *gorm.DB, file *File, user User) error {
+func (f File) UpdateMetaData(tx *gorm.DB, file *File, user *User) error {
 	//TODO implement me
 	panic("implement me")
 }
 
 // Rename() renames and saves the files instantly .
-func (f *File) Rename(tx *gorm.DB, newName string, user User) error {
+func (f *File) Rename(tx *gorm.DB, newName string, user *User) error {
 
 	// Check if user has read permission (if not 404)
-	hasPermissions, err := user.HasPermission(tx, f, PermissionNeeded{Read: true})
+	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
 	if err != nil {
 		return err
 	} else if !hasPermissions {
@@ -531,7 +531,7 @@ func (f *File) Rename(tx *gorm.DB, newName string, user User) error {
 	}
 
 	// Check if user has write permission (if not 403)
-	hasPermissions, err = user.HasPermission(tx, f, PermissionNeeded{Write: true})
+	hasPermissions, err = user.HasPermission(tx, f, &PermissionNeeded{Write: true})
 	if err != nil {
 		return err
 	} else if !hasPermissions {
@@ -562,27 +562,27 @@ func (f *File) Rename(tx *gorm.DB, newName string, user User) error {
 	return nil
 }
 
-func (f File) PasswordProtect(tx *gorm.DB, password string, hint string, user User) error {
+func (f File) PasswordProtect(tx *gorm.DB, password string, hint string, user *User) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (f File) PasswordUnprotect(tx *gorm.DB, password string, user User) error {
+func (f File) PasswordUnprotect(tx *gorm.DB, password string, user *User) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (f File) Move(tx *gorm.DB, newParent *File, user User) error {
+func (f File) Move(tx *gorm.DB, newParent *File, user *User) error {
 	//TODO implement me
 	panic("implement me")
 }
 
 // Deletes file or folder and all of its contents
 
-func (f *File) Delete(tx *gorm.DB, user User) error {
+func (f *File) Delete(tx *gorm.DB, user *User) error {
 
 	// Check if user has read permission (if not 404)
-	hasPermissions, err := user.HasPermission(tx, f, PermissionNeeded{Read: true})
+	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
 	if !hasPermissions {
 		return ErrFileNotFound
 	} else if err != nil {
@@ -590,7 +590,7 @@ func (f *File) Delete(tx *gorm.DB, user User) error {
 	}
 
 	// Check if user has write permission (if not 403)
-	hasPermissions, err = user.HasPermission(tx, f, PermissionNeeded{Write: true})
+	hasPermissions, err = user.HasPermission(tx, f, &PermissionNeeded{Write: true})
 	if !hasPermissions {
 		return ErrNoPermission
 	} else if err != nil {
@@ -618,7 +618,7 @@ func (f *File) Delete(tx *gorm.DB, user User) error {
 
 			for _, file := range files {
 				err := tx.Transaction(func(tx2 *gorm.DB) error {
-					return deleteSubFoldersCascade(tx, file, user)
+					return deleteSubFoldersCascade(tx, &file, user)
 				})
 				if err != nil {
 					return err
@@ -641,7 +641,7 @@ func (f *File) Delete(tx *gorm.DB, user User) error {
 
 // AddPermission adds permissions to a file or folder based on a PermissionNeeded struct given.
 // takes in file/folder, permission needed, user requesting, and users to apply to
-func (f *File) AddPermission(tx *gorm.DB, permission PermissionNeeded, requestUser User, users ...User) error {
+func (f *File) AddPermission(tx *gorm.DB, permission *PermissionNeeded, requestUser *User, users ...User) error {
 
 	// Checking if the user has permission to share
 	permissionsRequiredToShare := permission
@@ -665,25 +665,25 @@ func (f *File) AddPermission(tx *gorm.DB, permission PermissionNeeded, requestUs
 
 }
 
-func (f File) RemovePermission(tx *gorm.DB, permission *Permission, user User) error {
+func (f File) RemovePermission(tx *gorm.DB, permission *Permission, user *User) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (f File) UpdatePermission(tx *gorm.DB, oldPermission *Permission, newPermission *Permission, user User) error {
+func (f File) UpdatePermission(tx *gorm.DB, oldPermission *Permission, newPermission *Permission, user *User) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (f File) UpdateFile(tx *gorm.DB, user User) error {
+func (f File) UpdateFile(tx *gorm.DB, user *User) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (f *File) ListContents(tx *gorm.DB, user User) ([]File, error) {
+func (f *File) ListContents(tx *gorm.DB, user *User) ([]File, error) {
 
 	// Check if user has read permission (if not 404)
-	hasPermissions, err := user.HasPermission(tx, f, PermissionNeeded{Read: true})
+	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
 
 	if !hasPermissions {
 		return nil, ErrFileNotFound
@@ -709,7 +709,7 @@ func (f *File) ListContents(tx *gorm.DB, user User) ([]File, error) {
 }
 
 // IsFileOrEmptyFolder returns true if the file is a file or an empty folder (useful for permissions)
-func (f File) IsFileOrEmptyFolder(tx *gorm.DB, user User) (bool, error) {
+func (f File) IsFileOrEmptyFolder(tx *gorm.DB, user *User) (bool, error) {
 	if f.EntryType == 0 {
 		return true, nil
 	} else {
