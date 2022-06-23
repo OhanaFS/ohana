@@ -1,7 +1,7 @@
 //import AppBase from "./AppBase";
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import AppBase from "./AppShell"; //switched to responsive base
-import { VFSBrowser } from './userFiles';
+import AppBase from "./components/AppShell"; //switched to responsive base
+import { VFSBrowser } from './components/userFiles';
 
 export default function Demo() {
   return (

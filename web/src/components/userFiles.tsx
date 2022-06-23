@@ -9,7 +9,7 @@ import {
   FullFileBrowser,
 } from 'chonky';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import DemoFsMap from './demo_fs.json';
+import DemoFsMap from '../assets/demo_fs.json';
 
 // We define a custom interface for file data because we want to add some custom fields
 // to Chonky's built-in `FileData` interface.
