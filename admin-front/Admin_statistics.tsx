@@ -119,11 +119,11 @@ function Admin_statistics(props:any) {
   const ClusterHealthChartData = [
 
    {
-      "name": "Healthy",
+      "name": "No of Healthy Nodes",
       "value": 600
     },
     {
-      "name": "Unhealthy",
+      "name": "No of Unhealthy Nodes",
       "value": 400
     },
 ]
