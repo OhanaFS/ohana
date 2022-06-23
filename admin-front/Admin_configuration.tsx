@@ -1,6 +1,6 @@
 
 
-import { Grid, Button, Paper, useMantineTheme,Text, GroupedTransition, Textarea, Checkbox, Table } from "@mantine/core";
+import { Grid, Button, Paper, useMantineTheme,Text, GroupedTransition, Textarea, Checkbox, Table, Center } from "@mantine/core";
 import Admin_navigation from "./Admin_navigation";
 
 
@@ -10,8 +10,9 @@ function Admin_configuration() {
  return (
      
        <>
-<Grid>
-<Grid.Col span={12} style={{ marginLeft:"2%",marginTop:"2%",maxWidth:"50%", border: '1px solid'}}>   
+       <Center>
+<Grid style={{width:"100vh"}}>
+<Grid.Col span={12} style={{ marginLeft:"2%",marginTop:"2%",maxWidth:"80%", border: '1px solid'}}>   
 
 
 
@@ -75,6 +76,7 @@ function Admin_configuration() {
 
 
       </Grid>
+      </Center>
 </>
    
  );

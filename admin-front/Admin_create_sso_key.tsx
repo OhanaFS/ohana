@@ -3,7 +3,7 @@
 
 
 
-import { Grid, Textarea, Table, Checkbox, Button,Text, TextInput,Paper, useMantineTheme } from "@mantine/core";
+import { Grid, Textarea, Table, Checkbox, Button,Text, TextInput,Paper, useMantineTheme, Center } from "@mantine/core";
 import Admin_navigation from "./Admin_navigation";
 
 import{
@@ -16,29 +16,25 @@ import{
 } from "react-router-dom";
 import { useScrollIntoView } from "@mantine/hooks";
 
+
+
 function Admin_create_sso_key() {
 
-   const CurrentSSOGroups = [
-      "Finance",
-      "HR",
-      "IT",
-      "memem"
-   ]
-  
+
    const theme = useMantineTheme();
  return (
      
        <>
-
-<Grid>
-<Grid.Col span={12} style={{ marginLeft:"2%",marginTop:"2%",maxWidth:"50%", border: '1px solid'}}>   
+<Center >
+<Grid style={{width:"100vh"}}>
+<Grid.Col span={12} style={{ marginLeft:"2%",marginTop:"2%", border: '1px solid'}}>   
 
 
 
 
          
       
-      
+    
 
 
 <Text underline weight={700} style={{marginLeft:"1%",marginTop:"3%"}}> <h2>Create SSO </h2>   </Text>
@@ -85,7 +81,7 @@ function Admin_create_sso_key() {
 
 
       </Grid>
-
+      </Center>
 </>
    
  );

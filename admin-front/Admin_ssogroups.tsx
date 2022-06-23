@@ -3,7 +3,7 @@
 
 
 
-import { Grid, Textarea, Table, Checkbox, Button,Text, TextInput,Paper, useMantineTheme } from "@mantine/core";
+import { Grid, Textarea, Table, Checkbox, Button,Text, TextInput,Paper, useMantineTheme, Center } from "@mantine/core";
 import Admin_navigation from "./Admin_navigation";
 
 import{
@@ -15,22 +15,31 @@ import{
 
 } from "react-router-dom";
 import { useScrollIntoView } from "@mantine/hooks";
+import { useState } from "react";
+
 
 function Admin_ssogroups() {
    // take from database.
-   const CurrentSSOGroups = [
+   let [CurrentSSOGroups, setValue] = useState([
       "Finance",
       "HR",
       "IT",
       
-   ]
+   ]);
+
+   function add(){
+
+      setValue (prevValue => prevValue.concat('sds')
+       );
+    
+    }
   
    const theme = useMantineTheme();
  return (
      
        <>
-
-<Grid >
+  <Center>
+<Grid style={{width:"120vh"}} >
 
 
 
@@ -38,7 +47,7 @@ function Admin_ssogroups() {
          
       
    <Grid.Col > 
-  
+
 <Table >
 
 <tr>
@@ -85,7 +94,7 @@ function Admin_ssogroups() {
       
       
       
-      
+<Button onClick={add}>ADD static SSO group</Button>
      
 
 
@@ -99,6 +108,7 @@ function Admin_ssogroups() {
 
 
       </Grid>
+      </Center>
 
 </>
    

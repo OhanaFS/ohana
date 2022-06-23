@@ -1,6 +1,6 @@
 
 
-import { Grid, Textarea, Table, Checkbox, Button,Text, TextInput } from "@mantine/core";
+import { Grid, Textarea, Table, Checkbox, Button,Text, TextInput, Center } from "@mantine/core";
 import Admin_navigation from "./Admin_navigation";
 import{
     BrowserRouter as Router,
@@ -21,8 +21,9 @@ function Admin_ssogroups_inside() {
      
        <>
 
-<Grid>
-<Grid.Col span={12} style={{height:"500px", marginLeft:"2%",marginTop:"2%",maxWidth:"50%", border: '1px solid'}}>    
+<Center>
+<Grid style={{width:"80vh"}}>
+<Grid.Col span={12} style={{height:"500px", marginLeft:"2%",marginTop:"2%", border: '1px solid'}}>    
 
 
 
@@ -124,7 +125,7 @@ function Admin_ssogroups_inside() {
 
 
       </Grid>
-
+      </Center>
 </>
    
  );

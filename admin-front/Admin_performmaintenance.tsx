@@ -1,6 +1,6 @@
 
 
-import { Grid, Button, Checkbox, Text, Card, useMantineTheme, Image } from "@mantine/core";
+import { Grid, Button, Checkbox, Text, Card, useMantineTheme, Image, Center } from "@mantine/core";
 import { Link } from "react-router-dom";
 import Admin_navigation from "./Admin_navigation";
 
@@ -20,8 +20,8 @@ function Admin_performmaintenance() {
 
       <>
 
-
-         <Grid>
+<Center>
+<Grid style={{width:"100vh"}}> 
             <Grid.Col span={6} style={{ height: "600px", marginTop: "1%" }}>
 
                <Image style={{ textAlign: 'left', marginLeft: "1%" }}
@@ -64,6 +64,7 @@ function Admin_performmaintenance() {
 
             </Grid.Col>
          </Grid>
+         </Center>
       </>
 
 

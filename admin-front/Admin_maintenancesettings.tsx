@@ -1,4 +1,4 @@
-import { Grid, Button, Checkbox,Text } from "@mantine/core";
+import { Grid, Button, Checkbox,Text, Center } from "@mantine/core";
 import { useListState } from "@mantine/hooks";
 
 import React, { useState } from "react";
@@ -23,8 +23,8 @@ function Admin_maintenancesettings() {
      
        
     <>  
-        
-     <Grid>
+        <Center>
+        <Grid style={{width:"100vh"}}> 
       <Grid.Col span={12} style={{ marginLeft:"2%" }}>  <Text underline weight={700} >  Maintenance Settings </Text></Grid.Col>
    
 
@@ -82,7 +82,7 @@ function Admin_maintenancesettings() {
    
     
     
-
+</Center>
     </>
 
    

@@ -1,6 +1,6 @@
 
 
-import { Grid, Textarea, Table, Checkbox, Button,Text, TextInput } from "@mantine/core";
+import { Grid, Textarea, Table, Checkbox, Button,Text, TextInput, Center } from "@mantine/core";
 import Admin_navigation from "./Admin_navigation";
 
 import{
@@ -11,16 +11,43 @@ import{
 
 
 } from "react-router-dom";
+import { useState } from "react";
+
+function generateRandomString() {
+    var result           = "";
+    var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    var charactersLength = characters.length;
+    for ( var i = 0; i < 16; i++ ) {
+      result += characters.charAt(Math.floor(Math.random() * 
+    charactersLength));
+   }
+ 
+   return result;
+}
 
 function Admin_create_key() {
 
+
+    let [value, setValue] = useState('');
+    function generateKeys(){
+        setValue (prevValue => generateRandomString());
+       
+    }
+
+
+
+   
+   
+
+
+
  return (
-     
+    
+  
        <>
-
-<Grid>
+<Center>
+<Grid style={{width:"80vh"}}>
 <Grid.Col span={12} style={{ marginLeft:"2%",marginTop:"2%",maxWidth:"50%", border: '1px solid'}}>    
-
 
 
 
@@ -36,17 +63,21 @@ function Admin_create_key() {
 <Table>
     <tr>
 <td>
+
 <TextInput
       label="API Key"
       radius="xs"
       size="md"
       required
+        value={value}
+        onChange={(event) => setValue(event.currentTarget.value)}
+   
     />
 
     </td>
     <td>
 
-    <Button >Generate</Button>
+    <Button onClick={generateKeys}>Generate</Button>
     </td>
 
     </tr>
@@ -61,6 +92,7 @@ function Admin_create_key() {
       radius="xs"
       size="md"
       required
+     
     />
 
 </Grid.Col>
@@ -91,7 +123,7 @@ function Admin_create_key() {
 
 
       </Grid>
-
+      </Center>
 </>
    
  );
@@ -102,3 +134,7 @@ function Admin_create_key() {
 
 
 export default Admin_create_key;
+
+
+
+

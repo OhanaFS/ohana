@@ -1,7 +1,7 @@
 
 
 
-import { Grid, Textarea, Table, Checkbox, Button,Text, TextInput } from "@mantine/core";
+import { Grid, Textarea, Table, Checkbox, Button,Text, TextInput, Center } from "@mantine/core";
 import Admin_navigation from "./Admin_navigation";
 import{
     BrowserRouter as Router,
@@ -21,9 +21,9 @@ function Admin_nodes() {
  return (
      
        <>
-
-<Grid>
-<Grid.Col span={12} style={{height:"500px", marginLeft:"2%",marginTop:"2%",maxWidth:"50%", border: '1px solid'}}>    
+<Center>
+<Grid style={{width:"100vh"}}>
+<Grid.Col span={12} style={{height:"500px", marginLeft:"2%",marginTop:"2%", border: '1px solid'}}>    
 
 
 
@@ -81,7 +81,7 @@ function Admin_nodes() {
 
   
 
-<Button  style={{ marginLeft: "", marginTop:"1%" }} component={Link} to="/Admin_create_key"  >Add Node</Button>
+<Button  style={{ marginLeft: "", marginTop:"1%" }} component={Link} to="/"  >Add Node</Button>
 
 
     </td>
@@ -125,7 +125,7 @@ function Admin_nodes() {
 
 
       </Grid>
-
+      </Center>
 </>
    
  );
