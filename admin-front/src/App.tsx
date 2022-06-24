@@ -3,19 +3,10 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import AppBase from "./components/AppShell"; //switched to responsive base
 import { VFSBrowser } from './components/userFiles';
 
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Admin_maintenance from './Admin_maintenancelogs';
-import Admin_maintenanceSettings from './Admin_runmaintenance';
-
-import img from '../src/images/1.png';
-
-import Admin_navigation from "./Admin_navigation";
 import Admin_ssogroups from './Admin_ssogroups';
 
 import LoginPage from './LoginPage';
 import Admin_configuration from './Admin_configuration';
-import { useState } from 'react';
-import { Box, BackgroundImage,useMantineTheme, Center, Title, TextInput, Button } from '@mantine/core';
 import Admin_create_key from './Admin_create_key';
 import Admin_create_sso_key from './Admin_create_sso_key';
 import Admin_key_management from './Admin_key_management';
