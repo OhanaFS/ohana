@@ -15,6 +15,7 @@ To get started with development, you'll need:
 - [Docker and Docker Compose](https://www.docker.com/)
 - GNU Make
 - [upx](https://github.com/upx/upx) (optional)
+- Node
 
 Once you have the tools installed, simply run `make`:
 
@@ -34,6 +35,19 @@ CONFIG_FILE=config.example.yaml make run
 
 Then try out one of the routes! Go to https://127.0.0.1:8000/v1/_health in your
 browser and you should see something.
+
+To edit the front-end, go to web folder:
+```bash
+cd admin-front
+
+# Install dependencies
+yarn
+
+# Start dev server
+yarn dev
+```
+
+The front-end will launch at http://localhost:3000/
 
 ### Conventions
 

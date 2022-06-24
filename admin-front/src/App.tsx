@@ -1,4 +1,7 @@
-
+//import AppBase from "./AppBase";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import AppBase from "./components/AppShell"; //switched to responsive base
+import { VFSBrowser } from './components/userFiles';
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Admin_maintenance from './Admin_maintenancelogs';
@@ -39,7 +42,9 @@ export default function Demo() {
     
        <Router>
       <Routes>
-        <Route path='/' element={<LoginPage />}/>  
+        <Route path='/files' element={<AppBase name='Alex' username='@alex' image='https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80'><></></AppBase>} />
+        <Route path='/' element={<VFSBrowser />} />
+        <Route path='/admin' element={<LoginPage />}/>  
         <Route path="/Admin_create_sso_key" element={<Admin_create_sso_key  />} />
        <Route path="/Admin_ssogroups_inside" element={<Admin_ssogroups_inside/>} />
        <Route path="/Admin_key_management" element={<Admin_key_management/>} />
