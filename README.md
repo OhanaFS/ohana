@@ -38,7 +38,7 @@ browser and you should see something.
 
 To edit the front-end, go to web folder:
 ```bash
-cd web
+cd admin-front
 
 # Install dependencies
 yarn
