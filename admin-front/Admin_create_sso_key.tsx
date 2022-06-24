@@ -25,6 +25,7 @@ function Admin_create_sso_key() {
  return (
      
        <>
+       <Admin_navigation>
 <Center >
 <Grid style={{width:"100vh"}}>
 <Grid.Col span={12} style={{ marginLeft:"2%",marginTop:"2%", border: '1px solid'}}>   
@@ -82,6 +83,7 @@ function Admin_create_sso_key() {
 
       </Grid>
       </Center>
+      </Admin_navigation>
 </>
    
  );

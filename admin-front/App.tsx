@@ -8,7 +8,7 @@ import img from '../src/images/1.png';
 
 import Admin_navigation from "./Admin_navigation";
 import Admin_ssogroups from './Admin_ssogroups';
-import Admin_statistics from './Admin_statistics';
+
 import LoginPage from './LoginPage';
 import Admin_configuration from './Admin_configuration';
 import { useState } from 'react';
@@ -24,32 +24,44 @@ import Admin_performmaintenance from './Admin_performmaintenance';
 import Admin_runmaintenance from './Admin_runmaintenance';
 import Admin_settings from './Admin_settings';
 import Admin_ssogroups_inside from './Admin_ssogroups_inside';
+import { Admin_statistics } from './Admin_statistics';
 
 
 export default function Demo() {
 
-  const [Login,setIsToggled]= useState(false);
-  const theme = useMantineTheme();
+
+
   return (
-    <>
-    <div> 
-
-    {Login  && <Admin_navigation  />  
     
-    }
 
+  
 
-    {!Login && <LoginPage setIsToggled={setIsToggled} />
-
-   
-    }
     
-   
-</div>
+       <Router>
+      <Routes>
+        <Route path='/' element={<LoginPage />}/>  
+        <Route path="/Admin_create_sso_key" element={<Admin_create_sso_key  />} />
+       <Route path="/Admin_ssogroups_inside" element={<Admin_ssogroups_inside/>} />
+       <Route path="/Admin_key_management" element={<Admin_key_management/>} />
+       <Route path="/Admin_maintenanceresults" element={<Admin_maintenanceresults/>} />
+       <Route path="/Admin_performmaintenance" element={<Admin_performmaintenance/>} />
+       <Route path="/Admin_maintenancesettings" element={<Admin_maintenancesettings/>} />
+       <Route path="/Admin_runmaintenance" element={<Admin_runmaintenance/>} />
+       <Route path="/Admin_statistics" element={<Admin_statistics />} />
+       <Route path="/Admin_ssogroups" element={<Admin_ssogroups/>} />
+       <Route path="/Admin_nodes" element={<Admin_nodes/>} />
+       <Route path="/Admin_maintenancelogs" element={<Admin_maintenancelogs/>} />
+       <Route path="/Admin_settings" element={<Admin_settings/>} />
+       <Route path="/Admin_configuration" element={<Admin_configuration/>} />
+       <Route path="/Admin_create_key" element={<Admin_create_key/>} />
+    
+      </Routes>
+    </Router>
+
  
     
     
- </>
+
 
    
 

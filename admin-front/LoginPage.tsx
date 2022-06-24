@@ -57,10 +57,10 @@ function LoginPage({setIsToggled}:any) {
                         color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
                     })} />
 
-        <Button variant="default" color="dark" radius="xs" size="md"  onClick={()=>setIsToggled(true)}      > 
+        <Button<typeof Link> style={{marginBottom:"2%"}}variant="default" color="dark" radius="xs" size="md"    component={Link} to="/Admin_statistics"    > 
                         Login Using SSO
                     </Button>
-      
+                   
            
                  
          

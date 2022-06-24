@@ -19,7 +19,7 @@ function Admin_performmaintenance() {
 
 
       <>
-
+<Admin_navigation>
 <Center>
 <Grid style={{width:"100vh"}}> 
             <Grid.Col span={6} style={{ height: "600px", marginTop: "1%" }}>
@@ -65,6 +65,7 @@ function Admin_performmaintenance() {
             </Grid.Col>
          </Grid>
          </Center>
+         </Admin_navigation>
       </>
 
 

@@ -20,7 +20,7 @@ function Admin_maintenanceresults() {
  return (
      
        
-    <>
+    <><Admin_navigation>
        
     
      <Center>
@@ -79,6 +79,7 @@ function Admin_maintenanceresults() {
             </Grid.Col>
          </Grid>
          </Center>
+         </Admin_navigation>
     </>
 
    

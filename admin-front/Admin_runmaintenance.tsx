@@ -80,6 +80,7 @@ function Admin_runmaintenance() {
      
        
     <>
+    <Admin_navigation>
   <Center>
 
   
@@ -174,7 +175,7 @@ function Admin_runmaintenance() {
 
 
     </Center>
- 
+    </Admin_navigation>
  
    
 </>

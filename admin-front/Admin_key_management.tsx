@@ -18,8 +18,8 @@ function Admin_key_management() {
 
 
  return (
-     
-       <>
+  <Admin_navigation>
+      
 <Center>
 
 <Grid style={{width:"80vh"}}>
@@ -126,7 +126,8 @@ function Admin_key_management() {
 
       </Grid>
       </Center>
-</>
+      </Admin_navigation>
+
    
  );
     }

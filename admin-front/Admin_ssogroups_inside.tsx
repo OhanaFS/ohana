@@ -20,7 +20,7 @@ function Admin_ssogroups_inside() {
  return (
      
        <>
-
+<Admin_navigation>
 <Center>
 <Grid style={{width:"80vh"}}>
 <Grid.Col span={12} style={{height:"500px", marginLeft:"2%",marginTop:"2%", border: '1px solid'}}>    
@@ -126,6 +126,7 @@ function Admin_ssogroups_inside() {
 
       </Grid>
       </Center>
+      </Admin_navigation>
 </>
    
  );

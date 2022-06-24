@@ -1,21 +1,14 @@
+
 import { AppShell, Aside, Burger, Button, Footer, Header, MediaQuery, Navbar,Text, Title, useMantineTheme,ScrollArea, createStyles, Tooltip, UnstyledButton, ThemeIcon, Group } from "@mantine/core";
 import { useState  } from "react";
 
-import Admin_statistics from "./Admin_statistics";
-import Admin_ssogroups from "./Admin_ssogroups";
-import Admin_create_key from "./Admin_create_key";
-import Admin_maintenancelogs from "./Admin_maintenancelogs";
-import Admin_nodes from "./Admin_nodes";
-import Admin_settings from "./Admin_settings";
-import Admin_configuration from "./Admin_configuration";
-import Admin_runmaintenance from "./Admin_runmaintenance";
 
+ 
 
 import{
     BrowserRouter as Router,
     Link,
-    Route,
-    Routes
+
 
 
 } from "react-router-dom";
@@ -52,6 +45,13 @@ import {
 } from 'tabler-icons-react';
 
 
+type AppBaseProps = {
+  children: React.ReactNode;
+
+}
+function Admin_navigation( props: AppBaseProps) {
+    const theme = useMantineTheme();
+    
 const useStyles = createStyles((theme, _params, getRef) => {
   const icon = getRef('icon');
 
@@ -119,6 +119,8 @@ interface NavbarLinkProps {
   active?: boolean;
   onClick?(): void;
 }
+
+
 const data = [
   { link: '', label: 'Dashboard', icon: Dashboard,to:"/Admin_statistics" },
   { link: '', label: 'SSO', icon: User,to:"/Admin_ssogroups" },
@@ -128,8 +130,6 @@ const data = [
   { link: '', label: 'Rotate Key', icon: Rotate,to:"/Admin_configuration" },
   { link: '', label: 'Key Management', icon: Edit,to:"/Admin_key_management" },
 ];
-function Admin_navigation({setIsToggled}:any) {
-    const theme = useMantineTheme();
     const { classes, cx } = useStyles();
     const backgroundimage = require('../src/images/2.webp');
     const [opened, setOpened] = useState(false);
@@ -155,7 +155,7 @@ function Admin_navigation({setIsToggled}:any) {
     )); 
     return (
 <>     
-        <Router>
+     
         <AppShell   
         styles={{
           main: {
@@ -183,9 +183,9 @@ function Admin_navigation({setIsToggled}:any) {
       <Navbar.Section className={classes.footer}>
   
   
-        <a href="#" className={classes.link} onClick={()=>setIsToggled(false)}>
+        <a href="#" className={classes.link} >
       
-          <Text color="dark"style={{marginBottom:"20%",height:"50px"}} component={Link} to="/" variant="link"  onClick={()=>setIsToggled(false)} >
+          <Text color="dark"style={{marginBottom:"20%",height:"50px"}} component={Link} to="/" variant="link"   >
              Logout
             </Text>
         </a>
@@ -193,7 +193,8 @@ function Admin_navigation({setIsToggled}:any) {
     </Navbar>
         }
      
-     
+      
+    
         header={
           <Header height={70} p="md">
             <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
@@ -215,28 +216,9 @@ function Admin_navigation({setIsToggled}:any) {
 
         }
       >
-       <Routes>
-       
-       <Route path="/Admin_create_sso_key" element={<Admin_create_sso_key  />} />
-       <Route path="/Admin_ssogroups_inside" element={<Admin_ssogroups_inside/>} />
-       <Route path="/Admin_key_management" element={<Admin_key_management/>} />
-       <Route path="/Admin_maintenanceresults" element={<Admin_maintenanceresults/>} />
-       <Route path="/Admin_performmaintenance" element={<Admin_performmaintenance/>} />
-       <Route path="/Admin_maintenancesettings" element={<Admin_maintenancesettings/>} />
-       <Route path="/Admin_runmaintenance" element={<Admin_runmaintenance/>} />
-       <Route path="/Admin_statistics" element={<Admin_statistics />} />
-       <Route path="/Admin_ssogroups" element={<Admin_ssogroups/>} />
-       <Route path="/Admin_nodes" element={<Admin_nodes/>} />
-       <Route path="/Admin_maintenancelogs" element={<Admin_maintenancelogs/>} />
-       <Route path="/Admin_settings" element={<Admin_settings/>} />
-       <Route path="/Admin_configuration" element={<Admin_configuration/>} />
-       <Route path="/Admin_create_key" element={<Admin_create_key/>} />
-       <Route path="/LoginPage" element={<LoginPage/>} />
-
-       
-       </Routes>
+     {props.children}
       </AppShell>
-      </Router>
+
       </>
     );
        }

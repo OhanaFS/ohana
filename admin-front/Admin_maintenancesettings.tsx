@@ -12,6 +12,7 @@ import{
  
  } from "react-router-dom";
 import { Settings } from "tabler-icons-react";
+import Admin_navigation from "./Admin_navigation";
 
 function Admin_maintenancesettings() {
    const theme = useMantineTheme();
@@ -87,8 +88,8 @@ function Admin_maintenancesettings() {
  return (
      
        
-    <>  
-
+  
+<Admin_navigation>
 
 <Center>
 
@@ -192,8 +193,8 @@ function Admin_maintenancesettings() {
 
 
 </Center>
-      
-    </>
+</Admin_navigation>
+
 
    
  );

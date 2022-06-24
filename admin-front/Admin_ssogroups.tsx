@@ -19,6 +19,7 @@ import { useState } from "react";
 
 
 function Admin_ssogroups() {
+  
    // take from database.
    let [CurrentSSOGroups, setValue] = useState([
       "Finance",
@@ -38,6 +39,7 @@ function Admin_ssogroups() {
  return (
      
        <>
+     <Admin_navigation>
   <Center>
 <Grid style={{width:"120vh"}} >
 
@@ -52,7 +54,7 @@ function Admin_ssogroups() {
 
 <tr>
    <td>
-<Text underline weight={700} style={{marginLeft:"2%",marginTop:"0%"}}> <h2>Current SSO Groups</h2>   </Text>
+<Text underline weight={700} style={{marginLeft:"2%",marginTop:"30%"}}> <h2>Current SSO Groups</h2>   </Text>
 </td>
 <td>
 <Button  style={{ marginLeft: "Auto", marginTop:"2%" }} component={Link} to="/Admin_create_sso_key"  >Create SSO Groups</Button>
@@ -109,7 +111,7 @@ function Admin_ssogroups() {
 
       </Grid>
       </Center>
-
+      </Admin_navigation>
 </>
    
  );

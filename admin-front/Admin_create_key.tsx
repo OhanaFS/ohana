@@ -43,8 +43,8 @@ function Admin_create_key() {
 
  return (
     
-  
-       <>
+    <Admin_navigation>
+   
 <Center>
 <Grid style={{width:"80vh"}}>
 <Grid.Col span={12} style={{ marginLeft:"2%",marginTop:"2%",maxWidth:"50%", border: '1px solid'}}>    
@@ -124,7 +124,8 @@ function Admin_create_key() {
 
       </Grid>
       </Center>
-</>
+      </Admin_navigation>
+
    
  );
     }

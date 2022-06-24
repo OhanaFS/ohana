@@ -72,7 +72,7 @@ function Admin_settings () {
      
        
     <>
-
+<Admin_navigation>
 <Center>
 
 
@@ -158,7 +158,7 @@ function Admin_settings () {
 
 
 </Center>
-    
+</Admin_navigation>
     </>
 
    

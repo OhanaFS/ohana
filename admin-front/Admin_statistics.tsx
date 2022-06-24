@@ -1,23 +1,21 @@
-
-
-
-
-import { Box, Button, Card, Center, Container, Table, Text, TextInput, Title, useMantineTheme, Image, Grid, Paper, ScrollArea } from '@mantine/core';
-
-
 import Admin_navigation from './Admin_navigation';
 
-import { Area, AreaChart, Bar, BarChart,CartesianGrid, Cell, Legend, Pie, PieChart, Tooltip, XAxis, YAxis, Sector,  ResponsiveContainer} from 'recharts';
-import { useScrollIntoView } from '@mantine/hooks';
+import { Button, Card, Table, Text, useMantineTheme, Grid, ScrollArea } from '@mantine/core';
+
 import { useState } from 'react';
+import { useScrollIntoView } from '@mantine/hooks';
+
+import { Area, AreaChart, Cell, Legend, Pie, PieChart, Tooltip, XAxis, YAxis, ResponsiveContainer} from 'recharts';
 
 
 
 
+ 
 
-function Admin_statistics(props:any) {
+ 
+export function Admin_statistics() {
    
-   
+ 
    const theme = useMantineTheme();
 
    const [status,setStatus]= useState(["Healthy"]);
@@ -237,8 +235,14 @@ function Admin_statistics(props:any) {
    return (
 
 
-      <> 
-    <Center  >
+ 
+ 
+  
+<Admin_navigation>
+   
+   <Text style={{marginLeft:"10%",width:""}}> </Text>
+
+
          <Table style={{marginLeft:"10%",width:"180vh"}}>
             <tr> <h2 style={{fontWeight:"600",fontSize:"22px",color:"black",marginLeft:"5%"}}>DASHBOARD</h2></tr>
             <tr style={{  }}>
@@ -440,11 +444,10 @@ function Admin_statistics(props:any) {
 
          </Table>
 
-         </Center>
+                                      </Admin_navigation>
 
 
-
-      </>
+        
 
 
    );
@@ -454,4 +457,4 @@ function Admin_statistics(props:any) {
 
 
 
-export default Admin_statistics;
+

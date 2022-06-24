@@ -14,7 +14,7 @@ function Admin_configuration() {
        <>
   
 
-
+  <Admin_navigation>
 
       <Center style={{}}>
   
@@ -22,7 +22,7 @@ function Admin_configuration() {
   
         
   
-        <Card  style={{ marginLeft: "0%", height: '45vh', border: '1px solid ', marginTop: "10%", width: "160%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}
+        <Card  style={{ marginLeft: "0%", height: '45vh', border: '1px solid ', marginTop: "", width: "160%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}
                        shadow="sm"
                        p="xl"
   
@@ -78,7 +78,7 @@ function Admin_configuration() {
       </Grid>
   
       </Center>
-
+</Admin_navigation>
 </>
    
  );

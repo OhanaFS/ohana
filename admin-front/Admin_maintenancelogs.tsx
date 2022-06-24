@@ -746,6 +746,7 @@ function Admin_maintenancelogs() {
  return (
         
        <>
+       <Admin_navigation>
 <Center style={{marginRight:"25%"}}>
   
 <Grid style={{width:"100vh"}}> 
@@ -795,6 +796,7 @@ function Admin_maintenancelogs() {
     </Grid>
 
     </Center>
+    </Admin_navigation>
 </>
    
  );
