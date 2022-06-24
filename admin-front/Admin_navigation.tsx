@@ -207,7 +207,7 @@ function Admin_navigation({setIsToggled}:any) {
                 />
               </MediaQuery>
   
-              <Title order={2}>Ohana </Title>
+              <Title style={{marginLeft:"1%"}} order={2}>Ohana </Title>
             </div>
           </Header>
    

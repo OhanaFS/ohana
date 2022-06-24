@@ -1,6 +1,6 @@
 
 
-import { Grid, Checkbox, Button,Text, Center } from "@mantine/core";
+import { Grid, Checkbox, Button,Text, Center, Table, Card, useMantineTheme } from "@mantine/core";
 import { Console } from "console";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -9,7 +9,7 @@ import Admin_navigation from "./Admin_navigation";
 import { useForceUpdate, randomId } from '@mantine/hooks';
 
 function Admin_settings () {
-
+  const theme = useMantineTheme();
    //retrieve from database
    let ConfigurationSettings = [
       {name: 'clusterAlerts', setting: "true"},
@@ -62,74 +62,103 @@ function Admin_settings () {
     let redundancy= ConfigurationSettings[6].setting;
 
 
+    const [disable, setDisable] = useState(true);
+    let [count,setCount]=useState(0);
 
-    
-
-
+ 
    
 
  return (
      
        
     <>
-      <Center >
-       <Grid  style={{width:"100vh"}}>
+
+<Center>
+
+
   
-     
 
-      <Grid.Col span={10} style={{ marginLeft:"2%",marginTop:"2%",maxWidth:"80%", border: '1px solid'}}>   <Text style={{ marginLeft:"1%"}}>  Allow Cluster health alerts   </Text></Grid.Col>
-      <Grid.Col span={2}  style={{ marginTop:"5%"}}>
-         
-         
-         
-      <Checkbox size="md" id="clusterAlerts"    checked={checked0} onChange={(event) => setChecked(event.currentTarget.checked)}/>
-         
-         
-         
-         </Grid.Col>
+<Card  style={{ marginLeft: "0%", height: '65vh', border: '1px solid ', marginTop: "3%", width: "60%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white[0] }}
+                 shadow="sm"
+                 p="xl"            >
+<Table striped  verticalSpacing="md"  >
+<caption style={{fontWeight:"600",fontSize:"22px",color:"black"}}> <span style={{textAlign: "center"}}>Notification Settings</span> 
 
-      <Grid.Col span={10} style={{ marginLeft:"2%",marginTop:"2%",maxWidth:"80%", border: '1px solid'}}>   <Text style={{ marginLeft:"1%"}}>  Allow server offline alerts </Text></Grid.Col>
-      <Grid.Col span={2} style={{ marginTop:"2%"}}><Checkbox size="md" id="1"   checked={checked1} onChange={(event) => setChecked1(event.currentTarget.checked)}/></Grid.Col>
 
-      <Grid.Col span={10} style={{ marginLeft:"2%",marginTop:"2%",maxWidth:"80%", border: '1px solid'}}>   <Text style={{ marginLeft:"1%"}}>   Allow supicious action alerts </Text></Grid.Col>
-      <Grid.Col span={2} style={{ marginTop:"2%"}}><Checkbox size="md" id="1"  checked={checked2} onChange={(event) => setChecked2(event.currentTarget.checked)}/></Grid.Col>
 
-      <Grid.Col span={10} style={{ marginLeft:"2%",marginTop:"2%",maxWidth:"80%", border: '1px solid'}}>   <Text style={{ marginLeft:"1%"}}>   Allow server full alert </Text></Grid.Col>
-      <Grid.Col span={2} style={{ marginTop:"2%"}}><Checkbox size="md" id="1"   checked={checked3} onChange={(event) => setChecked3(event.currentTarget.checked)} /></Grid.Col>
-     
-      <Grid.Col span={10} style={{ marginLeft:"2%",marginTop:"2%",maxWidth:"80%", border: '1px solid'}}>   <Text style={{ marginLeft:"1%"}}>     Allow supicious file alerts  </Text></Grid.Col>
-      <Grid.Col span={2} style={{ marginTop:"2%"}}><Checkbox size="md" id="1"   checked={checked4} onChange={(event) => setChecked4(event.currentTarget.checked)}/></Grid.Col>
+</caption>
 
-      <Grid.Col span={12} style={{ marginLeft:"2%",marginTop:"2%",maxWidth:"90%", border: '1px solid'}} >   <div style={{ marginLeft:"1%"}}>    Backup encryption key  
-      
-      <Button style={{marginLeft:"70%",height:"30px"}}> Backup</Button>
-      <Text weight={700}>Current Location:{currentLocation} </Text>
-      </div>
-       </Grid.Col>
-      
-      
+<thead> 
+
+
+</thead>
+  <tbody style={{}}>
+
+
+<tr>
+<td width="50%" style={{textAlign: "left",fontWeight:"400",fontSize:"18px",color:"black"}}>  <Text style={{ }}> Allow Cluster health alerts   </Text></td>
+<td width="50%" > <Center style={{marginLeft:"80%"}}>  <Checkbox size="md" style={{}} checked={checked0} onChange={(event) => [setChecked(event.currentTarget.checked),setDisable(event.currentTarget.checked)]}/> </Center>   </td>
+</tr>
+
+<tr>
+<td width="50%" style={{textAlign: "left",fontWeight:"400",fontSize:"18px",color:"black"}}>  <Text style={{ }}>    Allow server offline alerts </Text></td>
+<td width="50%"> <Center style={{marginLeft:"80%"}}> <Checkbox size="md" id="1" style={{}} checked={checked1} onChange={(event) => [setChecked1(event.currentTarget.checked),setDisable(event.currentTarget.checked)]}/> </Center></td>
+</tr>
+
+<tr>
+<td width="50%" style={{textAlign: "left",fontWeight:"400",fontSize:"18px",color:"black"}}>  <Text style={{ }}>     Allow supicious action alerts </Text> </td>
+<td width="50%"> <Center style={{marginLeft:"80%"}}> <Checkbox size="md" id="1" style={{}}  checked={checked2} onChange={(event) => [setChecked2(event.currentTarget.checked),setDisable(event.currentTarget.checked)]}/> </Center> </td>
+</tr>
+
+
+
+<tr>
+<td width="50%" style={{textAlign: "left",fontWeight:"400",fontSize:"18px",color:"black"}}>  <span style={{ }}>     Allow server full alert </span> </td>
+<td width="50%"> <Center style={{marginLeft:"80%"}}>  <Checkbox size="md" id="1" style={{}} checked={checked3} onChange={(event) => [setChecked3(event.currentTarget.checked),setDisable(event.currentTarget.checked)]}/> </Center></td>
+</tr>
+
+<tr >
+<td width="50%" style={{textAlign: "left",fontWeight:"400",fontSize:"18px",color:"black"}} >  <span style={{ }}>      Allow supicious file alerts </span></td>
+<td width="50%" style={{}} ><Center style={{marginLeft:"80%"}}> <Checkbox size="md"id="1" style={{}}  checked={checked4} onChange={(event) => [setChecked4(event.currentTarget.checked),setDisable(event.currentTarget.checked)]}/></Center> </td>
+</tr>
+
+<tr> 
+  <td style={{textAlign: "left",fontWeight:"400",fontSize:"18px",color:"black"}}>  Backup encryption key    <Text  weight={700}>Current Location:{currentLocation} </Text>   </td>
+  <td>  <Button style={{float:"right"}}variant="default" color="dark" size="md"> Backup</Button></td>
+</tr>
+
+<tr>
+  <td style={{textAlign: "left",fontWeight:"400",fontSize:"18px",color:"black"}}>  Change the redundancy level of the files <Text weight={700}>Current redundancy level:{redundancy} </Text>  </td>
+  <td >  <Button style={{float:"right"}}variant="default" color="dark" size="md"> Change</Button></td>
+</tr>
+
+
+
+
+</tbody>
+<tfoot>
+  <td></td>
+<td>  
+<Button disabled={disable} style={{marginTop:"2%",float:"right"}}variant="default" color="dark" size="md"  >
+  Save Pending Changes
+</Button> 
+
+
+</td>
+</tfoot>
+
+</Table>
+
+
+
+  
+  
+
+</Card>
+
+
+</Center>
     
-
-
-      <Grid.Col span={12} style={{ marginLeft:"2%",marginTop:"2%",maxWidth:"90%", border: '1px solid'}}>    <div style={{ marginLeft:"1%"}}>  Change the redundancy level of the files 
-     
-      <Button style={{marginLeft:"54%",height:"30px"}}> Change</Button>
-      <Text weight={700}>Current redundancy level:{redundancy} </Text>
-      </div>
-      
-      
-      
-      
-      </Grid.Col>
-     
-
-      <Grid.Col span={12} style={{textAlign:'right' ,marginLeft:"2%",marginTop:"2%",maxWidth:"90%"}}>     <Button radius="md" size="xs"  >
-      Save Pending Changes
-        
-    </Button > </Grid.Col> 
-
-    </Grid>
-    </Center>
     </>
 
    

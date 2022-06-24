@@ -16,6 +16,11 @@ import{
 function Admin_maintenancelogs() {
     const theme = useMantineTheme();
     const {  scrollableRef } = useScrollIntoView();
+
+  
+  
+
+
     const maintenanceLogss = [
       {
         "Maintenance date": "26/05/2023",
@@ -718,8 +723,24 @@ function Admin_maintenancelogs() {
         "Maintenance Type": "Corrective"
       }
     ];
-    
-
+    const ths = (
+      <tr >
+        <th  style={{width:"20%",textAlign: "left",fontWeight:"700",fontSize:"16px",color:"black"}}>Maintenance Date</th>
+        <th   style={{width:"15%",textAlign: "left",fontWeight:"700",fontSize:"16px",color:"black"}}>Total Files</th>
+        <th   style={{width:"15%",textAlign: "left",fontWeight:"700",fontSize:"16px",color:"black"}}>	Time Started</th>
+        <th   style={{width:"15%",textAlign: "left",fontWeight:"700",fontSize:"16px",color:"black"}}>Time Ended</th>
+        <th   style={{width:"10%",textAlign: "left",fontWeight:"700",fontSize:"16px",color:"black"}}>Maintenance Type:</th>
+      </tr>
+    );
+    const rows = maintenanceLogss.map((items) => (
+      <tr >
+        <td width="20%" style={{textAlign: "left",fontWeight:"400",fontSize:"16px",color:"black"}}>{items["Maintenance date"]}</td>
+        <td width="15%" style={{textAlign: "left",fontWeight:"400",fontSize:"16px",color:"black"}}>{items["Total Files"]}</td>
+        <td width="15%" style={{textAlign: "left",fontWeight:"400",fontSize:"16px",color:"black"}}>{items["Start Time"]}</td>
+        <td width="15%" style={{textAlign: "left",fontWeight:"400",fontSize:"16px",color:"black"}}>{items["End Time"]}</td>
+        <td width="10%" style={{textAlign: "left",fontWeight:"400",fontSize:"16px",color:"black"}}>{items["Maintenance Type"]}</td>
+      </tr>
+    ));
   
 
  return (
@@ -728,13 +749,10 @@ function Admin_maintenancelogs() {
 <Center style={{marginRight:"25%"}}>
   
 <Grid style={{width:"100vh"}}> 
-<Grid.Col span={12}>
 
- <h2 style={{color:"#0756FF",marginLeft: ""}}>Past Maintenance Logs</h2>
-</Grid.Col> 
       <Grid.Col span={12}>
 
-      <Card  style={{ marginLeft: "0%", height: '80vh', border: '1px solid ', marginTop: "0%", width: "160%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.colors.gray[0] }}
+      <Card  style={{ marginLeft: "0%", height: '80vh', border: '1px solid ', marginTop: "3%", width: "160%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}
                      shadow="sm"
                      p="xl"
 
@@ -744,48 +762,24 @@ function Admin_maintenancelogs() {
 
                      </Card.Section>
                    
-                      <Table style={{marginLeft:"0%",marginTop:""}}>
-      <tr style={{borderBottom:"1px solid"}}>
-      <td width="20%" style={{textAlign: "left"}}> Maintenance Date</td>
-      <td width="15%" style={{textAlign: "left"}}> Total Files</td>
-      <td width="15%" style={{textAlign: "left"}}>Time Started</td>
-      <td width="15%" style={{textAlign: "left"}}> Time Ended</td>
-      <td width="10%" style={{textAlign: "left"}}>  Maintenance Type:</td>
-      </tr>
-      </Table>
+                  
  
     
     
-      <ScrollArea style={{ height:"85%",width:"100%",marginTop:"1%"}}>
-                     {maintenanceLogss.map((items, index) => {
-                        
-        return (
-          <Table style={{marginLeft:"0%"}}>
-    <tr >
-       <td width="20%"style={{whiteSpace:'nowrap',textAlign: "left"}}>  {items["Maintenance date"]}</td>
-      <td width="15%"style={{whiteSpace:'nowrap',textAlign: "left"}}>  {items["Total Files"]}</td>
-      <td width="15%"style={{whiteSpace:'nowrap',textAlign: "left"}}>   {items["Start Time"]}</td>
-      <td width="15%"style={{whiteSpace:'nowrap',textAlign: "left"}}>   {items["End Time"]}</td>
-      <td width="10%"style={{whiteSpace:'nowrap',textAlign: "left"}} >  {items["Maintenance Type"]}</td>
+      <ScrollArea style={{ height:"90%",width:"100%",marginTop:"1%"}}>
+      <Table captionSide="top" striped highlightOnHover verticalSpacing="sm" >
+      <caption style={{textAlign: "center",fontWeight:"600",fontSize:"24px",color:"black"}}>Maintenance Records</caption>
+    <thead>{ths}</thead>
+      <tbody>{rows}</tbody>
 
-       
-    
-    
-     
-      </tr>
-      </Table>
-   
-       
-      
-        );
-      })}
+    </Table>
      </ScrollArea>
   
      <div style={{ display: "flex" }}>
-     <Button  variant="gradient" gradient={{ from: 'teal', to: 'blue', deg: 50 }} style={{ marginLeft: "auto", marginTop:"3%" }} component={Link} to="/Admin_runmaintenance"  >Perform Maintenance</Button>
+     <Button  variant="default" color="dark" size="md" style={{ marginLeft: "auto", marginTop:"3%" }} component={Link} to="/Admin_runmaintenance"  >Perform Maintenance</Button>
 
      </div>
-    
+  
                   </Card>   
       
       

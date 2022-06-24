@@ -216,13 +216,31 @@ function Admin_statistics(props:any) {
       }
     ]
 
+    const ths = (
+      <tr >
+        <th  style={{width:"15%",textAlign: "left",fontWeight:"700",fontSize:"16px",color:"black"}}>Date and time</th>
+        <th   style={{width:"10%",textAlign: "left",fontWeight:"700",fontSize:"16px",color:"black"}}>User</th>
+        <th   style={{width:"10%",textAlign: "left",fontWeight:"700",fontSize:"16px",color:"black"}}>	Account</th>
+        <th   style={{width:"30%",textAlign: "left",fontWeight:"700",fontSize:"16px",color:"black"}}>Change</th>
+      
+      </tr>
+    );
+    const rows = logs.map((items) => (
+      <tr >
+        <td width="15%" style={{textAlign: "left",fontWeight:"400",fontSize:"16px",color:"black"}}>{items["Date and time"]}</td>
+        <td width="10%" style={{textAlign: "left",fontWeight:"400",fontSize:"16px",color:"black"}}>{items["User"]}</td>
+        <td width="10%" style={{textAlign: "left",fontWeight:"400",fontSize:"16px",color:"black"}}>{items["Account"]}</td>
+        <td width="30%" style={{textAlign: "left",fontWeight:"400",fontSize:"16px",color:"black"}}>{items["Change"]}</td>
+
+      </tr>
+    ));
    return (
 
 
       <> 
     <Center  >
          <Table style={{marginLeft:"10%",width:"180vh"}}>
-            <tr> <h2 style={{color:"#0756FF",marginLeft: "3%"}}>DASHBOARD</h2></tr>
+            <tr> <h2 style={{fontWeight:"600",fontSize:"22px",color:"black",marginLeft:"5%"}}>DASHBOARD</h2></tr>
             <tr style={{  }}>
                <td style={{ width: "20%" }}>
                   <Card style={{ marginLeft: "3%", height: '350px', border: '1px solid ', marginTop: "0%", width: "95%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.colors.gray[0] }}
@@ -301,40 +319,22 @@ function Admin_statistics(props:any) {
                      p="xl"
 
                   >
-                     <Card.Section style={{ textAlign: 'left', marginLeft: "1%" }}>
-                         <h2>Logs</h2> 
-
-                     </Card.Section>
-
-      <tr style={{borderBottom:"1px solid"}}>
-      <td width="25%"> Date and Time</td>
-      <td width="10%"> User</td>
-      <td width="10%"> Account</td>
-      <td width="30%"> Change</td>
-      </tr>
-      <ScrollArea style={{ height:"80%" }}>
-                     {logs.map((items, index) => {
-                        
-        return (
+                   <ScrollArea style={{ height:"95%",width:"103%"}}>
+                <Table captionSide="top" striped highlightOnHover verticalSpacing="xs" >
+             
+      <caption style={{textAlign: "left",fontWeight:"600",fontSize:"24px",color:"black",marginLeft:"2%"}}> Logs</caption>
   
-    <tr style={{borderBottom:"1px"}}>
-       <td width="25%"style={{whiteSpace:'nowrap',textAlign: "left"}}>  {items["Date and time"]}</td>
-      <td width="10%"style={{whiteSpace:'nowrap',textAlign: "left"}}>  {items["User"]}</td>
-      <td width="10%"style={{whiteSpace:'nowrap',textAlign: "left"}}>   {items["Account"]}</td>
-      <td width="30%"style={{textAlign: "left"}} >  {items["Change"]}</td>
 
-       
-    
-    
+
      
-      </tr>
+     
+      <thead>{ths}</thead>
+      <tbody>{rows}</tbody>
+  
     
-       
-      
-        );
-      })}
+      </Table>
       </ScrollArea>
-                     <Button variant="light" color="blue" style={{ textAlign: "right", marginLeft: '80%',marginTop:'1%' }}>
+                     <Button variant="default" color="dark" size="md"  style={{ textAlign: "right", marginLeft: '75%',marginTop:'1%' }}>
                         Export logs
                      </Button>
                   </Card>
