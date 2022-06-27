@@ -289,7 +289,7 @@ func TestFile(t *testing.T) {
 
 		// giving said user permissions to /TestPerms/perm1
 
-		err = subFolder1.AddPermission(db, &dbfs.PermissionNeeded{
+		err = subFolder1.AddPermissionUsers(db, &dbfs.PermissionNeeded{
 			Read: true,
 		}, &superUser, *user1)
 		Assert.Nil(err)
@@ -319,6 +319,30 @@ func TestFile(t *testing.T) {
 		hasPermission, err = superUser.HasPermission(db, subFolder3, &dbfs.PermissionNeeded{Read: true})
 		Assert.Equal(true, hasPermission)
 		Assert.Nil(err)
+
+	})
+
+	// Creating fake files
+	t.Run("Creating fake files", func(t *testing.T) {
+
+		Assert := assert.New(t)
+
+		// Making folders
+		newFolder, err := dbfs.CreateFolderByPath(db, "/TestFakeFiles", &superUser)
+		Assert.Nil(err)
+
+		// Creating fake files
+		file, err := dbfs.EXAMPLECreateFile(db, &superUser, "somefile.txt", newFolder.FileID)
+
+		Assert.Nil(err)
+		// Check if you can get da fragments
+		fragments, err := file.GetFileFragments(db, &superUser)
+		Assert.Nil(err)
+		Assert.Equal(5, len(fragments))
+
+		if debugPrint {
+			fmt.Println(fragments)
+		}
 
 	})
 

@@ -26,21 +26,29 @@ type Permission struct {
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	DeletedAt    gorm.DeletedAt `gorm:"index"`
-	Status       int            // 1 indicates active, 0 indicates time needs to be updated properly
+	Status       int8           // 1 indicates active, 0 indicates time needs to be updated properly
 }
 
 type PermissionInterface interface {
+}
 
-	// Global Private Functions. Called only by File
-	upsertGroupsPermission(tx *gorm.DB, file *File, permissionNeeded PermissionNeeded, groups ...Group)
-
-	// Removes user or groups permissions. Returns error if it becomes narrower
-	removeUsersPermission(tx *gorm.DB, file *File, users ...User) error
-	removeGroupsPermission(tx *gorm.DB, file *File, users ...Group) error
-
-	// updateMetadataPermission: Ran after upsert, modify on permissions on Files to ensure that the
-	// CreatedAt, UpdatedAt, DeletedAt times match with File
-	updateMetadataPermission(tx *gorm.DB, file *File) error
+type PermissionHistory struct {
+	FileID       string `gorm:"primaryKey"`
+	VersionNo    uint   `gorm:"primaryKey"`
+	PermissionID uint   `gorm:"primaryKey;autoIncrement"`
+	User         User   `gorm:"foreignKey:UserID"`
+	UserID       string
+	Group        Group `gorm:"foreignKey:GroupID"`
+	GroupID      string
+	CanRead      bool
+	CanWrite     bool
+	CanExecute   bool
+	CanShare     bool
+	Audit        bool
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	DeletedAt    gorm.DeletedAt `gorm:"index"`
+	Status       int8
 }
 
 // createPermissions takes in the parent file and copies it to the new File
@@ -126,7 +134,7 @@ func createPermissions(tx *gorm.DB, newFile *File, additionalPermissions ...Perm
 	return nil
 }
 
-// Upsert functions updates the users or groups with the new permissions given.
+// upsertUsersPermission functions updates the users with the new permissions given.
 // will return error if permissions get narrower than parent folder
 func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *PermissionNeeded, requestUser *User, users ...User) error {
 
@@ -135,137 +143,316 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *Permission
 		return err
 	}
 
-	if !isFileOrEmptyFolder {
-		// recursively go down
-		ls, err := ListFilesByPath(tx, file.FileID, requestUser)
+	err = tx.Transaction(func(tx *gorm.DB) error {
+		if !isFileOrEmptyFolder {
+			// recursively go down
+			ls, err2 := ListFilesByPath(tx, file.FileID, requestUser)
 
-		if err != nil {
-			return err
+			if err2 != nil {
+				return err2
+			}
+
+			for _, lsFile := range ls {
+				if err := upsertUsersPermission(tx, &lsFile, permissionNeeded, requestUser, users...); err != nil {
+					return err
+				}
+			}
 		}
 
-		for _, lsFile := range ls {
-			if err := upsertUsersPermission(tx, &lsFile, permissionNeeded, requestUser, users...); err != nil {
+		var oldPermissionRecords []Permission
+
+		tx.Where("file_id = ?", file.FileID).Find(&oldPermissionRecords)
+
+		for _, user := range users {
+			updated := false
+			for _, existingPermissions := range oldPermissionRecords {
+				if user.UserID == existingPermissions.UserID {
+					updated = true
+					// Modify existing permission
+					// ONLY ALLOW MORE, NOT LESS
+				}
+
+				if updated {
+
+					// Getting parent file/folder
+					var parentFile File
+					tx.Where("file_id = ?", file.ParentFolderFileID).First(&parentFile)
+
+					// Only allows removal of permissions if the parent doesn't have it as well.
+
+					// CanRead
+					if !existingPermissions.CanRead && permissionNeeded.Read {
+						existingPermissions.CanRead = true
+					} else if existingPermissions.CanRead && !permissionNeeded.Read {
+						// Check if parent has permission
+						hasPermission, err := user.HasPermission(tx, &parentFile, &PermissionNeeded{Read: true})
+
+						if err != nil {
+							return err
+						}
+
+						if hasPermission {
+							return ErrPermissionsAreNarrowerThanParent
+						} else {
+							existingPermissions.CanRead = false
+						}
+					}
+
+					// CanWrite
+					if !existingPermissions.CanWrite && permissionNeeded.Write {
+						existingPermissions.CanWrite = true
+					} else if existingPermissions.CanWrite && !permissionNeeded.Write {
+						// Check if parent has permission
+						hasPermission, err := user.HasPermission(tx, &parentFile, &PermissionNeeded{Write: true})
+
+						if err != nil {
+							return err
+						}
+
+						if hasPermission {
+							return ErrPermissionsAreNarrowerThanParent
+						} else {
+							existingPermissions.CanWrite = false
+						}
+					}
+
+					// CanExecute
+					if !existingPermissions.CanExecute && permissionNeeded.Execute {
+						existingPermissions.CanExecute = true
+					} else if existingPermissions.CanExecute && !permissionNeeded.Execute {
+						// Check if parent has permission
+						hasPermission, err := user.HasPermission(tx, &parentFile, &PermissionNeeded{Execute: true})
+
+						if err != nil {
+							return err
+						}
+
+						if hasPermission {
+							return ErrPermissionsAreNarrowerThanParent
+						} else {
+							existingPermissions.CanExecute = false
+						}
+					}
+
+					// CanShare
+					if !existingPermissions.CanShare && permissionNeeded.Share {
+						existingPermissions.CanShare = true
+					} else if existingPermissions.CanShare && !permissionNeeded.Share {
+						// Check if parent has permission
+						hasPermission, err := user.HasPermission(tx, &parentFile, &PermissionNeeded{Share: true})
+
+						if err != nil {
+							return err
+						}
+
+						if hasPermission {
+							return ErrPermissionsAreNarrowerThanParent
+						} else {
+							existingPermissions.CanShare = false
+						}
+					}
+
+					// Audit
+					if !existingPermissions.Audit && permissionNeeded.Audit {
+						existingPermissions.Audit = true
+					} else if existingPermissions.Audit && !permissionNeeded.Audit {
+						// Check if parent has permission
+						hasPermission, err := user.HasPermission(tx, &parentFile, &PermissionNeeded{Audit: true})
+
+						if err != nil {
+							return err
+						}
+
+						if hasPermission {
+							return ErrPermissionsAreNarrowerThanParent
+						} else {
+							existingPermissions.Audit = false
+						}
+					}
+
+					break
+
+				}
+
+			}
+			// Append permission
+			newPermission := Permission{
+				FileID:     file.FileID,
+				UserID:     user.UserID,
+				CanRead:    permissionNeeded.Read,
+				CanWrite:   permissionNeeded.Write,
+				CanExecute: permissionNeeded.Execute,
+				CanShare:   permissionNeeded.Share,
+				Audit:      permissionNeeded.Audit,
+				VersionNo:  file.VersionNo,
+				Status:     1,
+			}
+
+			oldPermissionRecords = append(oldPermissionRecords, newPermission)
+
+		}
+
+		// Save all new permissions
+		for _, permission := range oldPermissionRecords {
+			permission.VersionNo = file.VersionNo
+			permission.UpdatedAt = file.ModifiedTime
+			if err := tx.Save(&permission).Error; err != nil {
 				return err
 			}
 		}
+
+		return updatePermissionsVersions(tx, file, requestUser)
+
+	})
+
+	return nil
+
+}
+
+// upsertGroupsPermission functions updates the groups with the new permissions given.
+// will return error if permissions get narrower than parent folder
+func upsertGroupsPermission(tx *gorm.DB, file *File, permissionNeeded *PermissionNeeded, requestUser *User, groups ...Group) error {
+
+	isFileOrEmptyFolder, err := file.IsFileOrEmptyFolder(tx, requestUser)
+	if err != nil {
+		return err
 	}
 
-	var oldPermissionRecords []Permission
+	err = tx.Transaction(func(tx *gorm.DB) error {
 
-	tx.Where("file_id = ?", file.FileID).Find(&oldPermissionRecords)
+		if !isFileOrEmptyFolder {
+			// recursively go down
+			ls, err2 := ListFilesByPath(tx, file.FileID, requestUser)
 
-	for _, user := range users {
-		updated := false
-		for _, existingPermissions := range oldPermissionRecords {
-			if user.UserID == existingPermissions.UserID {
-				updated = true
-				// Modify existing permission
-				// ONLY ALLOW MORE, NOT LESS
+			if err2 != nil {
+				return err2
 			}
 
-			if updated {
+			for _, lsFile := range ls {
+				if err2 := upsertGroupsPermission(tx, &lsFile, permissionNeeded, requestUser, groups...); err2 != nil {
+					return err2
+				}
+			}
+		}
 
-				// Getting parent file/folder
-				var parentFile File
-				tx.Where("file_id = ?", file.ParentFolderFileID).First(&parentFile)
+		var oldPermissionRecords []Permission
 
-				// Only allows removal of permissions if the parent doesn't have it as well.
+		tx.Where("file_id = ?", file.FileID).Find(&oldPermissionRecords)
 
-				// CanRead
-				if !existingPermissions.CanRead && permissionNeeded.Read {
-					existingPermissions.CanRead = true
-				} else if existingPermissions.CanRead && !permissionNeeded.Read {
-					// Check if parent has permission
-					hasPermission, err := user.HasPermission(tx, &parentFile, &PermissionNeeded{Read: true})
-
-					if err != nil {
-						return err
-					}
-
-					if hasPermission {
-						return ErrPermissionsAreNarrowerThanParent
-					} else {
-						existingPermissions.CanRead = false
-					}
+		for _, group := range groups {
+			updated := false
+			for _, existingPermissions := range oldPermissionRecords {
+				if group.GroupID == existingPermissions.GroupID {
+					updated = true
+					// Modify existing permission
+					// ONLY ALLOW MORE, NOT LESS
 				}
 
-				// CanWrite
-				if !existingPermissions.CanWrite && permissionNeeded.Write {
-					existingPermissions.CanWrite = true
-				} else if existingPermissions.CanWrite && !permissionNeeded.Write {
-					// Check if parent has permission
-					hasPermission, err := user.HasPermission(tx, &parentFile, &PermissionNeeded{Write: true})
+				if updated {
 
-					if err != nil {
-						return err
+					// Getting parent file/folder
+					var parentFile File
+					tx.Where("file_id = ?", file.ParentFolderFileID).First(&parentFile)
+
+					// Only allows removal of permissions if the parent doesn't have it as well.
+
+					// CanRead
+					if !existingPermissions.CanRead && permissionNeeded.Read {
+						existingPermissions.CanRead = true
+					} else if existingPermissions.CanRead && !permissionNeeded.Read {
+						// Check if parent has permission
+						hasPermission, err2 := group.HasPermission(tx, &parentFile, &PermissionNeeded{Read: true})
+
+						if err2 != nil {
+							return err2
+						}
+
+						if hasPermission {
+							return ErrPermissionsAreNarrowerThanParent
+						} else {
+							existingPermissions.CanRead = false
+						}
 					}
 
-					if hasPermission {
-						return ErrPermissionsAreNarrowerThanParent
-					} else {
-						existingPermissions.CanWrite = false
+					// CanWrite
+					if !existingPermissions.CanWrite && permissionNeeded.Write {
+						existingPermissions.CanWrite = true
+					} else if existingPermissions.CanWrite && !permissionNeeded.Write {
+						// Check if parent has permission
+						hasPermission, err2 := group.HasPermission(tx, &parentFile, &PermissionNeeded{Write: true})
+
+						if err2 != nil {
+							return err2
+						}
+
+						if hasPermission {
+							return ErrPermissionsAreNarrowerThanParent
+						} else {
+							existingPermissions.CanWrite = false
+						}
 					}
+
+					// CanExecute
+					if !existingPermissions.CanExecute && permissionNeeded.Execute {
+						existingPermissions.CanExecute = true
+					} else if existingPermissions.CanExecute && !permissionNeeded.Execute {
+						// Check if parent has permission
+						hasPermission, err2 := group.HasPermission(tx, &parentFile, &PermissionNeeded{Execute: true})
+
+						if err2 != nil {
+							return err2
+						}
+
+						if hasPermission {
+							return ErrPermissionsAreNarrowerThanParent
+						} else {
+							existingPermissions.CanExecute = false
+						}
+					}
+
+					// CanShare
+					if !existingPermissions.CanShare && permissionNeeded.Share {
+						existingPermissions.CanShare = true
+					} else if existingPermissions.CanShare && !permissionNeeded.Share {
+						// Check if parent has permission
+						hasPermission, err2 := group.HasPermission(tx, &parentFile, &PermissionNeeded{Share: true})
+
+						if err2 != nil {
+							return err2
+						}
+
+						if hasPermission {
+							return ErrPermissionsAreNarrowerThanParent
+						} else {
+							existingPermissions.CanShare = false
+						}
+					}
+
+					// Audit
+					if !existingPermissions.Audit && permissionNeeded.Audit {
+						existingPermissions.Audit = true
+					} else if existingPermissions.Audit && !permissionNeeded.Audit {
+						// Check if parent has permission
+						hasPermission, err2 := group.HasPermission(tx, &parentFile, &PermissionNeeded{Audit: true})
+
+						if err2 != nil {
+							return err2
+						}
+
+						if hasPermission {
+							return ErrPermissionsAreNarrowerThanParent
+						} else {
+							existingPermissions.Audit = false
+						}
+					}
+					break
 				}
-
-				// CanExecute
-				if !existingPermissions.CanExecute && permissionNeeded.Execute {
-					existingPermissions.CanExecute = true
-				} else if existingPermissions.CanExecute && !permissionNeeded.Execute {
-					// Check if parent has permission
-					hasPermission, err := user.HasPermission(tx, &parentFile, &PermissionNeeded{Execute: true})
-
-					if err != nil {
-						return err
-					}
-
-					if hasPermission {
-						return ErrPermissionsAreNarrowerThanParent
-					} else {
-						existingPermissions.CanExecute = false
-					}
-				}
-
-				// CanShare
-				if !existingPermissions.CanShare && permissionNeeded.Share {
-					existingPermissions.CanShare = true
-				} else if existingPermissions.CanShare && !permissionNeeded.Share {
-					// Check if parent has permission
-					hasPermission, err := user.HasPermission(tx, &parentFile, &PermissionNeeded{Share: true})
-
-					if err != nil {
-						return err
-					}
-
-					if hasPermission {
-						return ErrPermissionsAreNarrowerThanParent
-					} else {
-						existingPermissions.CanShare = false
-					}
-				}
-
-				// Audit
-				if !existingPermissions.Audit && permissionNeeded.Audit {
-					existingPermissions.Audit = true
-				} else if existingPermissions.Audit && !permissionNeeded.Audit {
-					// Check if parent has permission
-					hasPermission, err := user.HasPermission(tx, &parentFile, &PermissionNeeded{Audit: true})
-
-					if err != nil {
-						return err
-					}
-
-					if hasPermission {
-						return ErrPermissionsAreNarrowerThanParent
-					} else {
-						existingPermissions.Audit = false
-					}
-				}
-
-			} else {
+			}
+			if !updated {
 				// Append permission
 				newPermission := Permission{
 					FileID:     file.FileID,
-					UserID:     user.UserID,
+					GroupID:    group.GroupID,
 					CanRead:    permissionNeeded.Read,
 					CanWrite:   permissionNeeded.Write,
 					CanExecute: permissionNeeded.Execute,
@@ -276,21 +463,23 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *Permission
 				}
 
 				oldPermissionRecords = append(oldPermissionRecords, newPermission)
+
 			}
-
 		}
-	}
 
-	// Save all new permissions
-	for _, permission := range oldPermissionRecords {
-		permission.VersionNo = file.VersionNo
-		permission.UpdatedAt = file.ModifiedTime
-		if err := tx.Save(&permission).Error; err != nil {
-			return err
+		// Save all new permissions
+		for _, permission := range oldPermissionRecords {
+			permission.VersionNo = file.VersionNo
+			permission.UpdatedAt = file.ModifiedTime
+			if err2 := tx.Save(&permission).Error; err2 != nil {
+				return err2
+			}
 		}
-	}
 
-	return nil
+		return updatePermissionsVersions(tx, file, requestUser)
+	})
+
+	return err
 
 }
 
@@ -300,6 +489,155 @@ func deleteFilePermissions(tx *gorm.DB, file *File) error {
 		return err
 	}
 	return nil
+}
+
+// revokeUsersPermission revokes users permissions. Returns error if it becomes narrower
+// DOES NOT TAKE INTO ACCOUNT IF THE USER IS IN A GROUP THAT HAS THE PERMISSION
+func revokeUsersPermission(tx *gorm.DB, file *File, users []User) error {
+
+	err := tx.Transaction(func(tx *gorm.DB) error {
+		for _, user := range users {
+
+			// Check if user has permission in the parent folder (if they do, can't revoke)
+			_, err := GetFileByID(tx, file.ParentFolderFileID, &user)
+
+			if err != nil {
+				if errors.Is(err, ErrFileNotFound) {
+					return ErrPermissionsAreNarrowerThanParent
+				} else {
+					return err
+				}
+			}
+
+			// Check if user has permission in the file and if so delete it.
+
+			err = tx.Where("file_id = ? AND user_id = ?", file.FileID, user.UserID).Delete(&Permission{}).Error
+			if err != nil {
+				return err
+			}
+		}
+
+		return updatePermissionsVersions(tx, file, nil)
+	})
+
+	return err
+
+}
+
+// revokeGroupsPermission revokes a Group's permissions. Returns error if it becomes narrower
+// DOES NOT TAKE INTO ACCOUNT IF THE USER IS IN A GROUP THAT HAS THE PERMISSION
+func revokeGroupsPermission(tx *gorm.DB, file *File, groups []Group) error {
+
+	err := tx.Transaction(func(tx *gorm.DB) error {
+		for _, group := range groups {
+
+			// Check if user has permission in the parent folder (if they do, can't revoke)
+
+			var count int64
+
+			err := tx.Where("file_id = ? AND group_id = ?", file.ParentFolderFileID, group.GroupID).Count(&count).Error
+			if err != nil {
+				if !errors.Is(err, gorm.ErrRecordNotFound) {
+					return err
+				}
+				count = 0
+			}
+
+			if count > 0 {
+				return ErrPermissionsAreNarrowerThanParent
+			}
+
+			// Check if group has permission in the file and if so delete it.
+
+			err = tx.Where("file_id = ? AND group_id = ?", file.FileID, group.GroupID).Delete(&Permission{}).Error
+			if err != nil {
+				return err
+			}
+		}
+		return updatePermissionsVersions(tx, file, nil)
+
+	})
+
+	return err
+
+}
+
+// updatePermissionsVersions updates the File, FileVersion, Permissions Version Number
+func updatePermissionsVersions(tx *gorm.DB, file *File, user *User) error {
+	return tx.Transaction(func(tx *gorm.DB) error {
+
+		// Update File
+		file.VersionNo = file.VersionNo + 1
+		err2 := tx.Save(&file).Error
+		if err2 != nil {
+			return err2
+		}
+
+		// Update FileVersion
+		err2 = createFileVersionFromFile(tx, file, user)
+		if err2 != nil {
+			return err2
+		}
+
+		// Updating current permission records to the new version number
+		err2 = tx.Model(&Permission{}).Where("file_id = ?", file.FileID).Updates(map[string]interface{}{"version_no": file.VersionNo}).Error
+		if err2 != nil {
+			return err2
+		}
+
+		// Dumping new permissions to PermissionHistory
+
+		var permissions []Permission
+		err2 = tx.Where("file_id = ?", file.FileID).Find(&permissions).Error
+		if err2 != nil {
+			return err2
+		}
+
+		for _, permission := range permissions {
+			err2 = tx.Save(&PermissionHistory{
+				FileID:     permission.FileID,
+				VersionNo:  permission.VersionNo,
+				GroupID:    permission.GroupID,
+				UserID:     permission.UserID,
+				CanRead:    permission.CanRead,
+				CanWrite:   permission.CanWrite,
+				CanExecute: permission.CanExecute,
+				CanShare:   permission.CanShare,
+				Audit:      permission.Audit,
+				Status:     permission.Status,
+				CreatedAt:  permission.CreatedAt,
+				UpdatedAt:  permission.UpdatedAt,
+			}).Error
+			if err2 != nil {
+				return err2
+			}
+		}
+
+		return nil
+	})
+
+}
+
+// updateMetadataPermission updates the version No and updated time to the File updated date.
+func updateMetadataPermission(tx *gorm.DB, file *File) error {
+
+	err := tx.Where("file_id = ?", file.FileID).Updates(map[string]interface{}{"version_no": file.VersionNo, "updated_at": file.ModifiedTime}).Error
+
+	return err
+}
+
+// GetPermissionHistory returns the PermissionHistory for a file
+func GetPermissionHistory(tx *gorm.DB, file *File, user *User) ([]PermissionHistory, error) {
+
+	// Check if the person has permission to view the file
+	_, err := GetFileByID(tx, file.FileID, user)
+	if err != nil {
+		return nil, err
+	}
+
+	var permissions []PermissionHistory
+	err = tx.Model(&Permission{}).Where("file_id = ?", file.FileID).Find(&permissions).Error
+	return permissions, err
 }
 
 // HasPermission verifies that the user has the permission requested to a file.
