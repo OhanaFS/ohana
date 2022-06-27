@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -15,15 +14,7 @@ import (
 
 // NewRouter creates a new gorilla/mux router.
 func NewRouter() *mux.Router {
-	r := mux.NewRouter()
-
-	// Add a default route
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "Welcome to Ohana!")
-	}).Methods("GET")
-
-	return r
+	return mux.NewRouter()
 }
 
 // StartServer creates a new HTTP server with the given router. It uses fx
@@ -38,6 +29,13 @@ func NewServer(
 		"Starting HTTP server",
 		zap.String("address", config.HTTP.Bind),
 	)
+
+	// Set up the SPA router
+	spa := &spaHandler{
+		staticPath: "web/build",
+		indexPath:  "index.html",
+	}
+	router.PathPrefix("/").Handler(spa)
 
 	// Wrap the router in a handler that logs requests
 	handler := NewLoggingMiddleware(logger)(router)
