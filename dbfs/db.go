@@ -26,7 +26,7 @@ func InitDB(db *gorm.DB) error {
 	rootFolder := File{
 		FileID:        "00000000-0000-0000-0000-000000000000",
 		FileName:      "root",
-		EntryType:     0,
+		EntryType:     ISFOLDER,
 		VersionNo:     0,
 		Size:          0,
 		ActualSize:    0,
@@ -43,9 +43,9 @@ func InitDB(db *gorm.DB) error {
 	// Assign superuser permission to root folder
 
 	permission := Permission{
-		FileID:     rootFolder.FileID,
+		FileId:     rootFolder.FileID,
 		User:       *superUser,
-		UserID:     superUser.UserID,
+		UserId:     superUser.UserId,
 		CanRead:    true,
 		CanWrite:   true,
 		CanExecute: true,

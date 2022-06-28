@@ -14,17 +14,18 @@ const (
 
 type Fragment struct {
 	gorm.Model
-	FileVersion          FileVersion `gorm:"foreignKey:FileVersionFileId,FileVersionVersionNo"`
-	FileVersionFileId    string      `gorm:"primaryKey"`
-	FileVersionDataId    string      `gorm:"primaryKey"`
-	FileVersionVersionNo uint        `gorm:"primaryKey"`
-	FragID               uint8       `gorm:"primaryKey"`
-	ServerID             string
-	FileFragmentPath     string
-	Checksum             string
-	LastChecked          time.Time
-	FragSize             uint `gorm:"not null"`
-	Status               int8
+	FileVersion              FileVersion `gorm:"foreignKey:FileVersionFileId,FileVersionVersionNo"`
+	FileVersionFileId        string      `gorm:"primaryKey"`
+	FileVersionDataId        string      `gorm:"primaryKey"`
+	FileVersionVersionNo     uint        `gorm:"primaryKey"`
+	FileVersionDataIDVersion uint
+	FragID                   uint `gorm:"primaryKey"`
+	ServerID                 string
+	FileFragmentPath         string
+	Checksum                 string
+	LastChecked              time.Time
+	FragCount                uint `gorm:"not null"`
+	Status                   int8
 }
 
 // UpdateStatus gets called after checking the status of each fragment

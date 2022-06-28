@@ -255,8 +255,6 @@ func TestFile(t *testing.T) {
 
 		Assert.Error(dbfs.ErrFolderNotEmpty, err)
 
-		// TODO: Delete folder which one has no permissions to
-
 		// DeleteFolderByIDCascade
 
 		err = dbfs.DeleteFolderByIDCascade(db, parentFolder.FileID, &superUser)
@@ -343,6 +341,125 @@ func TestFile(t *testing.T) {
 		if debugPrint {
 			fmt.Println(fragments)
 		}
+
+		file2, err := dbfs.EXAMPLECreateFile(db, &superUser, "somefile2.txt", newFolder.FileID)
+		Assert.Nil(err)
+		// Check if you can get da fragments
+		fragments, err = file2.GetFileFragments(db, &superUser)
+		Assert.Nil(err)
+		Assert.Equal(5, len(fragments))
+
+		if debugPrint {
+			fmt.Println(fragments)
+		}
+
+		file, err = dbfs.EXAMPLECreateFile(db, &superUser, "somefile2.txt", newFolder.FileID)
+		Assert.Error(dbfs.ErrFileFolderExists, err)
+
+		err = dbfs.DeleteFileByID(db, file2.FileID, &superUser)
+		Assert.Nil(err)
+
+		fragments, err = file2.GetFileFragments(db, &superUser)
+		Assert.Error(dbfs.ErrFileNotFound, err)
+		Assert.Equal(0, len(fragments))
+
+		if debugPrint {
+			fmt.Println(fragments)
+		}
+
+		// Test GetFileMeta
+		// To test for GetFileMeta, need to add some permissions to a file first
+
+		// Create a user
+		userForGetFileMeta, err := dbfs.CreateNewUser(db, "getFileMetaUser", "user1Name", dbfs.AccountTypeEndUser, "getFileMetaUser")
+		uselessUser, err := dbfs.CreateNewUser(db, "uselessUser", "user1Name", dbfs.AccountTypeEndUser, "uselessUser")
+		Assert.Nil(err)
+
+		newFile, err := dbfs.GetFileByPath(db, "/TestFakeFiles/somefile.txt", &superUser)
+
+		err = newFile.AddPermissionUsers(db, &dbfs.PermissionNeeded{Read: true, Write: true}, &superUser, *userForGetFileMeta)
+		Assert.Nil(err)
+
+		newFile, err = dbfs.GetFileByPath(db, "/TestFakeFiles/somefile.txt", &superUser)
+		Assert.Nil(err)
+		err = newFile.GetFileMeta(db, &superUser)
+		Assert.Nil(err)
+		Assert.Equal(newFile.ModifiedUser.UserId, superUser.UserId)
+		Assert.Equal(newFile.VersionNo, uint(1))
+
+		// See if the new user can get the file
+		newFile2, err := dbfs.GetFileByID(db, newFile.FileID, userForGetFileMeta)
+		Assert.Nil(err)
+		Assert.Equal(newFile.FileID, newFile2.FileID)
+		_, err = dbfs.GetFileByID(db, newFile.FileID, uselessUser)
+		Assert.Error(dbfs.ErrFileNotFound, err)
+
+		// Test GetOldVersion
+
+		newFileV0, err := newFile.GetOldVersion(db, userForGetFileMeta, 0)
+		Assert.Nil(err)
+		Assert.Equal(newFileV0.VersionNo, uint(0))
+
+		newFileV0, err = newFile.GetOldVersion(db, userForGetFileMeta, 20)
+		Assert.Error(dbfs.ErrVersionNotFound, err)
+
+		newFileV0, err = newFile.GetOldVersion(db, userForGetFileMeta, -10)
+		Assert.Error(dbfs.ErrVersionNotFound, err)
+
+		// Rename a file
+
+		err = newFile.UpdateMetaData(db, dbfs.FileMetadataModification{FileName: "pogfile.txt",
+			MIMEType: "text", VersioningMode: dbfs.VERSIONING_OFF}, &superUser)
+		Assert.Nil(err)
+		newFile, err = dbfs.GetFileByPath(db, "/TestFakeFiles/pogfile.txt", &superUser)
+		Assert.Nil(err)
+		Assert.Equal(newFile.FileName, "pogfile.txt")
+		Assert.Equal(newFile.MIMEType, "text")
+		Assert.Equal(newFile.VersioningMode, dbfs.VERSIONING_OFF)
+		Assert.Equal(newFile.VersionNo, uint(2))
+
+		// Move. Attempting to move the file to the root folder.
+
+		// Getting root folder
+		rootFolder, err := dbfs.GetRootFolder(db)
+		Assert.Nil(err)
+
+		// Moving the file
+		err = newFile.Move(db, rootFolder, &superUser)
+		Assert.Nil(err)
+		files, err := rootFolder.ListContents(db, &superUser)
+		Assert.Nil(err)
+		Assert.Equal(6, len(files))
+
+		// Assuming updating pogfile.txt
+		err = dbfs.EXAMPLEUpdateFile(db, newFile, &superUser)
+		Assert.Nil(err)
+		newFile, err = dbfs.GetFileByPath(db, "/pogfile.txt", &superUser)
+		Assert.Nil(err)
+		Assert.Equal(newFile.VersionNo, uint(3))
+		fmt.Println(newFile.DataIDVersion)
+		Assert.Equal(newFile.DataIDVersion, uint(1))
+
+		// Trying to RemovePermission user
+		// Getting all permissions
+
+		permissions, err := newFile.GetPermissions(db, &superUser)
+		Assert.Nil(err)
+		for i, permission := range permissions {
+			fmt.Println(i)
+			if permission.UserId == userForGetFileMeta.UserId {
+				err = newFile.RemovePermission(db, &permission, &superUser)
+				Assert.Nil(err)
+			}
+		}
+
+		Assert.Equal(newFile.VersionNo, uint(4))
+
+		// Trying to get the file again
+		_, err = dbfs.GetFileByID(db, newFile.FileID, userForGetFileMeta)
+		Assert.Error(dbfs.ErrFileNotFound, err)
+		_, err = dbfs.GetFileByID(db, newFile.FileID, &superUser)
+		Assert.Nil(err)
 
 	})
 

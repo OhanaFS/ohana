@@ -29,17 +29,17 @@ func TestUsers(t *testing.T) {
 		assert.Equal("test1", user1.Username)
 		assert.Equal("Test1", user1.Name)
 		assert.Equal(dbfs.AccountTypeAdmin, user1.AccountType)
-		assert.Equal("BLAH1", user1.MappedID)
+		assert.Equal("BLAH1", user1.MappedId)
 
 		assert.Equal("test2", user2.Username)
 		assert.Equal("Test2", user2.Name)
 		assert.Equal(dbfs.AccountTypeEndUser, user2.AccountType)
-		assert.Equal("BLAH2", user2.MappedID)
+		assert.Equal("BLAH2", user2.MappedId)
 
 		assert.Equal("test3", user3.Username)
 		assert.Equal("Test3", user3.Name)
 		assert.Equal(dbfs.AccountTypeAdmin, user3.AccountType)
-		assert.Equal("BLAH3", user3.MappedID)
+		assert.Equal("BLAH3", user3.MappedId)
 	})
 
 	t.Run("Duplicate Username not allowed", func(t *testing.T) {

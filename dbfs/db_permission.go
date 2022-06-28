@@ -11,12 +11,12 @@ var (
 )
 
 type Permission struct {
-	FileID       string `gorm:"primaryKey"`
+	FileId       string `gorm:"primaryKey"`
 	PermissionID uint   `gorm:"primaryKey;autoIncrement"`
-	User         User   `gorm:"foreignKey:UserID"`
-	UserID       string
-	Group        Group `gorm:"foreignKey:GroupID"`
-	GroupID      string
+	User         User   `gorm:"foreignKey:UserId"`
+	UserId       string
+	Group        Group `gorm:"foreignKey:GroupId"`
+	GroupId      string
 	CanRead      bool
 	CanWrite     bool
 	CanExecute   bool
@@ -33,13 +33,13 @@ type PermissionInterface interface {
 }
 
 type PermissionHistory struct {
-	FileID       string `gorm:"primaryKey"`
+	FileId       string `gorm:"primaryKey"`
 	VersionNo    uint   `gorm:"primaryKey"`
 	PermissionID uint   `gorm:"primaryKey;autoIncrement"`
-	User         User   `gorm:"foreignKey:UserID"`
-	UserID       string
-	Group        Group `gorm:"foreignKey:GroupID"`
-	GroupID      string
+	User         User   `gorm:"foreignKey:UserId"`
+	UserId       string
+	Group        Group `gorm:"foreignKey:GroupId"`
+	GroupId      string
 	CanRead      bool
 	CanWrite     bool
 	CanExecute   bool
@@ -62,17 +62,17 @@ func createPermissions(tx *gorm.DB, newFile *File, additionalPermissions ...Perm
 	// Based on additional permissions, we'll either modify it, or add a new entry
 
 	for _, newPermission := range additionalPermissions {
-		newIsUser := newPermission.UserID != ""
+		newIsUser := newPermission.UserId != ""
 		for _, existingPermissions := range oldPermissionRecords {
-			existingIsUser := existingPermissions.UserID != ""
+			existingIsUser := existingPermissions.UserId != ""
 			updated := false
 			if newIsUser == existingIsUser { // matching type
 				if newIsUser { // user
-					if newPermission.UserID == existingPermissions.UserID {
+					if newPermission.UserId == existingPermissions.UserId {
 						updated = true
 					}
 				} else { // group
-					if newPermission.GroupID == existingPermissions.GroupID {
+					if newPermission.GroupId == existingPermissions.GroupId {
 						updated = true
 					}
 				}
@@ -111,9 +111,9 @@ func createPermissions(tx *gorm.DB, newFile *File, additionalPermissions ...Perm
 	for _, permission := range oldPermissionRecords {
 
 		newRecord := Permission{
-			FileID:     newFile.FileID,
-			UserID:     permission.UserID,
-			GroupID:    permission.GroupID,
+			FileId:     newFile.FileID,
+			UserId:     permission.UserId,
+			GroupId:    permission.GroupId,
 			CanRead:    permission.CanRead,
 			CanWrite:   permission.CanWrite,
 			CanExecute: permission.CanExecute,
@@ -166,7 +166,7 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *Permission
 		for _, user := range users {
 			updated := false
 			for _, existingPermissions := range oldPermissionRecords {
-				if user.UserID == existingPermissions.UserID {
+				if user.UserId == existingPermissions.UserId {
 					updated = true
 					// Modify existing permission
 					// ONLY ALLOW MORE, NOT LESS
@@ -277,8 +277,8 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *Permission
 			}
 			// Append permission
 			newPermission := Permission{
-				FileID:     file.FileID,
-				UserID:     user.UserID,
+				FileId:     file.FileID,
+				UserId:     user.UserId,
 				CanRead:    permissionNeeded.Read,
 				CanWrite:   permissionNeeded.Write,
 				CanExecute: permissionNeeded.Execute,
@@ -342,7 +342,7 @@ func upsertGroupsPermission(tx *gorm.DB, file *File, permissionNeeded *Permissio
 		for _, group := range groups {
 			updated := false
 			for _, existingPermissions := range oldPermissionRecords {
-				if group.GroupID == existingPermissions.GroupID {
+				if group.GroupId == existingPermissions.GroupId {
 					updated = true
 					// Modify existing permission
 					// ONLY ALLOW MORE, NOT LESS
@@ -451,8 +451,8 @@ func upsertGroupsPermission(tx *gorm.DB, file *File, permissionNeeded *Permissio
 			if !updated {
 				// Append permission
 				newPermission := Permission{
-					FileID:     file.FileID,
-					GroupID:    group.GroupID,
+					FileId:     file.FileID,
+					GroupId:    group.GroupId,
 					CanRead:    permissionNeeded.Read,
 					CanWrite:   permissionNeeded.Write,
 					CanExecute: permissionNeeded.Execute,
@@ -503,18 +503,38 @@ func revokeUsersPermission(tx *gorm.DB, file *File, users []User) error {
 
 			if err != nil {
 				if errors.Is(err, ErrFileNotFound) {
-					return ErrPermissionsAreNarrowerThanParent
+					// Can revoke safely
+					err = tx.Where("file_id = ? AND user_id = ?", file.FileID, user.UserId).Delete(&Permission{}).Error
+					if err != nil {
+						return err
+					} else {
+						continue
+					}
 				} else {
 					return err
 				}
 			}
 
-			// Check if user has permission in the file and if so delete it.
-
-			err = tx.Where("file_id = ? AND user_id = ?", file.FileID, user.UserID).Delete(&Permission{}).Error
+			// if no error, they have permission to the parent folder. Apply the parent permission to the below file
+			parentPermission := Permission{}
+			err = tx.Where("file_id = ? AND user_id = ?", file.ParentFolderFileID, user.UserId).First(&parentPermission).Error
 			if err != nil {
 				return err
 			}
+
+			// Update current permission
+			err = tx.Model(&Permission{}).Where("file_id = ? AND user_id = ?", file.FileID, user.UserId).
+				Updates(Permission{
+					CanRead:    parentPermission.CanRead,
+					CanWrite:   parentPermission.CanWrite,
+					CanExecute: parentPermission.CanExecute,
+					CanShare:   parentPermission.CanShare,
+					Audit:      parentPermission.Audit}).Error
+
+			if err != nil {
+				return err
+			}
+
 		}
 
 		return updatePermissionsVersions(tx, file, nil)
@@ -535,7 +555,7 @@ func revokeGroupsPermission(tx *gorm.DB, file *File, groups []Group) error {
 
 			var count int64
 
-			err := tx.Where("file_id = ? AND group_id = ?", file.ParentFolderFileID, group.GroupID).Count(&count).Error
+			err := tx.Where("file_id = ? AND group_id = ?", file.ParentFolderFileID, group.GroupId).Count(&count).Error
 			if err != nil {
 				if !errors.Is(err, gorm.ErrRecordNotFound) {
 					return err
@@ -549,7 +569,7 @@ func revokeGroupsPermission(tx *gorm.DB, file *File, groups []Group) error {
 
 			// Check if group has permission in the file and if so delete it.
 
-			err = tx.Where("file_id = ? AND group_id = ?", file.FileID, group.GroupID).Delete(&Permission{}).Error
+			err = tx.Where("file_id = ? AND group_id = ?", file.FileID, group.GroupId).Delete(&Permission{}).Error
 			if err != nil {
 				return err
 			}
@@ -595,10 +615,10 @@ func updatePermissionsVersions(tx *gorm.DB, file *File, user *User) error {
 
 		for _, permission := range permissions {
 			err2 = tx.Save(&PermissionHistory{
-				FileID:     permission.FileID,
+				FileId:     permission.FileId,
 				VersionNo:  permission.VersionNo,
-				GroupID:    permission.GroupID,
-				UserID:     permission.UserID,
+				GroupId:    permission.GroupId,
+				UserId:     permission.UserId,
 				CanRead:    permission.CanRead,
 				CanWrite:   permission.CanWrite,
 				CanExecute: permission.CanExecute,
@@ -651,7 +671,7 @@ func (user *User) HasPermission(tx *gorm.DB, file *File, needed *PermissionNeede
 
 	var permission Permission
 
-	if err := tx.Where("file_id = ? AND user_id = ?", file.FileID, user.UserID).First(&permission).Error; err != nil {
+	if err := tx.Where("file_id = ? AND user_id = ?", file.FileID, user.UserId).First(&permission).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 
 			groups, err2 := user.GetGroupsWithUser(tx)
@@ -666,7 +686,7 @@ func (user *User) HasPermission(tx *gorm.DB, file *File, needed *PermissionNeede
 
 				var permission Permission
 
-				if err = tx.Where("file_id = ? AND group_id = ?", file.FileID, group.GroupID).Find(&permission).Error; err != nil {
+				if err = tx.Where("file_id = ? AND group_id = ?", file.FileID, group.GroupId).Find(&permission).Error; err != nil {
 					return false, err
 				}
 
@@ -751,7 +771,7 @@ func (g *Group) HasPermission(tx *gorm.DB, file *File, needed *PermissionNeeded)
 
 	var permission Permission
 
-	if err := tx.Where("file_id = ? AND group_id = ?", file.FileID, g.GroupID).Find(&permission).Error; err != nil {
+	if err := tx.Where("file_id = ? AND group_id = ?", file.FileID, g.GroupId).Find(&permission).Error; err != nil {
 		return false, err
 	}
 

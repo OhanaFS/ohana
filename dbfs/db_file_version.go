@@ -24,11 +24,12 @@ type FileVersion struct {
 	ModifiedTime          time.Time `gorm:"not null; autoUpdateTime"`
 	VersioningMode        int8      `gorm:"not null"`
 	Checksum              string
-	FragCount             uint8
-	ParityCount           uint8
+	FragCount             uint
+	ParityCount           uint
 	EncryptionKey         string
 	PasswordProtected     bool
 	PasswordHint          string
+	PasswordNonce         string
 	LinkFile              *FileVersion `gorm:"foreignKey:LinkFileFileID,LinkFileVersionNo"`
 	LinkFileFileID        string
 	LinkFileVersionNo     uint
@@ -71,6 +72,7 @@ func createFileVersionFromFile(tx *gorm.DB, file *File, user *User) error {
 		EncryptionKey:         file.EncryptionKey,
 		PasswordProtected:     file.PasswordProtected,
 		PasswordHint:          file.PasswordHint,
+		PasswordNonce:         file.PasswordNonce,
 		//LinkFileFileID:        "GET LINKED FOLDER", // NOT READY
 		//LinkFileVersionNo:     0,                   // NOT READY
 		LastChecked:   file.LastChecked,
@@ -90,12 +92,15 @@ func finaliseFileVersionFromFile(tx *gorm.DB, file *File) error {
 
 // getFileVersionFromFile returns the version requested of a file/
 func getFileVersionFromFile(tx *gorm.DB, file *File, version int) (*FileVersion, error) {
-	var fileVersion *FileVersion
-	err := tx.Where("file_id = ? AND version_no = ?", file.FileID, version).First(fileVersion).Error
+	var fileVersion FileVersion
+	err := tx.Where("file_id = ? AND version_no = ?", file.FileID, version).First(&fileVersion).Error
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, ErrVersionNotFound
+		}
 		return nil, err
 	}
-	return fileVersion, nil
+	return &fileVersion, nil
 }
 
 // GetFragments returns the fragments of a FileVersion
@@ -165,7 +170,8 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 	// First, we'll create a new history entry to show when the file was deleted with timestamp
 
 	// Get the current parent folder and it's current version
-	parentFolder, err := GetFileByID(tx, file.ParentFolderFileID, nil)
+	parentFolder := File{FileID: file.ParentFolderFileID}
+	err := tx.First(&parentFolder).Error
 	if err != nil {
 		return err
 	}

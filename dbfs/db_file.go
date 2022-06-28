@@ -60,10 +60,11 @@ type File struct {
 	ModifiedTime       time.Time `gorm:"not null; autoUpdateTime"`
 	VersioningMode     int8      `gorm:"not null"`
 	Checksum           string
-	FragCount          uint8
-	ParityCount        uint8
+	FragCount          uint
+	ParityCount        uint
 	EncryptionKey      string
 	PasswordProtected  bool
+	PasswordNonce      string
 	PasswordHint       string
 	LinkFile           *File `gorm:"foreignKey:LinkFileFileID"`
 	LinkFileFileID     string
@@ -94,7 +95,6 @@ type FileInterface interface {
 	CreateSubFolder(tx *gorm.DB, folderName string, user *User) (*File, error)
 
 	// Update Functions (Local)
-	UpdateFragments(tx *gorm.DB, fragments []Fragment, user *User) error
 	UpdateMetaData(tx *gorm.DB, modificationsRequested FileMetadataModification, user *User) error
 	rename(tx *gorm.DB, newName string) error
 	PasswordProtect(tx *gorm.DB, password string, hint string, user *User) error
@@ -105,7 +105,8 @@ type FileInterface interface {
 	AddPermissionGroups(tx *gorm.DB, permission *PermissionNeeded, requestUser *User, groups ...Group) error
 	RemovePermission(tx *gorm.DB, permission *Permission, user *User) error
 	UpdatePermission(tx *gorm.DB, oldPermission *Permission, newPermission *Permission, user *User) error
-	UpdateFile(tx *gorm.DB, user *User) error
+	UpdateFile(tx *gorm.DB, newSize uint, newActualSize uint, newEncryptionKey string, checksum string, handlingServer string, user *User) error
+	updateFragment(tx *gorm.DB, fragmentID uint, fileFragmentPath string, checksum string, serverID string) error
 }
 
 var _ FileInterface = &File{}
@@ -153,7 +154,7 @@ func GetFileByPath(tx *gorm.DB, path string, user *User) (*File, error) {
 	return nil, ErrFileNotFound
 }
 
-// GetFileByID returns a File object based on the FileID given
+// GetFileByID returns a File object based on the FileId given
 func GetFileByID(tx *gorm.DB, id string, user *User) (*File, error) {
 	file := &File{FileID: id}
 
@@ -166,7 +167,7 @@ func GetFileByID(tx *gorm.DB, id string, user *User) (*File, error) {
 	hasPermission, err := user.HasPermission(tx, file, &PermissionNeeded{Read: true})
 
 	if !hasPermission {
-		return nil, ErrNoPermission
+		return nil, ErrFileNotFound
 	} else if err != nil {
 		return nil, err
 	}
@@ -195,7 +196,7 @@ func ListFilesByPath(tx *gorm.DB, path string, user *User) ([]File, error) {
 	return ls, nil
 }
 
-// ListFilesByFolderID returns an array of File objects based on the FileID/FolderID given
+// ListFilesByFolderID returns an array of File objects based on the FileId/FolderID given
 func ListFilesByFolderID(tx *gorm.DB, id string, user *User) ([]File, error) {
 
 	// An easy way to check for permissions.
@@ -238,7 +239,7 @@ func pathStringToArray(path string, fromRoot bool) []string {
 }
 
 // transverseByPath Returns an array of FileIDs based on the transversal path of pathStringToArray()
-// For Example, passing in ["foo", "bar"] will return ["root FileID", "foo FileID", "bar FileID"]
+// For Example, passing in ["foo", "bar"] will return ["root FileId", "foo FileId", "bar FileId"]
 func transverseByPath(tx *gorm.DB, fileNames []string, user *User) ([]File, error) {
 
 	files := make([]File, len(fileNames)+1)
@@ -346,7 +347,7 @@ func EXAMPLECreateFile(tx *gorm.DB, user *User, filename string, parentFolderID 
 	// Then, the system send each shard to each server, and once it's sent successfully
 
 	for i := 1; i <= int(file.FragCount); i++ {
-		fragID := uint8(i)
+		fragID := uint(i)
 		fragmentPath := uuid.New().String()
 		serverID := "Server" + strconv.Itoa(i)
 		fragChecksum := "CHECKSUM" + strconv.Itoa(i)
@@ -462,7 +463,7 @@ func CreateInitialFile(tx *gorm.DB, file *File, user *User) error {
 		Size:               file.Size,
 		ActualSize:         file.Size,
 		CreatedTime:        time.Now(),
-		ModifiedUserUserID: user.UserID,
+		ModifiedUserUserID: user.UserId,
 		ModifiedTime:       time.Now(),
 		VersioningMode:     file.VersioningMode,
 		Checksum:           file.Checksum,
@@ -495,7 +496,7 @@ func CreateInitialFile(tx *gorm.DB, file *File, user *User) error {
 }
 
 // createFragment is called whenever the fragment has been written to disk
-func createFragment(tx *gorm.DB, fileID string, dataID string, versionNo uint, fragID uint8, serverID string, fragmentPath string, checksum string) error {
+func createFragment(tx *gorm.DB, fileID string, dataID string, versionNo uint, fragID uint, serverID string, fragmentPath string, checksum string) error {
 
 	// Validating inputs
 	if fileID == "" || dataID == "" || versionNo < 0 || fragID <= 0 || serverID == "" || fragmentPath == "" || checksum == "" {
@@ -536,7 +537,7 @@ func finishFile(tx *gorm.DB, file *File, user *User, newEncryptionKey string, ac
 	file.Status = FILESTATUSGOOD
 	file.EncryptionKey = newEncryptionKey
 	file.ActualSize = actualSize
-	file.ModifiedUserUserID = user.UserID
+	file.ModifiedUserUserID = user.UserId
 	file.ModifiedTime = time.Now()
 	err := tx.Save(file).Error
 	if err != nil {
@@ -569,7 +570,7 @@ func CreateFolderByParentID(tx *gorm.DB, id string, folderName string, user *Use
 
 }
 
-// DeleteFileByID deletes a file based on the FileID given.
+// DeleteFileByID deletes a file based on the FileId given.
 func DeleteFileByID(tx *gorm.DB, id string, user *User) error {
 	file, err := GetFileByID(tx, id, user)
 	if err != nil {
@@ -580,7 +581,7 @@ func DeleteFileByID(tx *gorm.DB, id string, user *User) error {
 
 }
 
-// DeleteFolderByID deletes a folder based on the FileID given.
+// DeleteFolderByID deletes a folder based on the FileId given.
 // Will not delete if there is contents in the folder
 func DeleteFolderByID(tx *gorm.DB, id string, user *User) error {
 
@@ -615,7 +616,7 @@ func DeleteFolderByID(tx *gorm.DB, id string, user *User) error {
 
 }
 
-// DeleteFolderByIDCascade deletes a folder based on the FileID given.
+// DeleteFolderByIDCascade deletes a folder based on the FileId given.
 // Will delete all inner contents.
 func DeleteFolderByIDCascade(tx *gorm.DB, id string, user *User) error {
 
@@ -793,7 +794,7 @@ func (f *File) CreateSubFolder(tx *gorm.DB, folderName string, user *User) (*Fil
 		Size:               0,
 		ActualSize:         0,
 		CreatedTime:        time.Time{},
-		ModifiedUser:       User{},
+		ModifiedUserUserID: user.UserId,
 		ModifiedTime:       time.Time{},
 		VersioningMode:     0,
 		Status:             1,
@@ -826,12 +827,6 @@ func (f *File) CreateSubFolder(tx *gorm.DB, folderName string, user *User) (*Fil
 		return nil, err
 	}
 	return newFolder, nil
-}
-
-// UpdateFragments TODO: NOT IMPLEMENTED. Will be an example driver to show how updating files contents work.
-func (f File) UpdateFragments(tx *gorm.DB, fragments []Fragment, user *User) error {
-	//TODO implement me
-	panic("implement me")
 }
 
 // UpdateMetaData used to update file's metadata (name, mime type, etc)
@@ -871,7 +866,7 @@ func (f *File) UpdateMetaData(tx *gorm.DB, modificationsRequested FileMetadataMo
 		}
 	}
 
-	// incremment version number and save it in FileVersion
+	// increment version number and save it in FileVersion
 
 	f.VersionNo = f.VersionNo + 1
 
@@ -1104,13 +1099,13 @@ func (f *File) RemovePermission(tx *gorm.DB, permission *Permission, user *User)
 	var err error
 
 	// Check if it's user or group
-	if permission.UserID != "" {
+	if permission.UserId != "" {
 		// User
-		err = revokeUsersPermission(tx, f, []User{User{UserID: permission.UserID}})
+		err = revokeUsersPermission(tx, f, []User{User{UserId: permission.UserId}})
 
 	} else {
 		// Group
-		err = revokeGroupsPermission(tx, f, []Group{Group{GroupID: permission.GroupID}})
+		err = revokeGroupsPermission(tx, f, []Group{Group{GroupId: permission.GroupId}})
 	}
 
 	return err
@@ -1145,14 +1140,14 @@ func (f *File) UpdatePermission(tx *gorm.DB, oldPermission *Permission, newPermi
 
 	// User or Group
 
-	if oldPermission.UserID != "" {
-		newUser, err := GetUser(tx, newPermission.UserID)
+	if oldPermission.UserId != "" {
+		newUser, err := GetUser(tx, newPermission.UserId)
 		if err != nil {
 			return err
 		}
 		err = upsertUsersPermission(tx, f, PermissionNeeded, user, *newUser)
 	} else {
-		newGroup, err := GetGroupBasedOnGroupID(tx, newPermission.GroupID)
+		newGroup, err := GetGroupBasedOnGroupID(tx, newPermission.GroupId)
 		if err != nil {
 			return err
 		}
@@ -1162,10 +1157,158 @@ func (f *File) UpdatePermission(tx *gorm.DB, oldPermission *Permission, newPermi
 	return nil
 }
 
-// UpdateFile TODO: NOT IMPLEMENTED. Will be an example driver to show how updating files contents work.
-func (f File) UpdateFile(tx *gorm.DB, user *User) error {
-	//TODO implement me
-	panic("implement me")
+func (f *File) GetPermissions(tx *gorm.DB, user *User) ([]Permission, error) {
+
+	// Check if user has read permission (if not 404)
+	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
+	if err != nil {
+		return nil, err
+	} else if !hasPermissions {
+		return nil, ErrFileNotFound
+	}
+
+	var permissions []Permission
+
+	err = tx.Where("file_id = ?", f.FileID).Find(&permissions).Error
+
+	return permissions, err
+}
+
+// UpdateFile
+// At this stage, the server should have the
+// updated file (already processed) , uncompressed file size, compressed data size, and key
+func (f *File) UpdateFile(tx *gorm.DB, newSize uint, newActualSize uint, newEncryptionKey string, checksum string, handlingServer string, user *User) error {
+
+	// Check if user has read permission (if not 404)
+
+	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
+	if err != nil {
+		return err
+	} else if !hasPermissions {
+		return ErrFileNotFound
+	}
+
+	hasPermissions, err = user.HasPermission(tx, f, &PermissionNeeded{Write: true})
+	if err != nil {
+		return err
+	} else if !hasPermissions {
+		return ErrNoPermission
+	}
+
+	// Update the file
+	f.VersionNo = f.VersionNo + 1
+	f.DataID = uuid.New().String()
+	f.DataIDVersion = f.DataIDVersion + 1
+	f.Size = newSize
+	f.ActualSize = newActualSize
+	f.ModifiedUserUserID = user.UserId
+	f.ModifiedTime = time.Now()
+	f.Checksum = checksum
+	f.EncryptionKey = newEncryptionKey
+	f.LastChecked = time.Now()
+	f.Status = FILESTATUSWRITING
+	f.HandledServer = handlingServer
+
+	// Updating the file in the database as well as FileVersion
+
+	err = tx.Transaction(func(tx *gorm.DB) error {
+		err2 := tx.Save(f).Error
+		if err2 != nil {
+			return err2
+		}
+		// Create a new FileVersion
+		err2 = createFileVersionFromFile(tx, f, user)
+		return err2
+	})
+	return err
+}
+
+// UpdateFragments. Called on each fragment to be created.
+func (f *File) updateFragment(tx *gorm.DB, fragmentID uint, fileFragmentPath string, checksum string, serverID string) error {
+	frag := Fragment{
+		FileVersionFileId:        f.FileID,
+		FileVersionDataId:        f.DataID,
+		FileVersionVersionNo:     f.VersionNo,
+		FileVersionDataIDVersion: f.DataIDVersion,
+		FragID:                   fragmentID,
+		ServerID:                 serverID,
+		FileFragmentPath:         fileFragmentPath,
+		Checksum:                 checksum,
+		LastChecked:              time.Now(),
+		FragCount:                f.FragCount,
+		Status:                   FRAGMENTSTATUSGOOD,
+	}
+
+	return tx.Save(&frag).Error
+
+}
+
+// finishUpdateFile
+// Once all fragments are updated, the file is marked as finished.
+// Updating Status to FILESTATUSGOOD, and LastChecked to now.
+func (f *File) finishUpdateFile(tx *gorm.DB) error {
+
+	err := tx.Transaction(func(tx *gorm.DB) error {
+		f.Status = FILESTATUSGOOD
+		f.LastChecked = time.Now()
+
+		err2 := tx.Save(f).Error
+		if err2 != nil {
+			return err2
+		}
+		// Updating in FileVersion
+
+		// Get FileVersion
+		fileVersion := FileVersion{
+			FileID:    f.FileID,
+			VersionNo: f.VersionNo,
+		}
+
+		tx.First(&fileVersion)
+
+		fileVersion.Status = FILESTATUSGOOD
+		fileVersion.LastChecked = f.LastChecked
+
+		return tx.Save(&fileVersion).Error
+
+	})
+	if err != nil {
+		return err
+	}
+
+	if f.VersioningMode == VERSIONING_OFF {
+		// Mark previous fragment as to be deleted.
+		err = tx.Model(&FileVersion{}).Where("file_id = ? AND versioning_mode = ?", f.FileID, VERSIONING_OFF).Update("status", FILESTATUSDELETED).Error
+
+	} else if f.VersioningMode == VERSIONING_ON_VERSIONS {
+		err = nil
+	} else if f.VersioningMode == VERSIONING_ON_DELTAS {
+		panic("Not implemented")
+	}
+
+	return err
+
+}
+
+// EXAMPLEUpdateFile
+func EXAMPLEUpdateFile(tx *gorm.DB, file *File, user *User) error {
+
+	err := file.UpdateFile(tx, 2020, 2020, "wowKey", "wowChecksum", "wowNew", user)
+	if err != nil {
+		return err
+	}
+
+	// As each fragment is uploaded, each fragment is added to the database.
+	for i := 1; i <= int(file.FragCount); i++ {
+		err = file.updateFragment(tx, uint(i), "wowFragmentPath", "wowChecksum", "wowServerID")
+		if err != nil {
+			return err
+		}
+	}
+
+	// Once all fragments are uploaded, the file is marked as finished.
+	return file.finishUpdateFile(tx)
+
 }
 
 // ListContents list the contents of a folder (if folder)
@@ -1187,7 +1330,7 @@ func (f *File) ListContents(tx *gorm.DB, user *User) ([]File, error) {
 
 	var files []File
 
-	err = tx.Where("parent_folder_file_id = ?", f.FileID).Find(&files).Error
+	err = tx.Model(&File{}).Where("parent_folder_file_id = ?", f.FileID).Find(&files).Error
 
 	if err != nil {
 		return nil, err

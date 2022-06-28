@@ -52,7 +52,7 @@ func TestGroups(t *testing.T) {
 		assert.Equal("PogGroup2", group2.GroupName)
 		assert.Equal("PogGroup3", group3.GroupName)
 
-		testGroupID = group1.GroupID
+		testGroupID = group1.GroupId
 
 		assert.Equal("ANewMapping1", group1.MappedGroupID)
 		assert.Equal("ANewMapping2", group2.MappedGroupID)
@@ -84,27 +84,27 @@ func TestGroups(t *testing.T) {
 		users, err := group1.GetUsers(db)
 		assert.Nil(err)
 
-		UserIDs := user1.UserID + user2.UserID
+		UserIDs := user1.UserId + user2.UserId
 		for _, u := range users {
-			assert.Contains(UserIDs, u.UserID)
+			assert.Contains(UserIDs, u.UserId)
 		}
 
 		// Group 2
 		users, err = group2.GetUsers(db)
 		assert.Nil(err)
 
-		UserIDs = user2.UserID + user3.UserID
+		UserIDs = user2.UserId + user3.UserId
 		for _, u := range users {
-			assert.Contains(UserIDs, u.UserID)
+			assert.Contains(UserIDs, u.UserId)
 		}
 
 		// Group 3
 		users, err = group3.GetUsers(db)
 		assert.Nil(err)
 
-		UserIDs = user4.UserID
+		UserIDs = user4.UserId
 		for _, u := range users {
-			assert.Contains(UserIDs, u.UserID)
+			assert.Contains(UserIDs, u.UserId)
 		}
 
 	})
@@ -122,9 +122,9 @@ func TestGroups(t *testing.T) {
 		users, err := group1.GetUsers(db)
 		assert.Nil(err)
 
-		UserIDs := user1.UserID + user2.UserID
+		UserIDs := user1.UserId + user2.UserId
 		for _, u := range users {
-			assert.Contains(UserIDs, u.UserID)
+			assert.Contains(UserIDs, u.UserId)
 		}
 
 	})
@@ -151,7 +151,7 @@ func TestGroups(t *testing.T) {
 
 	})
 
-	t.Run("Modifying MappedID", func(t *testing.T) {
+	t.Run("Modifying MappedId", func(t *testing.T) {
 		assert := assert.New(t)
 
 		err = group1.ModifyMappedGroupID(db, "NEWMAPPING1")
@@ -197,7 +197,7 @@ func TestGroups(t *testing.T) {
 		assert.Nil(err)
 
 		// Update group
-		group2, err := dbfs.GetGroupBasedOnGroupID(db, group2.GroupID)
+		group2, err := dbfs.GetGroupBasedOnGroupID(db, group2.GroupId)
 		assert.Nil(err)
 
 		users, err := group2.GetUsers(db)
@@ -226,7 +226,7 @@ func TestGroups(t *testing.T) {
 
 		assert.Nil(err)
 
-		assert.Equal(testGroupID, testGroup.GroupID)
+		assert.Equal(testGroupID, testGroup.GroupId)
 
 	})
 }

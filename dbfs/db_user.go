@@ -21,10 +21,10 @@ var (
 )
 
 type User struct {
-	UserID      string `gorm:"primaryKey; not null"` // Random UUID
+	UserId      string `gorm:"primaryKey; not null"` // Random UUID
 	Name        string
 	Username    string `gorm:"not null; unique"`
-	MappedID    string `gorm:"not null; unique"`
+	MappedId    string `gorm:"not null; unique"`
 	LastLogin   time.Time
 	Activated   bool           `gorm:"not null; default: true"`
 	AccountType int8           `gorm:"not null; default: 1"` // 1 = End User, 2 = Admin
@@ -54,7 +54,7 @@ var _ UserInterface = &User{}
 
 // CreateNewUser
 // Creates a new user with a DB provided.
-// Requires username, name, AccountType, MappedID
+// Requires username, name, AccountType, MappedId
 func CreateNewUser(tx *gorm.DB, username string, name string, accountType int8, mappedID string) (*User, error) {
 
 	// Check stuff like enums
@@ -66,10 +66,10 @@ func CreateNewUser(tx *gorm.DB, username string, name string, accountType int8, 
 	// Create the account
 
 	userAccount := &User{
-		UserID:      uuid.New().String(),
+		UserId:      uuid.New().String(),
 		Name:        name,
 		Username:    username,
-		MappedID:    mappedID,
+		MappedId:    mappedID,
 		Activated:   true,
 		AccountType: accountType,
 	}
@@ -149,7 +149,7 @@ func (user *User) ModifyAccountType(tx *gorm.DB, NewStatus int8) error {
 
 // MapToNewAccount modifies the mapping identity of the User and saves it instantly
 func (user *User) MapToNewAccount(tx *gorm.DB, NewID string) error {
-	user.MappedID = NewID
+	user.MappedId = NewID
 	return tx.Save(&user).Error
 }
 
@@ -188,7 +188,7 @@ func (user *User) AddToGroup(tx *gorm.DB, group *Group) error {
 
 	// Checking to ensure that there's no duplicate association
 	for _, existingGroup := range user.Groups {
-		if existingGroup.GroupID == group.GroupID {
+		if existingGroup.GroupId == group.GroupId {
 			return nil
 		}
 	}
