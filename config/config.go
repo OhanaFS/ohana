@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"os"
 
 	"gopkg.in/yaml.v2"
@@ -48,6 +49,16 @@ func LoadConfig() (*Config, error) {
 	decoder := yaml.NewDecoder(configFile)
 	if err = decoder.Decode(&config); err != nil {
 		return nil, err
+	}
+
+	// If on development mode, allow override of the HTTP bind using the PORT
+	// environment variable.
+	if config.Environment == EnvironmentDevelopment {
+		portOverride := os.Getenv("PORT")
+		if portOverride != "" {
+			config.HTTP.Bind = ":" + portOverride
+			log.Println("Overriding HTTP bind using the PORT environment variable during development mode.")
+		}
 	}
 
 	return &config, nil
