@@ -12,7 +12,7 @@ var (
 
 type Permission struct {
 	FileId       string `gorm:"primaryKey"`
-	PermissionID uint   `gorm:"primaryKey;autoIncrement"`
+	PermissionId uint   `gorm:"primaryKey;autoIncrement"`
 	User         User   `gorm:"foreignKey:UserId"`
 	UserId       string
 	Group        Group `gorm:"foreignKey:GroupId"`
@@ -35,7 +35,7 @@ type PermissionInterface interface {
 type PermissionHistory struct {
 	FileId       string `gorm:"primaryKey"`
 	VersionNo    uint   `gorm:"primaryKey"`
-	PermissionID uint   `gorm:"primaryKey;autoIncrement"`
+	PermissionId uint   `gorm:"primaryKey;autoIncrement"`
 	User         User   `gorm:"foreignKey:UserId"`
 	UserId       string
 	Group        Group `gorm:"foreignKey:GroupId"`
@@ -57,7 +57,7 @@ func createPermissions(tx *gorm.DB, newFile *File, additionalPermissions ...Perm
 
 	var oldPermissionRecords []Permission
 
-	tx.Where("file_id = ?", newFile.ParentFolderFileID).Find(&oldPermissionRecords)
+	tx.Where("file_id = ?", newFile.ParentFolderFileId).Find(&oldPermissionRecords)
 
 	// Based on additional permissions, we'll either modify it, or add a new entry
 
@@ -111,7 +111,7 @@ func createPermissions(tx *gorm.DB, newFile *File, additionalPermissions ...Perm
 	for _, permission := range oldPermissionRecords {
 
 		newRecord := Permission{
-			FileId:     newFile.FileID,
+			FileId:     newFile.FileId,
 			UserId:     permission.UserId,
 			GroupId:    permission.GroupId,
 			CanRead:    permission.CanRead,
@@ -146,7 +146,7 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *Permission
 	err = tx.Transaction(func(tx *gorm.DB) error {
 		if !isFileOrEmptyFolder {
 			// recursively go down
-			ls, err2 := ListFilesByPath(tx, file.FileID, requestUser)
+			ls, err2 := ListFilesByPath(tx, file.FileId, requestUser)
 
 			if err2 != nil {
 				return err2
@@ -161,7 +161,7 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *Permission
 
 		var oldPermissionRecords []Permission
 
-		tx.Where("file_id = ?", file.FileID).Find(&oldPermissionRecords)
+		tx.Where("file_id = ?", file.FileId).Find(&oldPermissionRecords)
 
 		for _, user := range users {
 			updated := false
@@ -176,7 +176,7 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *Permission
 
 					// Getting parent file/folder
 					var parentFile File
-					tx.Where("file_id = ?", file.ParentFolderFileID).First(&parentFile)
+					tx.Where("file_id = ?", file.ParentFolderFileId).First(&parentFile)
 
 					// Only allows removal of permissions if the parent doesn't have it as well.
 
@@ -277,7 +277,7 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *Permission
 			}
 			// Append permission
 			newPermission := Permission{
-				FileId:     file.FileID,
+				FileId:     file.FileId,
 				UserId:     user.UserId,
 				CanRead:    permissionNeeded.Read,
 				CanWrite:   permissionNeeded.Write,
@@ -322,7 +322,7 @@ func upsertGroupsPermission(tx *gorm.DB, file *File, permissionNeeded *Permissio
 
 		if !isFileOrEmptyFolder {
 			// recursively go down
-			ls, err2 := ListFilesByPath(tx, file.FileID, requestUser)
+			ls, err2 := ListFilesByPath(tx, file.FileId, requestUser)
 
 			if err2 != nil {
 				return err2
@@ -337,7 +337,7 @@ func upsertGroupsPermission(tx *gorm.DB, file *File, permissionNeeded *Permissio
 
 		var oldPermissionRecords []Permission
 
-		tx.Where("file_id = ?", file.FileID).Find(&oldPermissionRecords)
+		tx.Where("file_id = ?", file.FileId).Find(&oldPermissionRecords)
 
 		for _, group := range groups {
 			updated := false
@@ -352,7 +352,7 @@ func upsertGroupsPermission(tx *gorm.DB, file *File, permissionNeeded *Permissio
 
 					// Getting parent file/folder
 					var parentFile File
-					tx.Where("file_id = ?", file.ParentFolderFileID).First(&parentFile)
+					tx.Where("file_id = ?", file.ParentFolderFileId).First(&parentFile)
 
 					// Only allows removal of permissions if the parent doesn't have it as well.
 
@@ -451,7 +451,7 @@ func upsertGroupsPermission(tx *gorm.DB, file *File, permissionNeeded *Permissio
 			if !updated {
 				// Append permission
 				newPermission := Permission{
-					FileId:     file.FileID,
+					FileId:     file.FileId,
 					GroupId:    group.GroupId,
 					CanRead:    permissionNeeded.Read,
 					CanWrite:   permissionNeeded.Write,
@@ -485,7 +485,7 @@ func upsertGroupsPermission(tx *gorm.DB, file *File, permissionNeeded *Permissio
 
 // deleteFilePermissions deletes permission entries when file/folder gets deleted
 func deleteFilePermissions(tx *gorm.DB, file *File) error {
-	if err := tx.Where("file_id = ?", file.FileID).Delete(&Permission{}).Error; err != nil {
+	if err := tx.Where("file_id = ?", file.FileId).Delete(&Permission{}).Error; err != nil {
 		return err
 	}
 	return nil
@@ -493,18 +493,26 @@ func deleteFilePermissions(tx *gorm.DB, file *File) error {
 
 // revokeUsersPermission revokes users permissions. Returns error if it becomes narrower
 // DOES NOT TAKE INTO ACCOUNT IF THE USER IS IN A GROUP THAT HAS THE PERMISSION
-func revokeUsersPermission(tx *gorm.DB, file *File, users []User) error {
+func revokeUsersPermission(tx *gorm.DB, file *File, users []User, invoker *User) error {
 
 	err := tx.Transaction(func(tx *gorm.DB) error {
 		for _, user := range users {
 
 			// Check if user has permission in the parent folder (if they do, can't revoke)
-			_, err := GetFileByID(tx, file.ParentFolderFileID, &user)
+			_, err := GetFileById(tx, file.ParentFolderFileId, &user)
 
 			if err != nil {
 				if errors.Is(err, ErrFileNotFound) {
 					// Can revoke safely
-					err = tx.Where("file_id = ? AND user_id = ?", file.FileID, user.UserId).Delete(&Permission{}).Error
+
+					var tempPerm Permission
+
+					err = tx.Where(&Permission{
+						FileId: file.FileId,
+						UserId: user.UserId,
+					}).First(&tempPerm).Error
+
+					err = tx.Delete(&tempPerm).Error
 					if err != nil {
 						return err
 					} else {
@@ -517,13 +525,13 @@ func revokeUsersPermission(tx *gorm.DB, file *File, users []User) error {
 
 			// if no error, they have permission to the parent folder. Apply the parent permission to the below file
 			parentPermission := Permission{}
-			err = tx.Where("file_id = ? AND user_id = ?", file.ParentFolderFileID, user.UserId).First(&parentPermission).Error
+			err = tx.Where("file_id = ? AND user_id = ?", file.ParentFolderFileId, user.UserId).First(&parentPermission).Error
 			if err != nil {
 				return err
 			}
 
 			// Update current permission
-			err = tx.Model(&Permission{}).Where("file_id = ? AND user_id = ?", file.FileID, user.UserId).
+			err = tx.Model(&Permission{}).Where("file_id = ? AND user_id = ?", file.FileId, user.UserId).
 				Updates(Permission{
 					CanRead:    parentPermission.CanRead,
 					CanWrite:   parentPermission.CanWrite,
@@ -537,7 +545,7 @@ func revokeUsersPermission(tx *gorm.DB, file *File, users []User) error {
 
 		}
 
-		return updatePermissionsVersions(tx, file, nil)
+		return updatePermissionsVersions(tx, file, invoker)
 	})
 
 	return err
@@ -555,7 +563,7 @@ func revokeGroupsPermission(tx *gorm.DB, file *File, groups []Group) error {
 
 			var count int64
 
-			err := tx.Where("file_id = ? AND group_id = ?", file.ParentFolderFileID, group.GroupId).Count(&count).Error
+			err := tx.Where("file_id = ? AND group_id = ?", file.ParentFolderFileId, group.GroupId).Count(&count).Error
 			if err != nil {
 				if !errors.Is(err, gorm.ErrRecordNotFound) {
 					return err
@@ -569,7 +577,7 @@ func revokeGroupsPermission(tx *gorm.DB, file *File, groups []Group) error {
 
 			// Check if group has permission in the file and if so delete it.
 
-			err = tx.Where("file_id = ? AND group_id = ?", file.FileID, group.GroupId).Delete(&Permission{}).Error
+			err = tx.Where("file_id = ? AND group_id = ?", file.FileId, group.GroupId).Delete(&Permission{}).Error
 			if err != nil {
 				return err
 			}
@@ -600,7 +608,7 @@ func updatePermissionsVersions(tx *gorm.DB, file *File, user *User) error {
 		}
 
 		// Updating current permission records to the new version number
-		err2 = tx.Model(&Permission{}).Where("file_id = ?", file.FileID).Updates(map[string]interface{}{"version_no": file.VersionNo}).Error
+		err2 = tx.Model(&Permission{}).Where("file_id = ?", file.FileId).Updates(map[string]interface{}{"version_no": file.VersionNo}).Error
 		if err2 != nil {
 			return err2
 		}
@@ -608,7 +616,7 @@ func updatePermissionsVersions(tx *gorm.DB, file *File, user *User) error {
 		// Dumping new permissions to PermissionHistory
 
 		var permissions []Permission
-		err2 = tx.Where("file_id = ?", file.FileID).Find(&permissions).Error
+		err2 = tx.Where("file_id = ?", file.FileId).Find(&permissions).Error
 		if err2 != nil {
 			return err2
 		}
@@ -641,7 +649,7 @@ func updatePermissionsVersions(tx *gorm.DB, file *File, user *User) error {
 // updateMetadataPermission updates the version No and updated time to the File updated date.
 func updateMetadataPermission(tx *gorm.DB, file *File) error {
 
-	err := tx.Where("file_id = ?", file.FileID).Updates(map[string]interface{}{"version_no": file.VersionNo, "updated_at": file.ModifiedTime}).Error
+	err := tx.Where("file_id = ?", file.FileId).Updates(map[string]interface{}{"version_no": file.VersionNo, "updated_at": file.ModifiedTime}).Error
 
 	return err
 }
@@ -650,13 +658,13 @@ func updateMetadataPermission(tx *gorm.DB, file *File) error {
 func GetPermissionHistory(tx *gorm.DB, file *File, user *User) ([]PermissionHistory, error) {
 
 	// Check if the person has permission to view the file
-	_, err := GetFileByID(tx, file.FileID, user)
+	_, err := GetFileById(tx, file.FileId, user)
 	if err != nil {
 		return nil, err
 	}
 
 	var permissions []PermissionHistory
-	err = tx.Model(&Permission{}).Where("file_id = ?", file.FileID).Find(&permissions).Error
+	err = tx.Model(&Permission{}).Where("file_id = ?", file.FileId).Find(&permissions).Error
 	return permissions, err
 }
 
@@ -671,7 +679,7 @@ func (user *User) HasPermission(tx *gorm.DB, file *File, needed *PermissionNeede
 
 	var permission Permission
 
-	if err := tx.Where("file_id = ? AND user_id = ?", file.FileID, user.UserId).First(&permission).Error; err != nil {
+	if err := tx.Where("file_id = ? AND user_id = ?", file.FileId, user.UserId).First(&permission).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 
 			groups, err2 := user.GetGroupsWithUser(tx)
@@ -686,7 +694,7 @@ func (user *User) HasPermission(tx *gorm.DB, file *File, needed *PermissionNeede
 
 				var permission Permission
 
-				if err = tx.Where("file_id = ? AND group_id = ?", file.FileID, group.GroupId).Find(&permission).Error; err != nil {
+				if err = tx.Where("file_id = ? AND group_id = ?", file.FileId, group.GroupId).Find(&permission).Error; err != nil {
 					return false, err
 				}
 
@@ -771,7 +779,7 @@ func (g *Group) HasPermission(tx *gorm.DB, file *File, needed *PermissionNeeded)
 
 	var permission Permission
 
-	if err := tx.Where("file_id = ? AND group_id = ?", file.FileID, g.GroupId).Find(&permission).Error; err != nil {
+	if err := tx.Where("file_id = ? AND group_id = ?", file.FileId, g.GroupId).Find(&permission).Error; err != nil {
 		return false, err
 	}
 

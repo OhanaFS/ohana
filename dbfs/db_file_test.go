@@ -28,7 +28,7 @@ func TestFile(t *testing.T) {
 
 		Assert.Nil(err)
 
-		Assert.Equal("00000000-0000-0000-0000-000000000000", file.FileID)
+		Assert.Equal("00000000-0000-0000-0000-000000000000", file.FileId)
 		Assert.Equal("root", file.FileName)
 
 		jsonOutput, err := json.Marshal(file)
@@ -50,7 +50,7 @@ func TestFile(t *testing.T) {
 
 		// Folder 1
 
-		newFolder1, err := dbfs.CreateFolderByParentID(db, rootFolder.FileID, "Test1", &superUser)
+		newFolder1, err := dbfs.CreateFolderByParentId(db, rootFolder.FileId, "Test1", &superUser)
 
 		Assert.Nil(err)
 
@@ -58,7 +58,7 @@ func TestFile(t *testing.T) {
 
 		// Folder 2
 
-		newFolder2, err := dbfs.CreateFolderByParentID(db, rootFolder.FileID, "Test2", &superUser)
+		newFolder2, err := dbfs.CreateFolderByParentId(db, rootFolder.FileId, "Test2", &superUser)
 
 		Assert.Nil(err)
 
@@ -66,7 +66,7 @@ func TestFile(t *testing.T) {
 
 		// Folder 3
 
-		newFolder3, err := dbfs.CreateFolderByParentID(db, rootFolder.FileID, "Test3", &superUser)
+		newFolder3, err := dbfs.CreateFolderByParentId(db, rootFolder.FileId, "Test3", &superUser)
 
 		Assert.Nil(err)
 
@@ -74,7 +74,7 @@ func TestFile(t *testing.T) {
 
 		// Folder 4 (nested inside Folder 3)
 
-		newFolder4, err := dbfs.CreateFolderByParentID(db, newFolder3.FileID, "Test4", &superUser)
+		newFolder4, err := dbfs.CreateFolderByParentId(db, newFolder3.FileId, "Test4", &superUser)
 
 		Assert.Nil(err)
 
@@ -82,19 +82,19 @@ func TestFile(t *testing.T) {
 
 		// Folder 5 (same name as Folder 2, should fail due to existing folder)
 
-		_, err = dbfs.CreateFolderByParentID(db, rootFolder.FileID, "Test3", &superUser)
+		_, err = dbfs.CreateFolderByParentId(db, rootFolder.FileId, "Test3", &superUser)
 
 		Assert.Error(dbfs.ErrFileFolderExists, err)
 
 		// Listing files
 
-		ls, err := dbfs.ListFilesByFolderID(db, rootFolder.FileID, &superUser)
+		ls, err := dbfs.ListFilesByFolderId(db, rootFolder.FileId, &superUser)
 
 		Assert.Nil(err)
 
 		Assert.Equal(3, len(ls))
 
-		ls, err = dbfs.ListFilesByFolderID(db, newFolder3.FileID, &superUser)
+		ls, err = dbfs.ListFilesByFolderId(db, newFolder3.FileId, &superUser)
 		Assert.Nil(err)
 		Assert.Equal(1, len(ls))
 		Assert.Equal("Test4", ls[0].FileName)
@@ -180,7 +180,7 @@ func TestFile(t *testing.T) {
 
 	})
 
-	t.Run("Delete Folder By ID", func(t *testing.T) {
+	t.Run("Delete Folder By Id", func(t *testing.T) {
 
 		db := testutil.NewMockDB(t)
 		superUser := dbfs.User{}
@@ -189,7 +189,7 @@ func TestFile(t *testing.T) {
 		err := db.Where("username = ?", "superuser").First(&superUser).Error
 		assert.Nil(t, err)
 
-		// DeleteFolderByID
+		// DeleteFolderById
 
 		Assert := assert.New(t)
 
@@ -209,7 +209,7 @@ func TestFile(t *testing.T) {
 		folder, err = dbfs.GetFileByPath(db, "/Test2/Test_2", &superUser)
 		Assert.Nil(err)
 
-		err = dbfs.DeleteFolderByID(db, folder.FileID, &superUser)
+		err = dbfs.DeleteFolderById(db, folder.FileId, &superUser)
 		Assert.Nil(err)
 
 		ls, err = dbfs.ListFilesByPath(db, "/Test2", &superUser)
@@ -218,7 +218,7 @@ func TestFile(t *testing.T) {
 
 		// Delete non-existent folder
 
-		err = dbfs.DeleteFolderByID(db, "100c09f5-e163-468b-ad34-80944bbf8dfa", &superUser)
+		err = dbfs.DeleteFolderById(db, "100c09f5-e163-468b-ad34-80944bbf8dfa", &superUser)
 		Assert.Error(dbfs.ErrFileNotFound, err)
 
 		// Creating folders for next test
@@ -251,13 +251,13 @@ func TestFile(t *testing.T) {
 		parentFolder, err := dbfs.GetFileByPath(db, "/Test3", &superUser)
 		Assert.Nil(err)
 
-		err = dbfs.DeleteFolderByID(db, parentFolder.FileID, &superUser)
+		err = dbfs.DeleteFolderById(db, parentFolder.FileId, &superUser)
 
 		Assert.Error(dbfs.ErrFolderNotEmpty, err)
 
-		// DeleteFolderByIDCascade
+		// DeleteFolderByIdCascade
 
-		err = dbfs.DeleteFolderByIDCascade(db, parentFolder.FileID, &superUser)
+		err = dbfs.DeleteFolderByIdCascade(db, parentFolder.FileId, &superUser)
 		Assert.Nil(err)
 
 		ls, err = dbfs.ListFilesByPath(db, "/Test3", &superUser)
@@ -330,7 +330,7 @@ func TestFile(t *testing.T) {
 		Assert.Nil(err)
 
 		// Creating fake files
-		file, err := dbfs.EXAMPLECreateFile(db, &superUser, "somefile.txt", newFolder.FileID)
+		file, err := dbfs.EXAMPLECreateFile(db, &superUser, "somefile.txt", newFolder.FileId)
 
 		Assert.Nil(err)
 		// Check if you can get da fragments
@@ -342,7 +342,7 @@ func TestFile(t *testing.T) {
 			fmt.Println(fragments)
 		}
 
-		file2, err := dbfs.EXAMPLECreateFile(db, &superUser, "somefile2.txt", newFolder.FileID)
+		file2, err := dbfs.EXAMPLECreateFile(db, &superUser, "somefile2.txt", newFolder.FileId)
 		Assert.Nil(err)
 		// Check if you can get da fragments
 		fragments, err = file2.GetFileFragments(db, &superUser)
@@ -353,10 +353,10 @@ func TestFile(t *testing.T) {
 			fmt.Println(fragments)
 		}
 
-		file, err = dbfs.EXAMPLECreateFile(db, &superUser, "somefile2.txt", newFolder.FileID)
+		file, err = dbfs.EXAMPLECreateFile(db, &superUser, "somefile2.txt", newFolder.FileId)
 		Assert.Error(dbfs.ErrFileFolderExists, err)
 
-		err = dbfs.DeleteFileByID(db, file2.FileID, &superUser)
+		err = dbfs.DeleteFileById(db, file2.FileId, &superUser)
 		Assert.Nil(err)
 
 		fragments, err = file2.GetFileFragments(db, &superUser)
@@ -388,10 +388,10 @@ func TestFile(t *testing.T) {
 		Assert.Equal(newFile.VersionNo, uint(1))
 
 		// See if the new user can get the file
-		newFile2, err := dbfs.GetFileByID(db, newFile.FileID, userForGetFileMeta)
+		newFile2, err := dbfs.GetFileById(db, newFile.FileId, userForGetFileMeta)
 		Assert.Nil(err)
-		Assert.Equal(newFile.FileID, newFile2.FileID)
-		_, err = dbfs.GetFileByID(db, newFile.FileID, uselessUser)
+		Assert.Equal(newFile.FileId, newFile2.FileId)
+		_, err = dbfs.GetFileById(db, newFile.FileId, uselessUser)
 		Assert.Error(dbfs.ErrFileNotFound, err)
 
 		// Test GetOldVersion
@@ -437,8 +437,8 @@ func TestFile(t *testing.T) {
 		newFile, err = dbfs.GetFileByPath(db, "/pogfile.txt", &superUser)
 		Assert.Nil(err)
 		Assert.Equal(newFile.VersionNo, uint(3))
-		fmt.Println(newFile.DataIDVersion)
-		Assert.Equal(newFile.DataIDVersion, uint(1))
+		fmt.Println(newFile.DataIdVersion)
+		Assert.Equal(newFile.DataIdVersion, uint(1))
 
 		// Trying to RemovePermission user
 		// Getting all permissions
@@ -456,11 +456,15 @@ func TestFile(t *testing.T) {
 		Assert.Equal(newFile.VersionNo, uint(4))
 
 		// Trying to get the file again
-		_, err = dbfs.GetFileByID(db, newFile.FileID, userForGetFileMeta)
+		_, err = dbfs.GetFileById(db, newFile.FileId, userForGetFileMeta)
 		Assert.Error(dbfs.ErrFileNotFound, err)
-		_, err = dbfs.GetFileByID(db, newFile.FileID, &superUser)
+		_, err = dbfs.GetFileById(db, newFile.FileId, &superUser)
 		Assert.Nil(err)
 
 	})
 
+	// Encryption stuff testing
+	t.Run("Encryption", func(t *testing.T) {
+		dbfs.GetAES("HelloPassword")
+	})
 }

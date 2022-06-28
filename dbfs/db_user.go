@@ -21,7 +21,7 @@ var (
 )
 
 type User struct {
-	UserId      string `gorm:"primaryKey; not null"` // Random UUID
+	UserId      string `gorm:"primaryKey; not null"` // Random UUId
 	Name        string
 	Username    string `gorm:"not null; unique"`
 	MappedId    string `gorm:"not null; unique"`
@@ -40,7 +40,7 @@ type UserInterface interface {
 	ModifyName(tx *gorm.DB, newName string) error
 	ModifyUsername(tx *gorm.DB, newUsername string) error
 	ModifyAccountType(tx *gorm.DB, newStatus int8) error
-	MapToNewAccount(tx *gorm.DB, newID string) error
+	MapToNewAccount(tx *gorm.DB, newId string) error
 	GetGroupsWithUser(tx *gorm.DB) ([]Group, error)
 	DeactivateUser(tx *gorm.DB) error
 	DeleteUser(tx *gorm.DB) error
@@ -55,7 +55,7 @@ var _ UserInterface = &User{}
 // CreateNewUser
 // Creates a new user with a DB provided.
 // Requires username, name, AccountType, MappedId
-func CreateNewUser(tx *gorm.DB, username string, name string, accountType int8, mappedID string) (*User, error) {
+func CreateNewUser(tx *gorm.DB, username string, name string, accountType int8, mappedId string) (*User, error) {
 
 	// Check stuff like enums
 
@@ -69,7 +69,7 @@ func CreateNewUser(tx *gorm.DB, username string, name string, accountType int8, 
 		UserId:      uuid.New().String(),
 		Name:        name,
 		Username:    username,
-		MappedId:    mappedID,
+		MappedId:    mappedId,
 		Activated:   true,
 		AccountType: accountType,
 	}
@@ -148,8 +148,8 @@ func (user *User) ModifyAccountType(tx *gorm.DB, NewStatus int8) error {
 }
 
 // MapToNewAccount modifies the mapping identity of the User and saves it instantly
-func (user *User) MapToNewAccount(tx *gorm.DB, NewID string) error {
-	user.MappedId = NewID
+func (user *User) MapToNewAccount(tx *gorm.DB, NewId string) error {
+	user.MappedId = NewId
 	return tx.Save(&user).Error
 }
 

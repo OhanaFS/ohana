@@ -18,9 +18,9 @@ type Fragment struct {
 	FileVersionFileId        string      `gorm:"primaryKey"`
 	FileVersionDataId        string      `gorm:"primaryKey"`
 	FileVersionVersionNo     uint        `gorm:"primaryKey"`
-	FileVersionDataIDVersion uint
-	FragID                   uint `gorm:"primaryKey"`
-	ServerID                 string
+	FileVersionDataIdVersion uint
+	FragId                   uint `gorm:"primaryKey"`
+	ServerId                 string
 	FileFragmentPath         string
 	Checksum                 string
 	LastChecked              time.Time
@@ -35,6 +35,6 @@ func (f *Fragment) UpdateStatus(tx *gorm.DB, status int8) error {
 	return tx.Save(f).Error
 }
 
-func deleteFragmentsByDataID(tx *gorm.DB, dataID string) error {
-	return tx.Where("file_version_data_id = ?", dataID).Delete(&Fragment{}).Error
+func deleteFragmentsByDataId(tx *gorm.DB, dataId string) error {
+	return tx.Where("file_version_data_id = ?", dataId).Delete(&Fragment{}).Error
 }

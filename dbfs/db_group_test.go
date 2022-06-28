@@ -42,7 +42,7 @@ func TestGroups(t *testing.T) {
 		"Test5", dbfs.AccountTypeEndUser, "BLAH5")
 	assert.Nil(t, err)
 
-	var testGroupID string
+	var testGroupId string
 
 	t.Run("Verifying newly created groups", func(t *testing.T) {
 
@@ -52,11 +52,11 @@ func TestGroups(t *testing.T) {
 		assert.Equal("PogGroup2", group2.GroupName)
 		assert.Equal("PogGroup3", group3.GroupName)
 
-		testGroupID = group1.GroupId
+		testGroupId = group1.GroupId
 
-		assert.Equal("ANewMapping1", group1.MappedGroupID)
-		assert.Equal("ANewMapping2", group2.MappedGroupID)
-		assert.Equal("ANewMapping3", group3.MappedGroupID)
+		assert.Equal("ANewMapping1", group1.MappedGroupId)
+		assert.Equal("ANewMapping2", group2.MappedGroupId)
+		assert.Equal("ANewMapping3", group3.MappedGroupId)
 
 	})
 
@@ -84,27 +84,27 @@ func TestGroups(t *testing.T) {
 		users, err := group1.GetUsers(db)
 		assert.Nil(err)
 
-		UserIDs := user1.UserId + user2.UserId
+		UserIds := user1.UserId + user2.UserId
 		for _, u := range users {
-			assert.Contains(UserIDs, u.UserId)
+			assert.Contains(UserIds, u.UserId)
 		}
 
 		// Group 2
 		users, err = group2.GetUsers(db)
 		assert.Nil(err)
 
-		UserIDs = user2.UserId + user3.UserId
+		UserIds = user2.UserId + user3.UserId
 		for _, u := range users {
-			assert.Contains(UserIDs, u.UserId)
+			assert.Contains(UserIds, u.UserId)
 		}
 
 		// Group 3
 		users, err = group3.GetUsers(db)
 		assert.Nil(err)
 
-		UserIDs = user4.UserId
+		UserIds = user4.UserId
 		for _, u := range users {
-			assert.Contains(UserIDs, u.UserId)
+			assert.Contains(UserIds, u.UserId)
 		}
 
 	})
@@ -122,9 +122,9 @@ func TestGroups(t *testing.T) {
 		users, err := group1.GetUsers(db)
 		assert.Nil(err)
 
-		UserIDs := user1.UserId + user2.UserId
+		UserIds := user1.UserId + user2.UserId
 		for _, u := range users {
-			assert.Contains(UserIDs, u.UserId)
+			assert.Contains(UserIds, u.UserId)
 		}
 
 	})
@@ -154,10 +154,10 @@ func TestGroups(t *testing.T) {
 	t.Run("Modifying MappedId", func(t *testing.T) {
 		assert := assert.New(t)
 
-		err = group1.ModifyMappedGroupID(db, "NEWMAPPING1")
+		err = group1.ModifyMappedGroupId(db, "NEWMAPPING1")
 		assert.Nil(err)
 
-		assert.Equal("NEWMAPPING1", group1.MappedGroupID)
+		assert.Equal("NEWMAPPING1", group1.MappedGroupId)
 
 	})
 
@@ -197,7 +197,7 @@ func TestGroups(t *testing.T) {
 		assert.Nil(err)
 
 		// Update group
-		group2, err := dbfs.GetGroupBasedOnGroupID(db, group2.GroupId)
+		group2, err := dbfs.GetGroupBasedOnGroupId(db, group2.GroupId)
 		assert.Nil(err)
 
 		users, err := group2.GetUsers(db)
@@ -218,15 +218,15 @@ func TestGroups(t *testing.T) {
 
 	})
 
-	t.Run("Getting a group by by ID", func(t *testing.T) {
+	t.Run("Getting a group by by Id", func(t *testing.T) {
 
 		assert := assert.New(t)
 
-		testGroup, err := dbfs.GetGroupBasedOnGroupID(db, testGroupID)
+		testGroup, err := dbfs.GetGroupBasedOnGroupId(db, testGroupId)
 
 		assert.Nil(err)
 
-		assert.Equal(testGroupID, testGroup.GroupId)
+		assert.Equal(testGroupId, testGroup.GroupId)
 
 	})
 }

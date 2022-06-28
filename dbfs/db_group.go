@@ -10,7 +10,7 @@ type Group struct {
 	GroupId       string `gorm:"primaryKey"`
 	GroupName     string `gorm:"not null"`
 	Activated     bool   `gorm:"not null"`
-	MappedGroupID string
+	MappedGroupId string
 	Users         []*User `gorm:"many2many:user_groups;"`
 }
 
@@ -19,23 +19,23 @@ type GroupInterface interface {
 	Activate(tx *gorm.DB) error
 	Deactivate(tx *gorm.DB) error
 	GetUsers(tx *gorm.DB) ([]User, error)
-	ModifyMappedGroupID(tx *gorm.DB, newMappedGroup string) error
+	ModifyMappedGroupId(tx *gorm.DB, newMappedGroup string) error
 	HasPermission(tx *gorm.DB, file *File, needed *PermissionNeeded) (bool, error)
 }
 
 // CreateNewGroup creates a new group
-func CreateNewGroup(tx *gorm.DB, name string, mappedGroupID string) (*Group, error) {
+func CreateNewGroup(tx *gorm.DB, name string, mappedGroupId string) (*Group, error) {
 
 	NewGroup := &Group{
 		GroupId:       uuid.New().String(),
 		GroupName:     name,
 		Activated:     true,
-		MappedGroupID: mappedGroupID,
+		MappedGroupId: mappedGroupId,
 	}
 
 	result := tx.Create(&NewGroup)
 
-	// AFAIK the only possible non system error would be is an identical UUID.
+	// AFAIK the only possible non system error would be is an identical UUId.
 	if result.Error != nil {
 		return nil, result.Error
 	} else {
@@ -59,11 +59,11 @@ func GetGroupsLikeName(tx *gorm.DB, groupName string) ([]Group, error) {
 	return groups, nil
 }
 
-// GetGroupBasedOnGroupID returns the group that matches the ID
+// GetGroupBasedOnGroupId returns the group that matches the Id
 // Does not automatically return users associated.
 // To see users associated with Group, use GetUsers()
-func GetGroupBasedOnGroupID(tx *gorm.DB, groupID string) (*Group, error) {
-	var group = &Group{GroupId: groupID}
+func GetGroupBasedOnGroupId(tx *gorm.DB, groupId string) (*Group, error) {
+	var group = &Group{GroupId: groupId}
 
 	err := tx.First(group).Error
 
@@ -119,9 +119,9 @@ func (g *Group) GetUsers(tx *gorm.DB) ([]User, error) {
 	return users, err
 }
 
-// ModifyMappedGroupID modifies the mapped group ID and saves it instantly.
-func (g *Group) ModifyMappedGroupID(tx *gorm.DB, newMappedGroup string) error {
-	g.MappedGroupID = newMappedGroup
+// ModifyMappedGroupId modifies the mapped group Id and saves it instantly.
+func (g *Group) ModifyMappedGroupId(tx *gorm.DB, newMappedGroup string) error {
+	g.MappedGroupId = newMappedGroup
 
 	return tx.Save(&g).Error
 }

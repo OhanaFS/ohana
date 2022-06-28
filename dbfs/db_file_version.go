@@ -6,21 +6,21 @@ import (
 )
 
 type FileVersion struct {
-	FileID                string `gorm:"primaryKey"`
+	FileId                string `gorm:"primaryKey"`
 	VersionNo             uint   `gorm:"primaryKey"`
 	FileName              string `gorm:"not null"`
 	MIMEType              string
 	EntryType             int8         `gorm:"not null"`
-	ParentFolder          *FileVersion `gorm:"foreignKey:ParentFolderFileID,ParentFolderVersionNo"`
-	ParentFolderFileID    string
+	ParentFolder          *FileVersion `gorm:"foreignKey:ParentFolderFileId,ParentFolderVersionNo"`
+	ParentFolderFileId    string
 	ParentFolderVersionNo uint
-	DataID                string
-	DataIDVersion         uint
+	DataId                string
+	DataIdVersion         uint
 	Size                  uint      `gorm:"not null"`
 	ActualSize            uint      `gorm:"not null"`
 	CreatedTime           time.Time `gorm:"not null"`
-	ModifiedUser          User      `gorm:"foreignKey:ModifiedUserUserID"`
-	ModifiedUserUserID    string
+	ModifiedUser          User      `gorm:"foreignKey:ModifiedUserUserId"`
+	ModifiedUserUserId    string
 	ModifiedTime          time.Time `gorm:"not null; autoUpdateTime"`
 	VersioningMode        int8      `gorm:"not null"`
 	Checksum              string
@@ -30,8 +30,8 @@ type FileVersion struct {
 	PasswordProtected     bool
 	PasswordHint          string
 	PasswordNonce         string
-	LinkFile              *FileVersion `gorm:"foreignKey:LinkFileFileID,LinkFileVersionNo"`
-	LinkFileFileID        string
+	LinkFile              *FileVersion `gorm:"foreignKey:LinkFileFileId,LinkFileVersionNo"`
+	LinkFileFileId        string
 	LinkFileVersionNo     uint
 	LastChecked           time.Time
 	Status                int8   `gorm:"not null"`
@@ -45,25 +45,25 @@ func createFileVersionFromFile(tx *gorm.DB, file *File, user *User) error {
 
 	// Get the current parent folder and it's current version
 
-	parentFolder, err := GetFileByID(tx, file.ParentFolderFileID, user)
+	parentFolder, err := GetFileById(tx, file.ParentFolderFileId, user)
 	if err != nil {
 		return err
 	}
 
 	fileVersion := FileVersion{
-		FileID:                file.FileID,
+		FileId:                file.FileId,
 		VersionNo:             file.VersionNo,
 		FileName:              file.FileName,
 		MIMEType:              file.MIMEType,
 		EntryType:             file.EntryType,
-		ParentFolderFileID:    file.ParentFolderFileID,
+		ParentFolderFileId:    file.ParentFolderFileId,
 		ParentFolderVersionNo: parentFolder.VersionNo,
-		DataID:                file.DataID,
-		DataIDVersion:         file.DataIDVersion,
+		DataId:                file.DataId,
+		DataIdVersion:         file.DataIdVersion,
 		Size:                  file.Size,
 		ActualSize:            file.ActualSize,
 		CreatedTime:           file.CreatedTime,
-		ModifiedUserUserID:    file.ModifiedUserUserID,
+		ModifiedUserUserId:    file.ModifiedUserUserId,
 		ModifiedTime:          file.ModifiedTime,
 		VersioningMode:        file.VersioningMode,
 		Checksum:              file.Checksum,
@@ -73,7 +73,7 @@ func createFileVersionFromFile(tx *gorm.DB, file *File, user *User) error {
 		PasswordProtected:     file.PasswordProtected,
 		PasswordHint:          file.PasswordHint,
 		PasswordNonce:         file.PasswordNonce,
-		//LinkFileFileID:        "GET LINKED FOLDER", // NOT READY
+		//LinkFileFileId:        "GET LINKED FOLDER", // NOT READY
 		//LinkFileVersionNo:     0,                   // NOT READY
 		LastChecked:   file.LastChecked,
 		Status:        file.Status,
@@ -86,14 +86,14 @@ func createFileVersionFromFile(tx *gorm.DB, file *File, user *User) error {
 
 // finaliseFileVersionFromFile finalises the status to be done (FILESTATUSGOOD)
 func finaliseFileVersionFromFile(tx *gorm.DB, file *File) error {
-	return tx.Model(&FileVersion{}).Where("file_id = ? AND version_no = ?", file.FileID, file.VersionNo).
+	return tx.Model(&FileVersion{}).Where("file_id = ? AND version_no = ?", file.FileId, file.VersionNo).
 		Update("status", FILESTATUSGOOD).Error
 }
 
 // getFileVersionFromFile returns the version requested of a file/
 func getFileVersionFromFile(tx *gorm.DB, file *File, version int) (*FileVersion, error) {
 	var fileVersion FileVersion
-	err := tx.Where("file_id = ? AND version_no = ?", file.FileID, version).First(&fileVersion).Error
+	err := tx.Where("file_id = ? AND version_no = ?", file.FileId, version).First(&fileVersion).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, ErrVersionNotFound
@@ -114,7 +114,7 @@ func (fileVersion *FileVersion) GetFragments(tx *gorm.DB, user *User) ([]Fragmen
 	// of deleted files as well. Or for now, we just take it that you can't see deleted files.
 
 	// Get original File and check permissions (can't get file without permissions)
-	file, err := GetFileByID(tx, fileVersion.FileID, user)
+	file, err := GetFileById(tx, fileVersion.FileId, user)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func (fileVersion *FileVersion) GetFragments(tx *gorm.DB, user *User) ([]Fragmen
 	}
 
 	var fragments []Fragment
-	err = tx.Model(&fragments).Where("file_id = ? AND version_no = ?", fileVersion.FileID, fileVersion.VersionNo).Find(&fragments).Error
+	err = tx.Model(&fragments).Where("file_id = ? AND version_no = ?", fileVersion.FileId, fileVersion.VersionNo).Find(&fragments).Error
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ func (fileVersion *FileVersion) ListFiles(tx *gorm.DB, user *User) ([]FileVersio
 	// of deleted files as well. Or for now, we just take it that you can't see deleted files.
 
 	// Get original File and check permissions (can't get file without permissions)
-	file, err := GetFileByID(tx, fileVersion.FileID, user)
+	file, err := GetFileById(tx, fileVersion.FileId, user)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +156,7 @@ func (fileVersion *FileVersion) ListFiles(tx *gorm.DB, user *User) ([]FileVersio
 	}
 
 	var files []FileVersion
-	err = tx.Model(&files).Where("parent_folder_file_id = ? AND parent_folder_version_no = ?", fileVersion.FileID, fileVersion.VersionNo).Find(&files).Error
+	err = tx.Model(&files).Where("parent_folder_file_id = ? AND parent_folder_version_no = ?", fileVersion.FileId, fileVersion.VersionNo).Find(&files).Error
 	if err != nil {
 		return nil, err
 	}
@@ -170,26 +170,26 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 	// First, we'll create a new history entry to show when the file was deleted with timestamp
 
 	// Get the current parent folder and it's current version
-	parentFolder := File{FileID: file.ParentFolderFileID}
+	parentFolder := File{FileId: file.ParentFolderFileId}
 	err := tx.First(&parentFolder).Error
 	if err != nil {
 		return err
 	}
 
 	fileVersion := FileVersion{
-		FileID:                file.FileID,
+		FileId:                file.FileId,
 		VersionNo:             file.VersionNo + 1,
 		FileName:              file.FileName,
 		MIMEType:              file.MIMEType,
 		EntryType:             file.EntryType,
-		ParentFolderFileID:    file.ParentFolderFileID,
+		ParentFolderFileId:    file.ParentFolderFileId,
 		ParentFolderVersionNo: parentFolder.VersionNo,
-		DataID:                file.DataID,
-		DataIDVersion:         file.DataIDVersion,
+		DataId:                file.DataId,
+		DataIdVersion:         file.DataIdVersion,
 		Size:                  file.Size,
 		ActualSize:            file.ActualSize,
 		CreatedTime:           file.CreatedTime,
-		ModifiedUserUserID:    file.ModifiedUserUserID,
+		ModifiedUserUserId:    file.ModifiedUserUserId,
 		ModifiedTime:          file.ModifiedTime,
 		VersioningMode:        file.VersioningMode,
 		Checksum:              file.Checksum,
@@ -198,7 +198,7 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 		EncryptionKey:         file.EncryptionKey,
 		PasswordProtected:     file.PasswordProtected,
 		PasswordHint:          file.PasswordHint,
-		//LinkFileFileID:        "GET LINKED FOLDER", // NOT READY
+		//LinkFileFileId:        "GET LINKED FOLDER", // NOT READY
 		//LinkFileVersionNo:     0,                   // NOT READY
 		LastChecked:   file.LastChecked,
 		Status:        FILESTATUSDELETED,
@@ -212,7 +212,7 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 
 	// Next, we'll mark everything as deleted.
 
-	err = tx.Model(&FileVersion{}).Where("file_id = ?", file.FileID).Update("status", FILESTATUSDELETED).Error
+	err = tx.Model(&FileVersion{}).Where("file_id = ?", file.FileId).Update("status", FILESTATUSDELETED).Error
 	if err != nil {
 		return err
 	}
