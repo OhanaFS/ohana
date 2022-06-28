@@ -3,6 +3,8 @@ package controller
 import (
 	"context"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -24,18 +26,27 @@ func NewServer(
 	router *mux.Router,
 	logger *zap.Logger,
 	config *config.Config,
-) {
+) error {
 	logger.Info(
 		"Starting HTTP server",
 		zap.String("address", config.HTTP.Bind),
 	)
 
 	// Set up the SPA router
-	spa := &spaHandler{
-		staticPath: "web/dist",
-		indexPath:  "index.html",
+	if config.SPA.UseDevelopmentServer {
+		rpURL, err := url.Parse(config.SPA.DevelopmentServerURL)
+		if err != nil {
+			return err
+		}
+		rp := httputil.NewSingleHostReverseProxy(rpURL)
+		router.PathPrefix("/").Handler(rp)
+	} else {
+		spa := &spaHandler{
+			staticPath: config.SPA.StaticPath,
+			indexPath:  config.SPA.IndexPath,
+		}
+		router.PathPrefix("/").Handler(spa)
 	}
-	router.PathPrefix("/").Handler(spa)
 
 	// Wrap the router in a handler that logs requests
 	handler := NewLoggingMiddleware(logger)(router)
@@ -63,4 +74,6 @@ func NewServer(
 			return srv.Shutdown(ctx)
 		},
 	})
+
+	return nil
 }

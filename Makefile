@@ -25,6 +25,7 @@ dev:
 	go install github.com/codegangsta/gin@latest
 	gin --immediate\
 		--port 8000 \
+		--appPort 4000 \
 		--build cmd/ohana/ \
 		--bin ./bin/ohana.gin \
 		--buildArgs "-tags osusergo,netgo"

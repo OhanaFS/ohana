@@ -16,6 +16,7 @@ type Config struct {
 	Environment string         `yaml:"environment"`
 	HTTP        HttpConfig     `yaml:"http"`
 	Database    DatabaseConfig `yaml:"database"`
+	SPA         SPAConfig      `yaml:"-"`
 }
 
 type HttpConfig struct {
@@ -28,6 +29,15 @@ type HttpConfig struct {
 type DatabaseConfig struct {
 	// ConnectionString is the connection string for the database.
 	ConnectionString string `yaml:"connection_string"`
+}
+
+// SPAConfig is the configuration for the SPA router. It is not exposed to the
+// configuration file.
+type SPAConfig struct {
+	StaticPath           string
+	IndexPath            string
+	UseDevelopmentServer bool
+	DevelopmentServerURL string
 }
 
 // LoadConfig tries to load the configuration from the file specified in the
@@ -51,12 +61,19 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 
+	config.SPA = SPAConfig{
+		StaticPath:           "web/dist",
+		IndexPath:            "index.html",
+		UseDevelopmentServer: config.Environment == EnvironmentDevelopment,
+		DevelopmentServerURL: "http://localhost:3000",
+	}
+
 	// If on development mode, allow override of the HTTP bind using the PORT
 	// environment variable.
 	if config.Environment == EnvironmentDevelopment {
 		portOverride := os.Getenv("PORT")
 		if portOverride != "" {
-			config.HTTP.Bind = ":" + portOverride
+			config.HTTP.Bind = "127.0.0.1:" + portOverride
 			log.Println("Overriding HTTP bind using the PORT environment variable during development mode.")
 		}
 	}
