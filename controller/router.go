@@ -32,7 +32,7 @@ func NewServer(
 
 	// Set up the SPA router
 	spa := &spaHandler{
-		staticPath: "web/build",
+		staticPath: "web/dist",
 		indexPath:  "index.html",
 	}
 	router.PathPrefix("/").Handler(spa)
