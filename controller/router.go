@@ -2,8 +2,9 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -15,15 +16,7 @@ import (
 
 // NewRouter creates a new gorilla/mux router.
 func NewRouter() *mux.Router {
-	r := mux.NewRouter()
-
-	// Add a default route
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "Welcome to Ohana!")
-	}).Methods("GET")
-
-	return r
+	return mux.NewRouter()
 }
 
 // StartServer creates a new HTTP server with the given router. It uses fx
@@ -33,11 +26,27 @@ func NewServer(
 	router *mux.Router,
 	logger *zap.Logger,
 	config *config.Config,
-) {
+) error {
 	logger.Info(
 		"Starting HTTP server",
 		zap.String("address", config.HTTP.Bind),
 	)
+
+	// Set up the SPA router
+	if config.SPA.UseDevelopmentServer {
+		rpURL, err := url.Parse(config.SPA.DevelopmentServerURL)
+		if err != nil {
+			return err
+		}
+		rp := httputil.NewSingleHostReverseProxy(rpURL)
+		router.PathPrefix("/").Handler(rp)
+	} else {
+		spa := &spaHandler{
+			staticPath: config.SPA.StaticPath,
+			indexPath:  config.SPA.IndexPath,
+		}
+		router.PathPrefix("/").Handler(spa)
+	}
 
 	// Wrap the router in a handler that logs requests
 	handler := NewLoggingMiddleware(logger)(router)
@@ -65,4 +74,6 @@ func NewServer(
 			return srv.Shutdown(ctx)
 		},
 	})
+
+	return nil
 }
