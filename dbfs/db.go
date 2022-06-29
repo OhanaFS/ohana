@@ -50,7 +50,7 @@ func InitDB(db *gorm.DB) error {
 			permission := Permission{
 				FileId:     rootFolder.FileId,
 				User:       *superUser,
-				UserId:     superUser.UserId,
+				UserId:     &superUser.UserId,
 				CanRead:    true,
 				CanWrite:   true,
 				CanExecute: true,

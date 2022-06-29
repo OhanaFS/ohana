@@ -12,15 +12,15 @@ type FileVersion struct {
 	MIMEType              string
 	EntryType             int8         `gorm:"not null"`
 	ParentFolder          *FileVersion `gorm:"foreignKey:ParentFolderFileId,ParentFolderVersionNo"`
-	ParentFolderFileId    string
-	ParentFolderVersionNo int
+	ParentFolderFileId    *string
+	ParentFolderVersionNo *int
 	DataId                string
 	DataIdVersion         int
 	Size                  int       `gorm:"not null"`
 	ActualSize            int       `gorm:"not null"`
 	CreatedTime           time.Time `gorm:"not null"`
 	ModifiedUser          User      `gorm:"foreignKey:ModifiedUserUserId"`
-	ModifiedUserUserId    string
+	ModifiedUserUserId    *string
 	ModifiedTime          time.Time `gorm:"not null; autoUpdateTime"`
 	VersioningMode        int8      `gorm:"not null"`
 	Checksum              string
@@ -30,8 +30,8 @@ type FileVersion struct {
 	EncryptionIv          string
 	PasswordProtected     bool
 	LinkFile              *FileVersion `gorm:"foreignKey:LinkFileFileId,LinkFileVersionNo"`
-	LinkFileFileId        string
-	LinkFileVersionNo     int
+	LinkFileFileId        *string
+	LinkFileVersionNo     *int
 	LastChecked           time.Time
 	Status                int8   `gorm:"not null"`
 	HandledServer         string `gorm:"not null"`
@@ -44,7 +44,7 @@ func createFileVersionFromFile(tx *gorm.DB, file *File, user *User) error {
 
 	// Get the current parent folder and it's current version
 
-	parentFolder, err := GetFileById(tx, file.ParentFolderFileId, user)
+	parentFolder, err := GetFileById(tx, *file.ParentFolderFileId, user)
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func createFileVersionFromFile(tx *gorm.DB, file *File, user *User) error {
 		MIMEType:              file.MIMEType,
 		EntryType:             file.EntryType,
 		ParentFolderFileId:    file.ParentFolderFileId,
-		ParentFolderVersionNo: parentFolder.VersionNo,
+		ParentFolderVersionNo: &parentFolder.VersionNo,
 		DataId:                file.DataId,
 		DataIdVersion:         file.DataIdVersion,
 		Size:                  file.Size,
@@ -168,7 +168,7 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 	// First, we'll create a new history entry to show when the file was deleted with timestamp
 
 	// Get the current parent folder and it's current version
-	parentFolder := File{FileId: file.ParentFolderFileId}
+	parentFolder := File{FileId: *file.ParentFolderFileId}
 	err := tx.First(&parentFolder).Error
 	if err != nil {
 		return err
@@ -181,7 +181,7 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 		MIMEType:              file.MIMEType,
 		EntryType:             file.EntryType,
 		ParentFolderFileId:    file.ParentFolderFileId,
-		ParentFolderVersionNo: parentFolder.VersionNo,
+		ParentFolderVersionNo: &parentFolder.VersionNo,
 		DataId:                file.DataId,
 		DataIdVersion:         file.DataIdVersion,
 		Size:                  file.Size,

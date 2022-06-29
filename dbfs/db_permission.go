@@ -14,9 +14,9 @@ type Permission struct {
 	FileId       string `gorm:"primaryKey"`
 	PermissionId int    `gorm:"primaryKey;autoIncrement"`
 	User         User   `gorm:"foreignKey:UserId"`
-	UserId       string
+	UserId       *string
 	Group        Group `gorm:"foreignKey:GroupId"`
-	GroupId      string
+	GroupId      *string
 	CanRead      bool
 	CanWrite     bool
 	CanExecute   bool
@@ -29,17 +29,14 @@ type Permission struct {
 	Status       int8           // 1 indicates active, 0 indicates time needs to be updated properly
 }
 
-type PermissionInterface interface {
-}
-
 type PermissionHistory struct {
 	FileId       string `gorm:"primaryKey"`
 	VersionNo    int    `gorm:"primaryKey"`
 	PermissionId int    `gorm:"primaryKey;autoIncrement"`
 	User         User   `gorm:"foreignKey:UserId"`
-	UserId       string
+	UserId       *string
 	Group        Group `gorm:"foreignKey:GroupId"`
-	GroupId      string
+	GroupId      *string
 	CanRead      bool
 	CanWrite     bool
 	CanExecute   bool
@@ -62,9 +59,9 @@ func createPermissions(tx *gorm.DB, newFile *File, additionalPermissions ...Perm
 	// Based on additional permissions, we'll either modify it, or add a new entry
 
 	for _, newPermission := range additionalPermissions {
-		newIsUser := newPermission.UserId != ""
+		newIsUser := newPermission.UserId != nil
 		for _, existingPermissions := range oldPermissionRecords {
-			existingIsUser := existingPermissions.UserId != ""
+			existingIsUser := existingPermissions.UserId != nil
 			updated := false
 			if newIsUser == existingIsUser { // matching type
 				if newIsUser { // user
@@ -166,7 +163,7 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *Permission
 		for _, user := range users {
 			updated := false
 			for _, existingPermissions := range oldPermissionRecords {
-				if user.UserId == existingPermissions.UserId {
+				if user.UserId == *existingPermissions.UserId {
 					updated = true
 					// Modify existing permission
 					// ONLY ALLOW MORE, NOT LESS
@@ -278,7 +275,7 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *Permission
 			// Append permission
 			newPermission := Permission{
 				FileId:     file.FileId,
-				UserId:     user.UserId,
+				UserId:     &user.UserId,
 				CanRead:    permissionNeeded.Read,
 				CanWrite:   permissionNeeded.Write,
 				CanExecute: permissionNeeded.Execute,
@@ -342,7 +339,7 @@ func upsertGroupsPermission(tx *gorm.DB, file *File, permissionNeeded *Permissio
 		for _, group := range groups {
 			updated := false
 			for _, existingPermissions := range oldPermissionRecords {
-				if group.GroupId == existingPermissions.GroupId {
+				if group.GroupId == *existingPermissions.GroupId {
 					updated = true
 					// Modify existing permission
 					// ONLY ALLOW MORE, NOT LESS
@@ -452,7 +449,7 @@ func upsertGroupsPermission(tx *gorm.DB, file *File, permissionNeeded *Permissio
 				// Append permission
 				newPermission := Permission{
 					FileId:     file.FileId,
-					GroupId:    group.GroupId,
+					GroupId:    &group.GroupId,
 					CanRead:    permissionNeeded.Read,
 					CanWrite:   permissionNeeded.Write,
 					CanExecute: permissionNeeded.Execute,
@@ -499,7 +496,7 @@ func revokeUsersPermission(tx *gorm.DB, file *File, users []User, invoker *User)
 		for _, user := range users {
 
 			// Check if user has permission in the parent folder (if they do, can't revoke)
-			_, err := GetFileById(tx, file.ParentFolderFileId, &user)
+			_, err := GetFileById(tx, *file.ParentFolderFileId, &user)
 
 			if err != nil {
 				if errors.Is(err, ErrFileNotFound) {
@@ -509,7 +506,7 @@ func revokeUsersPermission(tx *gorm.DB, file *File, users []User, invoker *User)
 
 					err = tx.Where(&Permission{
 						FileId: file.FileId,
-						UserId: user.UserId,
+						UserId: &user.UserId,
 					}).First(&tempPerm).Error
 
 					err = tx.Delete(&tempPerm).Error

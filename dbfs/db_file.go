@@ -50,7 +50,7 @@ type File struct {
 	MIMEType           string
 	EntryType          int8  `gorm:"not null"`
 	ParentFolder       *File `gorm:"foreignKey:ParentFolderFileId"`
-	ParentFolderFileId string
+	ParentFolderFileId *string
 	VersionNo          int `gorm:"not null"`
 	DataId             string
 	DataIdVersion      int
@@ -58,7 +58,7 @@ type File struct {
 	ActualSize         int       `gorm:"not null"`
 	CreatedTime        time.Time `gorm:"not null"`
 	ModifiedUser       *User     `gorm:"foreignKey:ModifiedUserUserId"`
-	ModifiedUserUserId string
+	ModifiedUserUserId *string
 	ModifiedTime       time.Time `gorm:"not null; autoUpdateTime"`
 	VersioningMode     int8      `gorm:"not null"`
 	Checksum           string
@@ -311,7 +311,7 @@ func EXAMPLECreateFile(tx *gorm.DB, user *User, filename string, parentFolderId 
 	file := File{
 		FileName:           filename,
 		MIMEType:           "",
-		ParentFolderFileId: parentFolderId, // root folder for now
+		ParentFolderFileId: &parentFolderId, // root folder for now
 		Size:               512,
 		VersioningMode:     0,
 		Checksum:           "CHECKSUM",
@@ -398,7 +398,7 @@ func CreateInitialFile(tx *gorm.DB, file *File, user *User) error {
 		If file.ParityCount is not set (or lower than 0), use defaults
 	*/
 
-	if file.FileName == "" || file.Size == 0 || file.ParentFolderFileId == "" || file.Checksum == "" {
+	if file.FileName == "" || file.Size == 0 || *file.ParentFolderFileId == "" || file.Checksum == "" {
 		return ErrInvalidFile
 	}
 
@@ -418,19 +418,19 @@ func CreateInitialFile(tx *gorm.DB, file *File, user *User) error {
 
 	// Verify that the user has permission to the folder they are writing to
 
-	hasPermission, err := user.HasPermission(tx, &File{FileId: file.ParentFolderFileId}, &PermissionNeeded{Read: true})
+	hasPermission, err := user.HasPermission(tx, &File{FileId: *file.ParentFolderFileId}, &PermissionNeeded{Read: true})
 	if err != nil || !hasPermission {
 		return err
 	}
 
-	hasPermission, err = user.HasPermission(tx, &File{FileId: file.ParentFolderFileId}, &PermissionNeeded{Write: true})
+	hasPermission, err = user.HasPermission(tx, &File{FileId: *file.ParentFolderFileId}, &PermissionNeeded{Write: true})
 	if err != nil || !hasPermission {
 		return ErrNoPermission
 	}
 
 	// Check that there's no file with the same name in the same folder
 
-	ls, err := ListFilesByFolderId(tx, file.ParentFolderFileId, user)
+	ls, err := ListFilesByFolderId(tx, *file.ParentFolderFileId, user)
 
 	for _, f := range ls {
 		if f.FileName == file.FileName {
@@ -459,7 +459,7 @@ func CreateInitialFile(tx *gorm.DB, file *File, user *User) error {
 		Size:               file.Size,
 		ActualSize:         file.Size,
 		CreatedTime:        time.Now(),
-		ModifiedUserUserId: user.UserId,
+		ModifiedUserUserId: &user.UserId,
 		ModifiedTime:       time.Now(),
 		VersioningMode:     file.VersioningMode,
 		Checksum:           file.Checksum,
@@ -532,7 +532,7 @@ func finishFile(tx *gorm.DB, file *File, user *User, newEncryptionKey string, ac
 	file.Status = FILESTATUSGOOD
 	file.EncryptionKey = newEncryptionKey
 	file.ActualSize = actualSize
-	file.ModifiedUserUserId = user.UserId
+	file.ModifiedUserUserId = &user.UserId
 	file.ModifiedTime = time.Now()
 	err := tx.Save(file).Error
 	if err != nil {
@@ -782,14 +782,14 @@ func (f *File) CreateSubFolder(tx *gorm.DB, folderName string, user *User) (*Fil
 		MIMEType:           "",
 		EntryType:          0,
 		ParentFolder:       f,
-		ParentFolderFileId: f.FileId,
+		ParentFolderFileId: &f.FileId,
 		VersionNo:          0,
 		DataId:             "",
 		DataIdVersion:      0,
 		Size:               0,
 		ActualSize:         0,
 		CreatedTime:        time.Time{},
-		ModifiedUserUserId: user.UserId,
+		ModifiedUserUserId: &user.UserId,
 		ModifiedTime:       time.Time{},
 		VersioningMode:     0,
 		Status:             1,
@@ -982,7 +982,7 @@ func (f *File) Move(tx *gorm.DB, newParent *File, user *User) error {
 	}
 
 	// Update the parent folder of the file
-	f.ParentFolderFileId = newParent.FileId
+	f.ParentFolderFileId = &newParent.FileId
 
 	err = tx.Transaction(func(tx *gorm.DB) error {
 		err2 := tx.Save(f).Error
@@ -1127,13 +1127,13 @@ func (f *File) RemovePermission(tx *gorm.DB, permission *Permission, user *User)
 	var err error
 
 	// Check if it's user or group
-	if permission.UserId != "" {
+	if permission.UserId != nil {
 		// User
-		err = revokeUsersPermission(tx, f, []User{User{UserId: permission.UserId}}, user)
+		err = revokeUsersPermission(tx, f, []User{User{UserId: *permission.UserId}}, user)
 
 	} else {
 		// Group
-		err = revokeGroupsPermission(tx, f, []Group{Group{GroupId: permission.GroupId}})
+		err = revokeGroupsPermission(tx, f, []Group{Group{GroupId: *permission.GroupId}})
 	}
 
 	return err
@@ -1168,14 +1168,14 @@ func (f *File) UpdatePermission(tx *gorm.DB, oldPermission *Permission, newPermi
 
 	// User or Group
 
-	if oldPermission.UserId != "" {
-		newUser, err := GetUser(tx, newPermission.UserId)
+	if oldPermission.UserId != nil {
+		newUser, err := GetUser(tx, *newPermission.UserId)
 		if err != nil {
 			return err
 		}
 		err = upsertUsersPermission(tx, f, PermissionNeeded, user, *newUser)
 	} else {
-		newGroup, err := GetGroupBasedOnGroupId(tx, newPermission.GroupId)
+		newGroup, err := GetGroupBasedOnGroupId(tx, *newPermission.GroupId)
 		if err != nil {
 			return err
 		}
@@ -1229,7 +1229,7 @@ func (f *File) UpdateFile(tx *gorm.DB, newSize int, newActualSize int, newEncryp
 	f.DataIdVersion = f.DataIdVersion + 1
 	f.Size = newSize
 	f.ActualSize = newActualSize
-	f.ModifiedUserUserId = user.UserId
+	f.ModifiedUserUserId = &user.UserId
 	f.ModifiedTime = time.Now()
 	f.Checksum = checksum
 	f.EncryptionKey = newEncryptionKey

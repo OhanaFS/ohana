@@ -447,7 +447,7 @@ func TestFile(t *testing.T) {
 		Assert.Nil(err)
 		for i, permission := range permissions {
 			fmt.Println(i)
-			if permission.UserId == userForGetFileMeta.UserId {
+			if *permission.UserId == userForGetFileMeta.UserId {
 				err = newFile.RemovePermission(db, &permission, &superUser)
 				Assert.Nil(err)
 			}
