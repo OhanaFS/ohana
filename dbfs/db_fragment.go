@@ -17,14 +17,14 @@ type Fragment struct {
 	FileVersion              FileVersion `gorm:"foreignKey:FileVersionFileId,FileVersionVersionNo"`
 	FileVersionFileId        string      `gorm:"primaryKey"`
 	FileVersionDataId        string      `gorm:"primaryKey"`
-	FileVersionVersionNo     uint        `gorm:"primaryKey"`
-	FileVersionDataIdVersion uint
-	FragId                   uint `gorm:"primaryKey"`
+	FileVersionVersionNo     int         `gorm:"primaryKey"`
+	FileVersionDataIdVersion int
+	FragId                   int `gorm:"primaryKey"`
 	ServerId                 string
 	FileFragmentPath         string
 	Checksum                 string
 	LastChecked              time.Time
-	FragCount                uint `gorm:"not null"`
+	FragCount                int `gorm:"not null"`
 	Status                   int8
 }
 

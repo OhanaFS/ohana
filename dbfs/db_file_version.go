@@ -7,37 +7,36 @@ import (
 
 type FileVersion struct {
 	FileId                string `gorm:"primaryKey"`
-	VersionNo             uint   `gorm:"primaryKey"`
+	VersionNo             int    `gorm:"primaryKey"`
 	FileName              string `gorm:"not null"`
 	MIMEType              string
 	EntryType             int8         `gorm:"not null"`
 	ParentFolder          *FileVersion `gorm:"foreignKey:ParentFolderFileId,ParentFolderVersionNo"`
 	ParentFolderFileId    string
-	ParentFolderVersionNo uint
+	ParentFolderVersionNo int
 	DataId                string
-	DataIdVersion         uint
-	Size                  uint      `gorm:"not null"`
-	ActualSize            uint      `gorm:"not null"`
+	DataIdVersion         int
+	Size                  int       `gorm:"not null"`
+	ActualSize            int       `gorm:"not null"`
 	CreatedTime           time.Time `gorm:"not null"`
 	ModifiedUser          User      `gorm:"foreignKey:ModifiedUserUserId"`
 	ModifiedUserUserId    string
 	ModifiedTime          time.Time `gorm:"not null; autoUpdateTime"`
 	VersioningMode        int8      `gorm:"not null"`
 	Checksum              string
-	FragCount             uint
-	ParityCount           uint
+	FragCount             int
+	ParityCount           int
 	EncryptionKey         string
+	EncryptionIv          string
 	PasswordProtected     bool
-	PasswordHint          string
-	PasswordNonce         string
 	LinkFile              *FileVersion `gorm:"foreignKey:LinkFileFileId,LinkFileVersionNo"`
 	LinkFileFileId        string
-	LinkFileVersionNo     uint
+	LinkFileVersionNo     int
 	LastChecked           time.Time
 	Status                int8   `gorm:"not null"`
 	HandledServer         string `gorm:"not null"`
 	Patch                 bool
-	PatchBaseVersion      uint
+	PatchBaseVersion      int
 }
 
 // createFileVersionFromFile creates a FileVersion from a File
@@ -70,9 +69,8 @@ func createFileVersionFromFile(tx *gorm.DB, file *File, user *User) error {
 		FragCount:             file.FragCount,
 		ParityCount:           file.ParityCount,
 		EncryptionKey:         file.EncryptionKey,
+		EncryptionIv:          file.EncryptionIv,
 		PasswordProtected:     file.PasswordProtected,
-		PasswordHint:          file.PasswordHint,
-		PasswordNonce:         file.PasswordNonce,
 		//LinkFileFileId:        "GET LINKED FOLDER", // NOT READY
 		//LinkFileVersionNo:     0,                   // NOT READY
 		LastChecked:   file.LastChecked,
@@ -197,7 +195,6 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 		ParityCount:           file.ParityCount,
 		EncryptionKey:         file.EncryptionKey,
 		PasswordProtected:     file.PasswordProtected,
-		PasswordHint:          file.PasswordHint,
 		//LinkFileFileId:        "GET LINKED FOLDER", // NOT READY
 		//LinkFileVersionNo:     0,                   // NOT READY
 		LastChecked:   file.LastChecked,

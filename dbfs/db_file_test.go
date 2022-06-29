@@ -385,7 +385,7 @@ func TestFile(t *testing.T) {
 		err = newFile.GetFileMeta(db, &superUser)
 		Assert.Nil(err)
 		Assert.Equal(newFile.ModifiedUser.UserId, superUser.UserId)
-		Assert.Equal(newFile.VersionNo, uint(1))
+		Assert.Equal(newFile.VersionNo, 1)
 
 		// See if the new user can get the file
 		newFile2, err := dbfs.GetFileById(db, newFile.FileId, userForGetFileMeta)
@@ -398,7 +398,7 @@ func TestFile(t *testing.T) {
 
 		newFileV0, err := newFile.GetOldVersion(db, userForGetFileMeta, 0)
 		Assert.Nil(err)
-		Assert.Equal(newFileV0.VersionNo, uint(0))
+		Assert.Equal(newFileV0.VersionNo, 0)
 
 		newFileV0, err = newFile.GetOldVersion(db, userForGetFileMeta, 20)
 		Assert.Error(dbfs.ErrVersionNotFound, err)
@@ -416,7 +416,7 @@ func TestFile(t *testing.T) {
 		Assert.Equal(newFile.FileName, "pogfile.txt")
 		Assert.Equal(newFile.MIMEType, "text")
 		Assert.Equal(newFile.VersioningMode, dbfs.VERSIONING_OFF)
-		Assert.Equal(newFile.VersionNo, uint(2))
+		Assert.Equal(newFile.VersionNo, 2)
 
 		// Move. Attempting to move the file to the root folder.
 
@@ -436,9 +436,9 @@ func TestFile(t *testing.T) {
 		Assert.Nil(err)
 		newFile, err = dbfs.GetFileByPath(db, "/pogfile.txt", &superUser)
 		Assert.Nil(err)
-		Assert.Equal(newFile.VersionNo, uint(3))
+		Assert.Equal(newFile.VersionNo, 3)
 		fmt.Println(newFile.DataIdVersion)
-		Assert.Equal(newFile.DataIdVersion, uint(1))
+		Assert.Equal(newFile.DataIdVersion, 1)
 
 		// Trying to RemovePermission user
 		// Getting all permissions
@@ -453,7 +453,7 @@ func TestFile(t *testing.T) {
 			}
 		}
 
-		Assert.Equal(newFile.VersionNo, uint(4))
+		Assert.Equal(newFile.VersionNo, 4)
 
 		// Trying to get the file again
 		_, err = dbfs.GetFileById(db, newFile.FileId, userForGetFileMeta)

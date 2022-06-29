@@ -1,9 +1,8 @@
 package config
 
 import (
+	"gopkg.in/yaml.v3"
 	"os"
-
-	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -15,6 +14,7 @@ type Config struct {
 	Environment string         `yaml:"environment"`
 	HTTP        HttpConfig     `yaml:"http"`
 	Database    DatabaseConfig `yaml:"database"`
+	Redis       RedisConfig    `yaml:"redis"`
 }
 
 type HttpConfig struct {
@@ -27,6 +27,12 @@ type HttpConfig struct {
 type DatabaseConfig struct {
 	// ConnectionString is the connection string for the database.
 	ConnectionString string `yaml:"connection_string"`
+}
+
+type RedisConfig struct {
+	password string `yaml:"password"`
+	address  string `yaml:"address"`
+	db       int    `yaml:"db"`
 }
 
 // LoadConfig tries to load the configuration from the file specified in the

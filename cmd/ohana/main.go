@@ -26,6 +26,7 @@ func main() {
 			config.LoadConfig,
 			config.NewLogger,
 			config.NewDatabase,
+			config.NewRedis,
 			controller.NewRouter,
 
 			// Services
@@ -40,6 +41,7 @@ func main() {
 
 			// DB
 			dbfs.InitDB,
+			dbfs.REDIS,
 		),
 	).Run()
 }

@@ -1,10 +1,12 @@
 package dbfs
 
 import (
+	"crypto/rand"
 	"errors"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"io"
 	"mime"
 	"path/filepath"
 	"strconv"
@@ -46,28 +48,27 @@ type File struct {
 	FileId             string `gorm:"primaryKey"`
 	FileName           string
 	MIMEType           string
-	EntryType          int8 `gorm:"not null"`
-	ParentFolder       *File
+	EntryType          int8  `gorm:"not null"`
+	ParentFolder       *File `gorm:"foreignKey:ParentFolderFileId"`
 	ParentFolderFileId string
-	VersionNo          uint `gorm:"not null"`
+	VersionNo          int `gorm:"not null"`
 	DataId             string
-	DataIdVersion      uint
-	Size               uint      `gorm:"not null"`
-	ActualSize         uint      `gorm:"not null"`
+	DataIdVersion      int
+	Size               int       `gorm:"not null"`
+	ActualSize         int       `gorm:"not null"`
 	CreatedTime        time.Time `gorm:"not null"`
-	ModifiedUser       User      `gorm:"foreignKey:ModifiedUserUserId"`
+	ModifiedUser       *User     `gorm:"foreignKey:ModifiedUserUserId"`
 	ModifiedUserUserId string
 	ModifiedTime       time.Time `gorm:"not null; autoUpdateTime"`
 	VersioningMode     int8      `gorm:"not null"`
 	Checksum           string
-	FragCount          uint
-	ParityCount        uint
+	FragCount          int
+	ParityCount        int
 	EncryptionKey      string
+	EncryptionIv       string
 	PasswordProtected  bool
-	PasswordNonce      string
-	PasswordHint       string
 	LinkFile           *File `gorm:"foreignKey:LinkFileFileId"`
-	LinkFileFileId     string
+	LinkFileFileId     *string
 	LastChecked        time.Time
 	Status             int8   `gorm:"not null"`
 	HandledServer      string `gorm:"not null"`
@@ -105,8 +106,8 @@ type FileInterface interface {
 	AddPermissionGroups(tx *gorm.DB, permission *PermissionNeeded, requestUser *User, groups ...Group) error
 	RemovePermission(tx *gorm.DB, permission *Permission, user *User) error
 	UpdatePermission(tx *gorm.DB, oldPermission *Permission, newPermission *Permission, user *User) error
-	UpdateFile(tx *gorm.DB, newSize uint, newActualSize uint, newEncryptionKey string, checksum string, handlingServer string, user *User) error
-	updateFragment(tx *gorm.DB, fragmentId uint, fileFragmentPath string, checksum string, serverId string) error
+	UpdateFile(tx *gorm.DB, newSize int, newActualSize int, newEncryptionKey string, checksum string, handlingServer string, user *User) error
+	updateFragment(tx *gorm.DB, fragmentId int, fileFragmentPath string, checksum string, serverId string) error
 }
 
 var _ FileInterface = &File{}
@@ -316,7 +317,6 @@ func EXAMPLECreateFile(tx *gorm.DB, user *User, filename string, parentFolderId 
 		Checksum:           "CHECKSUM",
 		ParityCount:        5,
 		PasswordProtected:  false,
-		PasswordHint:       "",
 		HandledServer:      "ThisServer",
 	}
 
@@ -347,7 +347,7 @@ func EXAMPLECreateFile(tx *gorm.DB, user *User, filename string, parentFolderId 
 	// Then, the system send each shard to each server, and once it's sent successfully
 
 	for i := 1; i <= int(file.FragCount); i++ {
-		fragId := uint(i)
+		fragId := int(i)
 		fragmentPath := uuid.New().String()
 		serverId := "Server" + strconv.Itoa(i)
 		fragChecksum := "CHECKSUM" + strconv.Itoa(i)
@@ -399,10 +399,6 @@ func CreateInitialFile(tx *gorm.DB, file *File, user *User) error {
 	*/
 
 	if file.FileName == "" || file.Size == 0 || file.ParentFolderFileId == "" || file.Checksum == "" {
-		return ErrInvalidFile
-	}
-
-	if file.PasswordProtected && file.PasswordHint == "" {
 		return ErrInvalidFile
 	}
 
@@ -471,7 +467,6 @@ func CreateInitialFile(tx *gorm.DB, file *File, user *User) error {
 		ParityCount:        parityShardCount,
 		// Skip EncyrptionKey, input later
 		PasswordProtected: file.PasswordProtected,
-		PasswordHint:      file.PasswordHint,
 		LastChecked:       time.Now(),
 		Status:            FILESTATUSWRITING,
 		HandledServer:     "", // Should be the server Id of the server that is handling the file
@@ -496,7 +491,7 @@ func CreateInitialFile(tx *gorm.DB, file *File, user *User) error {
 }
 
 // createFragment is called whenever the fragment has been written to disk
-func createFragment(tx *gorm.DB, fileId string, dataId string, versionNo uint, fragId uint, serverId string, fragmentPath string, checksum string) error {
+func createFragment(tx *gorm.DB, fileId string, dataId string, versionNo int, fragId int, serverId string, fragmentPath string, checksum string) error {
 
 	// Validating inputs
 	if fileId == "" || dataId == "" || versionNo < 0 || fragId <= 0 || serverId == "" || fragmentPath == "" || checksum == "" {
@@ -523,7 +518,7 @@ func createFragment(tx *gorm.DB, fileId string, dataId string, versionNo uint, f
 }
 
 // finishFile is called whenever a file has been all written (all fragments written)
-func finishFile(tx *gorm.DB, file *File, user *User, newEncryptionKey string, actualSize uint) error {
+func finishFile(tx *gorm.DB, file *File, user *User, newEncryptionKey string, actualSize int) error {
 
 	// Some checks
 	if file.Status != FILESTATUSWRITING {
@@ -907,9 +902,42 @@ func (f *File) rename(tx *gorm.DB, newName string) error {
 
 // PasswordProtect TODO: implement
 // Adds a password to a file
-func (f File) PasswordProtect(tx *gorm.DB, password string, hint string, user *User) error {
-	//TODO implement me
-	panic("implement me")
+func (f *File) PasswordProtect(tx *gorm.DB, password string, hint string, user *User) error {
+
+	// Check if the user has read permission (if not 404)
+	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
+	if err != nil {
+		return err
+	} else if !hasPermissions {
+		return ErrFileNotFound
+	}
+
+	// Check if the user has write permission (if not 403)
+	hasPermissions, err = user.HasPermission(tx, f, &PermissionNeeded{Write: true})
+	if err != nil {
+		return err
+	} else if !hasPermissions {
+		return ErrNoPermission
+	}
+
+	// Create a salt and hash the password
+
+	salt := make([]byte, 32)
+	_, err = io.ReadFull(rand.Reader, salt)
+	if err != nil {
+		return err
+	}
+
+	//key, err := scrypt.Key([]byte(password), salt, 16384, 8, 1, 32)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	// Get original encryption key
+
+	//plaintext := f.EncryptionKey
+
+	panic("TeST")
 }
 
 // PasswordUnprotect TODO: implement
@@ -1177,7 +1205,7 @@ func (f *File) GetPermissions(tx *gorm.DB, user *User) ([]Permission, error) {
 // UpdateFile
 // At this stage, the server should have the
 // updated file (already processed) , uncompressed file size, compressed data size, and key
-func (f *File) UpdateFile(tx *gorm.DB, newSize uint, newActualSize uint, newEncryptionKey string, checksum string, handlingServer string, user *User) error {
+func (f *File) UpdateFile(tx *gorm.DB, newSize int, newActualSize int, newEncryptionKey string, checksum string, handlingServer string, user *User) error {
 
 	// Check if user has read permission (if not 404)
 
@@ -1224,7 +1252,7 @@ func (f *File) UpdateFile(tx *gorm.DB, newSize uint, newActualSize uint, newEncr
 }
 
 // UpdateFragments. Called on each fragment to be created.
-func (f *File) updateFragment(tx *gorm.DB, fragmentId uint, fileFragmentPath string, checksum string, serverId string) error {
+func (f *File) updateFragment(tx *gorm.DB, fragmentId int, fileFragmentPath string, checksum string, serverId string) error {
 	frag := Fragment{
 		FileVersionFileId:        f.FileId,
 		FileVersionDataId:        f.DataId,
@@ -1300,7 +1328,7 @@ func EXAMPLEUpdateFile(tx *gorm.DB, file *File, user *User) error {
 
 	// As each fragment is uploaded, each fragment is added to the database.
 	for i := 1; i <= int(file.FragCount); i++ {
-		err = file.updateFragment(tx, uint(i), "wowFragmentPath", "wowChecksum", "wowServerId")
+		err = file.updateFragment(tx, int(i), "wowFragmentPath", "wowChecksum", "wowServerId")
 		if err != nil {
 			return err
 		}

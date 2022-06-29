@@ -13,51 +13,61 @@ func InitDB(db *gorm.DB) error {
 		return err
 	}
 
-	// Create SuperUser
-
-	superUser, err := CreateNewUser(db, "superuser", "Super User", 2, "")
-
+	// Create SuperUser if it doesn't already exist
+	var superUser *User
+	err = db.Where("username = ?", "superuser").First(&superUser).Error
 	if err != nil {
-		return err
+		if err == gorm.ErrRecordNotFound {
+			superUser, err = CreateNewUser(db, "superuser", "Super User", 2, "")
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 
-	// Set root folder
+	// Set root folder if non existent
+	var rootFolder *File
+	err = db.Where("file_id = ?", "00000000-0000-0000-0000-000000000000").First(&rootFolder).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			rootFolder = &File{
+				FileId:        "00000000-0000-0000-0000-000000000000",
+				FileName:      "root",
+				EntryType:     ISFOLDER,
+				VersionNo:     0,
+				Size:          0,
+				ActualSize:    0,
+				CreatedTime:   time.Time{},
+				ModifiedTime:  time.Time{},
+				Status:        1,
+				HandledServer: "",
+			}
+			if err = db.Save(rootFolder).Error; err != nil {
+				return err
+			}
+			permission := Permission{
+				FileId:     rootFolder.FileId,
+				User:       *superUser,
+				UserId:     superUser.UserId,
+				CanRead:    true,
+				CanWrite:   true,
+				CanExecute: true,
+				CanShare:   true,
+				VersionNo:  0,
+				Audit:      false,
+				CreatedAt:  time.Time{},
+				UpdatedAt:  time.Time{},
+				Status:     1,
+			}
 
-	rootFolder := File{
-		FileId:        "00000000-0000-0000-0000-000000000000",
-		FileName:      "root",
-		EntryType:     ISFOLDER,
-		VersionNo:     0,
-		Size:          0,
-		ActualSize:    0,
-		CreatedTime:   time.Time{},
-		ModifiedTime:  time.Time{},
-		Status:        1,
-		HandledServer: "",
+			return db.Save(&permission).Error
+		}
 	}
 
-	if err = db.Save(&rootFolder).Error; err != nil {
-		return err
-	}
+	return nil
 
-	// Assign superuser permission to root folder
-
-	permission := Permission{
-		FileId:     rootFolder.FileId,
-		User:       *superUser,
-		UserId:     superUser.UserId,
-		CanRead:    true,
-		CanWrite:   true,
-		CanExecute: true,
-		CanShare:   true,
-		VersionNo:  0,
-		Audit:      false,
-		CreatedAt:  time.Time{},
-		UpdatedAt:  time.Time{},
-		Status:     1,
-	}
-
-	return db.Save(&permission).Error
 }
 
 type PermissionNeeded struct {

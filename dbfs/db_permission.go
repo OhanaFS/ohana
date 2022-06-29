@@ -12,7 +12,7 @@ var (
 
 type Permission struct {
 	FileId       string `gorm:"primaryKey"`
-	PermissionId uint   `gorm:"primaryKey;autoIncrement"`
+	PermissionId int    `gorm:"primaryKey;autoIncrement"`
 	User         User   `gorm:"foreignKey:UserId"`
 	UserId       string
 	Group        Group `gorm:"foreignKey:GroupId"`
@@ -21,7 +21,7 @@ type Permission struct {
 	CanWrite     bool
 	CanExecute   bool
 	CanShare     bool
-	VersionNo    uint
+	VersionNo    int
 	Audit        bool
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
@@ -34,8 +34,8 @@ type PermissionInterface interface {
 
 type PermissionHistory struct {
 	FileId       string `gorm:"primaryKey"`
-	VersionNo    uint   `gorm:"primaryKey"`
-	PermissionId uint   `gorm:"primaryKey;autoIncrement"`
+	VersionNo    int    `gorm:"primaryKey"`
+	PermissionId int    `gorm:"primaryKey;autoIncrement"`
 	User         User   `gorm:"foreignKey:UserId"`
 	UserId       string
 	Group        Group `gorm:"foreignKey:GroupId"`
