@@ -28,6 +28,7 @@ func main() {
 
 			// Services
 			service.NewHealth,
+			service.NewAuth,
 		),
 		fx.Invoke(
 			// HTTP Server
@@ -35,6 +36,7 @@ func main() {
 
 			// Register routes
 			controller.RegisterHealth,
+			controller.RegisterAuth,
 		),
 	).Run()
 }

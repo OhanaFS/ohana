@@ -4,3 +4,8 @@ http:
   base_url: http://localhost:8000
 database:
   connection_string: postgres://ohana:dev@127.0.0.1:5432/ohana
+authentication:
+  config_url: http://localhost:8080/auth/realms/DEMOREALM
+  client_id: DemoServiceClient
+  client_secret: 6ca21ba3-b24f-4b6f-93e7-42ea840a7140
+  redirect_url: http://localhost:8000/callback
