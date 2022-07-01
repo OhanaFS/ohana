@@ -409,13 +409,13 @@ func TestFile(t *testing.T) {
 		// Rename a file
 
 		err = newFile.UpdateMetaData(db, dbfs.FileMetadataModification{FileName: "pogfile.txt",
-			MIMEType: "text", VersioningMode: dbfs.VERSIONING_OFF}, &superUser)
+			MIMEType: "text", VersioningMode: dbfs.VersioningOff}, &superUser)
 		Assert.Nil(err)
 		newFile, err = dbfs.GetFileByPath(db, "/TestFakeFiles/pogfile.txt", &superUser)
 		Assert.Nil(err)
 		Assert.Equal(newFile.FileName, "pogfile.txt")
 		Assert.Equal(newFile.MIMEType, "text")
-		Assert.Equal(newFile.VersioningMode, dbfs.VERSIONING_OFF)
+		Assert.Equal(newFile.VersioningMode, dbfs.VersioningOff)
 		Assert.Equal(newFile.VersionNo, 2)
 
 		// Move. Attempting to move the file to the root folder.
@@ -432,7 +432,7 @@ func TestFile(t *testing.T) {
 		Assert.Equal(6, len(files))
 
 		// Assuming updating pogfile.txt
-		err = dbfs.EXAMPLEUpdateFile(db, newFile, &superUser)
+		err = dbfs.EXAMPLEUpdateFile(db, newFile, "", &superUser)
 		Assert.Nil(err)
 		newFile, err = dbfs.GetFileByPath(db, "/pogfile.txt", &superUser)
 		Assert.Nil(err)
@@ -461,10 +461,44 @@ func TestFile(t *testing.T) {
 		_, err = dbfs.GetFileById(db, newFile.FileId, &superUser)
 		Assert.Nil(err)
 
+		// Trying encryption
+		keyphrase := "HelloPassword"
+
+		oldKey, oldIv, err := newFile.GetDecryptionKey(db, &superUser, "")
+		Assert.Nil(err)
+
+		err = newFile.PasswordProtect(db, "", keyphrase, "hinty", &superUser)
+		Assert.Nil(err)
+		sameKey, sameIv, err := newFile.GetDecryptionKey(db, &superUser, keyphrase)
+		Assert.Equal(oldKey, sameKey)
+		Assert.Equal(oldIv, sameIv)
+
+		Assert.Nil(err)
+
 	})
 
 	// Encryption stuff testing
 	t.Run("Encryption", func(t *testing.T) {
-		dbfs.GetAES("HelloPassword")
+		//dbfs.GetAES("HelloPassword")
+
+		keyToEncrypt, ivToEncrypt, err := dbfs.GenerateKeyIV()
+		assert.Nil(t, err)
+
+		key, iv, err := dbfs.GenerateKeyIV()
+		assert.Nil(t, err)
+
+		encrypted, err := dbfs.EncryptWithKeyIV(keyToEncrypt, key, iv)
+		assert.Nil(t, err)
+		plaintext, err := dbfs.DecryptWithKeyIV(encrypted, key, iv)
+		assert.Nil(t, err)
+		assert.Equal(t, keyToEncrypt, plaintext)
+
+		encrypted, err = dbfs.EncryptWithKeyIV(ivToEncrypt, key, iv)
+		assert.Nil(t, err)
+		plaintext, err = dbfs.DecryptWithKeyIV(encrypted, key, iv)
+		assert.Nil(t, err)
+		assert.Equal(t, ivToEncrypt, plaintext)
+
 	})
+
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/go-redis/redis/v9"
 )
 
-func REDIS(rdb *redis.Client, ctx context.Context) {
+func RedisTest(rdb *redis.Client, ctx context.Context) {
 
 	err := rdb.Set(ctx, "key", "value", 0).Err()
 	if err != nil {

@@ -89,7 +89,6 @@ func DeleteGroup(tx *gorm.DB, group *Group) error {
 	return err
 }
 
-// Compile time assertion to ensure that User follows UserInterface interface.
 var _ GroupInterface = &Group{}
 
 // ModifyName modifies the name of the given Group and saves it instantly

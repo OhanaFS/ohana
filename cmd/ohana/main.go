@@ -41,7 +41,7 @@ func main() {
 
 			// DB
 			dbfs.InitDB,
-			dbfs.REDIS,
+			dbfs.RedisTest,
 		),
 	).Run()
 }

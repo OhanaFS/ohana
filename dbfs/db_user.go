@@ -112,13 +112,7 @@ func DeleteUser(tx *gorm.DB, username string) error {
 		return err
 	}
 
-	err = tx.Select(clause.Associations).Delete(&user).Error
-
-	if err != nil {
-		return err
-	} else {
-		return nil
-	}
+	return tx.Select(clause.Associations).Delete(&user).Error
 
 }
 

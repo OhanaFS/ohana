@@ -646,9 +646,9 @@ func updatePermissionsVersions(tx *gorm.DB, file *File, user *User) error {
 // updateMetadataPermission updates the version No and updated time to the File updated date.
 func updateMetadataPermission(tx *gorm.DB, file *File) error {
 
-	err := tx.Where("file_id = ?", file.FileId).Updates(map[string]interface{}{"version_no": file.VersionNo, "updated_at": file.ModifiedTime}).Error
+	return tx.Where("file_id = ?", file.FileId).Updates(map[string]interface{}{"version_no": file.VersionNo,
+		"updated_at": file.ModifiedTime}).Error
 
-	return err
 }
 
 // GetPermissionHistory returns the PermissionHistory for a file

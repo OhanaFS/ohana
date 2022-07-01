@@ -82,10 +82,10 @@ func createFileVersionFromFile(tx *gorm.DB, file *File, user *User) error {
 
 }
 
-// finaliseFileVersionFromFile finalises the status to be done (FILESTATUSGOOD)
+// finaliseFileVersionFromFile finalises the status to be done (FileStatusGood)
 func finaliseFileVersionFromFile(tx *gorm.DB, file *File) error {
 	return tx.Model(&FileVersion{}).Where("file_id = ? AND version_no = ?", file.FileId, file.VersionNo).
-		Update("status", FILESTATUSGOOD).Error
+		Update("status", FileStatusGood).Error
 }
 
 // getFileVersionFromFile returns the version requested of a file/
@@ -119,7 +119,7 @@ func (fileVersion *FileVersion) GetFragments(tx *gorm.DB, user *User) ([]Fragmen
 
 	// Check if the file is a folder
 
-	if file.EntryType == ISFOLDER {
+	if file.EntryType == IsFolder {
 		return nil, ErrNotFile
 	}
 
@@ -149,7 +149,7 @@ func (fileVersion *FileVersion) ListFiles(tx *gorm.DB, user *User) ([]FileVersio
 
 	// Check if the file is a folder
 
-	if file.EntryType == ISFILE {
+	if file.EntryType == IsFile {
 		return nil, ErrNotFolder
 	}
 
@@ -198,7 +198,7 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 		//LinkFileFileId:        "GET LINKED FOLDER", // NOT READY
 		//LinkFileVersionNo:     0,                   // NOT READY
 		LastChecked:   file.LastChecked,
-		Status:        FILESTATUSDELETED,
+		Status:        FileStatusDeleted,
 		HandledServer: file.HandledServer,
 	}
 
@@ -209,7 +209,7 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 
 	// Next, we'll mark everything as deleted.
 
-	err = tx.Model(&FileVersion{}).Where("file_id = ?", file.FileId).Update("status", FILESTATUSDELETED).Error
+	err = tx.Model(&FileVersion{}).Where("file_id = ?", file.FileId).Update("status", FileStatusDeleted).Error
 	if err != nil {
 		return err
 	}

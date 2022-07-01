@@ -6,10 +6,10 @@ import (
 )
 
 const (
-	FRAGMENTSTATUSREBUILDING = int8(0) // Fragment is being rebuilt
-	FRAGMENTSTATUSGOOD       = int8(1) // Fragment is good
-	FRAGMENTSTATUSBAD        = int8(2) // Fragment is bad (hash mismatch), but can be rebuilt
-	FRAGMENTSTATUSOFFLINE    = int8(3) // File not found on server
+	FragmentStatusRebuilding = int8(0) // Fragment is being rebuilt
+	FragmentStatusGood       = int8(1) // Fragment is good
+	FragmentStatusBad        = int8(2) // Fragment is bad (hash mismatch), but can be rebuilt
+	FragmentStatusOffline    = int8(3) // File not found on server
 )
 
 type Fragment struct {
