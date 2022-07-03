@@ -14,6 +14,7 @@ To get started with development, you'll need:
 - [Go 1.18](https://go.dev/)
 - [Docker and Docker Compose](https://www.docker.com/)
 - GNU Make
+- Node.js and Yarn
 - [upx](https://github.com/upx/upx) (optional)
 
 Once you have the tools installed, simply run `make`:
@@ -28,12 +29,17 @@ cd ohana
 # Build
 make
 
-# Run
-CONFIG_FILE=config.example.yaml make run
+# Run backend in development mode
+CONFIG_FILE=config.example.yaml make dev
+
+# Set up and run frontend development server
+cd web
+yarn
+yarn dev
 ```
 
-Then try out one of the routes! Go to https://127.0.0.1:8000/v1/_health in your
-browser and you should see something.
+Then try it out! Go to https://127.0.0.1:8000/ in your browser and you should
+see the React app.
 
 ### Conventions
 
