@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -14,8 +15,8 @@ type Authentication struct {
 
 func RegisterAuth(r *mux.Router, service service.Auth) {
 	s := &Authentication{service}
-	r.HandleFunc("/login", s.GetAuth).Methods("GET")
-	r.HandleFunc("/callback", s.HandCallback).Methods("GET")
+	r.HandleFunc("/auth/login", s.GetAuth).Methods("GET")
+	r.HandleFunc("/auth/callback", s.HandCallback).Methods("GET")
 }
 
 func (s *Authentication) GetAuth(w http.ResponseWriter, r *http.Request) {
@@ -34,9 +35,17 @@ func (s *Authentication) HandCallback(w http.ResponseWriter, r *http.Request) {
 	code := r.URL.Query().Get("code")
 
 	roles, _ := s.service.Callback(ctx, code, checkState)
-	if roles == "" {
+
+	if roles.Fetched != true {
 		http.Error(w, "invalid token", http.StatusBadRequest)
 		return
 	}
-	w.Write([]byte(roles))
+
+	jData, err := json.Marshal(roles)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Print("jDATA: ", string(jData))
 }

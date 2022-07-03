@@ -13,12 +13,17 @@ import (
 )
 
 type clientRoles struct {
-	Roles string `json:"roles,omitempty"`
+	Roles   string `json:"roles,omitempty"`
+	UserID  string `json:"user_id,omitempty"`
+	Name    string `json:"name,omitempty"`
+	Email   string `json:"email,omitempty"`
+	Scope   string `json:"scope,omitempty"`
+	Fetched bool   `json:"fetched,omitempty"`
 }
 
 type Auth interface {
 	SendRequest(ctx context.Context, rawAccessToken string) (string, error)
-	Callback(ctx context.Context, code string, checkState string) (string, error)
+	Callback(ctx context.Context, code string, checkState string) (clientRoles, error)
 }
 
 type auth struct {
@@ -73,24 +78,24 @@ func (a *auth) SendRequest(ctx context.Context, rawAccessToken string) (string, 
 	return "Hello Ohanians", nil
 }
 
-func (a *auth) Callback(ctx context.Context, code string, checkState string) (string, error) {
+func (a *auth) Callback(ctx context.Context, code string, checkState string) (clientRoles, error) {
 	if checkState != state {
-		return "", fmt.Errorf("state is invalid")
+		return clientRoles{}, fmt.Errorf("state is invalid")
 	}
 
 	oauth2Token, err := a.oauth2Config.Exchange(ctx, code)
 	if err != nil {
-		return "", err
+		return clientRoles{}, err
 	}
 
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
-		return "", fmt.Errorf("No id_token field in oauth2 token.")
+		return clientRoles{}, fmt.Errorf("No id_token field in oauth2 token.")
 	}
 
 	idToken, err := a.verifier.Verify(ctx, rawIDToken)
 	if err != nil {
-		return "", err
+		return clientRoles{}, err
 	}
 
 	resp := struct {
@@ -99,45 +104,61 @@ func (a *auth) Callback(ctx context.Context, code string, checkState string) (st
 	}{oauth2Token, new(json.RawMessage)}
 
 	if err := idToken.Claims(&resp.IDTokenClaims); err != nil {
-		return "", err
+		return clientRoles{}, err
 	}
 
+	// Will remove this if not required later
 	data, err := json.MarshalIndent(resp, "", "    ")
 	data = data // avoid unused variable error
 
 	if err != nil {
-		return "", err
+		return clientRoles{}, err
 	}
 
 	// service
 	tokenString := oauth2Token.AccessToken
 	roles, err := GetRolesFromJWT(tokenString)
 	if err != nil {
-		return "", err
+		return clientRoles{}, err
 	}
 	return roles, err
 }
 
 // function to get the roles from the token
-func GetRolesFromJWT(accesTokenString string) (string, error) {
+func GetRolesFromJWT(accesTokenString string) (clientRoles, error) {
 	// Parsing the token just to extract values without validation.(as validated before)
 	token, _, err := new(jwt.Parser).ParseUnverified(accesTokenString, jwt.MapClaims{})
 	if err != nil {
-		return "", err
+		return clientRoles{}, err
 	}
 
-	// Extract the roles from the token.
-	roles := clientRoles{}
+	userInfo := clientRoles{}
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		resourceAccess := claims["resource_access"]
 		// TODO: doing casts like this is dangerous, maybe find a better way to do it - need to update
 		resourceAccessClient := resourceAccess.(map[string]interface{})["DemoServiceClient"]
 		resourceAccessRole := resourceAccessClient.(map[string]interface{})["roles"]
 		for _, role := range resourceAccessRole.([]interface{}) {
-			roles.Roles = roles.Roles + " " + role.(string)
+			userInfo.Roles = userInfo.Roles + " " + role.(string)
 		}
 	} else {
 		fmt.Println(err)
 	}
-	return roles.Roles, nil
+
+	// extracting necessary info from the token
+	claims := token.Claims.(jwt.MapClaims)
+	userID := claims["sub"].(string)
+	name := claims["name"].(string)
+	email := claims["email"].(string)
+	scope := claims["scope"].(string)
+
+	userInfo.UserID = userID
+	userInfo.Name = name
+	userInfo.Email = email
+	userInfo.Scope = scope
+	userInfo.Fetched = true
+
+	fmt.Print("USER SHIT", userInfo)
+
+	return userInfo, nil
 }

@@ -1,6 +1,8 @@
 package service
 
-import "time"
+import (
+	"time"
+)
 
 type healthStatus string
 
