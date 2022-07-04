@@ -5,6 +5,8 @@ import { Link } from "react-router-dom";
 import Admin_navigation from "./Admin_navigation";
 
 import img2 from '../src/images/3.png';
+import { ResponsiveContainer, PieChart, Pie, Legend, Tooltip } from "recharts";
+import { Cell } from "tabler-icons-react";
 
 function Admin_performmaintenance() {
    const logs = [
@@ -14,6 +16,23 @@ function Admin_performmaintenance() {
       "Server one is back online",
       "Turning server two offline"
    ]
+
+   const ClusterHealthChartData = [
+
+      {
+         "name": "No of Healthy Nodes",
+         "value": 2000000
+       },
+       {
+         "name": "No of Unhealthy Nodes",
+         "value": 0
+       },
+   ]
+   const RADIAN = Math.PI / 180;
+
+
+
+const barColors = ["#1f77b4", "#ff0000"]
    const theme = useMantineTheme();
    return (
 
@@ -21,48 +40,50 @@ function Admin_performmaintenance() {
       <>
          <Admin_navigation>
             <Center>
-               <Grid style={{ width: "100vh" }}>
-                  <Grid.Col span={6} style={{ height: "600px", marginTop: "1%" }}>
-
-                     <Image style={{ textAlign: 'left', marginLeft: "1%" }}
-
-                        src={img2} />
-
-                     <Button color="blue" style={{ marginLeft: '20%', width: '20%' }}>
+               <Grid style={{ width: "40vh" }}>
+                  <Grid.Col span={12} style={{  }}>
+                     <Card  style={{ marginLeft: "0%", height: '60vh', border: '1px solid ', marginTop: "3%", width: "160%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}
+      shadow="sm"
+      p="xl">
+                  <Text style={{textAlign:"center"}}><h2>Maintenance Progress</h2></Text>
+                  <ResponsiveContainer width={500} height={300} >
+                            <PieChart width={500} height={300}>
+                           
+                                <Pie
+                                    data={ClusterHealthChartData}
+                                    cx="50%"
+                                    cy="50%"
+                                    labelLine={false}
+                                 
+                                    outerRadius={100}
+                                    fill="#8884d8"
+                                    dataKey="value"
+                                >
+                                    {ClusterHealthChartData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={barColors[index % barColors.length]} />
+                                    ))}
+                                </Pie>
+                            
+                            </PieChart>
+                         
+                        </ResponsiveContainer>
+                     <Button variant="default" color="dark"  style={{ marginLeft: '20%', width: '20%' }}>
                         Pause
                      </Button>
-
-                     <Button color="blue" component={Link} to="/Admin_maintenanceresults" style={{ marginLeft: '25%', width: '20%', }}>
+                
+                     <Button  variant="default" color="dark"  component={Link} to="/Admin_maintenanceresults" style={{ marginLeft: '25%', width: '20%', }}>
                         Stop
                      </Button>
 
-
-                  </Grid.Col>
-
-
-
-
-
-
-                  <Grid.Col span={6} style={{ marginTop: "1%" }}>
-                     <Card style={{ marginLeft: "10%", height: '500px', border: '1px solid ', marginTop: "5%", width: "60%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.colors.gray[3] }}
-                        shadow="sm"
-                        p="xl"
-
-                     >
-                        <Card.Section style={{ textAlign: 'left', marginLeft: "1%", marginTop: "1%" }}>
-                           <Text underline weight={700} style={{ marginLeft: "3%", marginTop: "3%" }}> <h2>Run Scheduled Maintenance</h2>   </Text>
-
-                        </Card.Section>
-                        <div style={{ marginLeft: "3%" }}>
-
-                           {logs.map(logs => <p>- {logs}</p>)}
-
-                        </div>
-
                      </Card>
-
                   </Grid.Col>
+
+
+
+
+
+
+               
                </Grid>
             </Center>
          </Admin_navigation>

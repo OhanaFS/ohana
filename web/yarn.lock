@@ -6700,6 +6700,11 @@ jss@10.9.0, jss@^10.5.1:
     array-includes "^3.1.5"
     object.assign "^4.1.2"
 
+keymaster@^1.6.2:
+  version "1.6.2"
+  resolved "https://registry.yarnpkg.com/keymaster/-/keymaster-1.6.2.tgz#e1ae54d0ea9488f9f60b66b668f02e9a1946c6eb"
+  integrity sha512-OvA/AALN8IDKKkTk2Z+bDrzs/SQao4lo/QPbwSdDvm+frxfiYiYCSn1aHFUypJY3SruAO1y/c771agBmTXqUtg==
+
 kind-of@^6.0.2:
   version "6.0.3"
   resolved "https://registry.yarnpkg.com/kind-of/-/kind-of-6.0.3.tgz#07c05034a6c349fa06e24fa35aa76db4580ce4dd"
@@ -8196,6 +8201,13 @@ react-dev-utils@^12.0.1:
     strip-ansi "^6.0.1"
     text-table "^0.2.0"
 
+react-device-detect@^2.2.2:
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/react-device-detect/-/react-device-detect-2.2.2.tgz#dbabbce798ec359c83f574c3edb24cf1cca641a5"
+  integrity sha512-zSN1gIAztUekp5qUT/ybHwQ9fmOqVT1psxpSlTn1pe0CO+fnJHKRLOWWac5nKxOxvOpD/w84hk1I+EydrJp7SA==
+  dependencies:
+    ua-parser-js "^1.0.2"
+
 react-display-name@^0.2.4:
   version "0.2.5"
   resolved "https://registry.yarnpkg.com/react-display-name/-/react-display-name-0.2.5.tgz#304c7cbfb59ee40389d436e1a822c17fe27936c6"
@@ -8306,6 +8318,13 @@ react-popper@^2.2.5:
   dependencies:
     react-fast-compare "^3.0.1"
     warning "^4.0.2"
+
+react-popup@^0.11.0:
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/react-popup/-/react-popup-0.11.0.tgz#bf2a9a31f7b598426f7df65c19303e280b57ba1c"
+  integrity sha512-7H5X/VJS2Ay+WBLl62O6hQImD+16lW4LGAGwRoaHqMWXkAfq9/oy3+7z1wkU7MV+9RNKCUVratzZSMZOm9hgcw==
+  dependencies:
+    keymaster "^1.6.2"
 
 react-redux@^7.2.2:
   version "7.2.8"
@@ -9631,6 +9650,11 @@ typescript@^4.6.4:
   version "4.7.4"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.7.4.tgz#1a88596d1cf47d59507a1bcdfb5b9dfe4d488235"
   integrity sha512-C0WQT0gezHuw6AdY1M2jxUO83Rjf0HP7Sk1DtXj6j1EwkQNZrHAg2XPWlq62oqEhYvONq5pkC2Y9oPljWToLmQ==
+
+ua-parser-js@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/ua-parser-js/-/ua-parser-js-1.0.2.tgz#e2976c34dbfb30b15d2c300b2a53eac87c57a775"
+  integrity sha512-00y/AXhx0/SsnI51fTc0rLRmafiGOM4/O+ny10Ps7f+j/b8p/ZY11ytMgznXkOVo4GQ+KwQG5UQLkLGirsACRg==
 
 unbox-primitive@^1.0.2:
   version "1.0.2"

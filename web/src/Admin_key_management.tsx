@@ -1,6 +1,6 @@
 
 
-import { Grid, Table, Button, Text, Center } from "@mantine/core";
+import { Grid, Table, Button, Text, Center, Card, Checkbox, useMantineTheme, ScrollArea, Modal, TextInput } from "@mantine/core";
 import Admin_navigation from "./Admin_navigation";
 import {
   BrowserRouter as Router,
@@ -8,125 +8,35 @@ import {
 
 
 } from "react-router-dom";
+import { Settings } from "tabler-icons-react";
+import { useState } from "react";
+import Admin_console from "./Admin_console";
 
 
 function Admin_key_management() {
 
-  const data = [["128c1d5d-2359-4ba1-8739-2cd30d694d67"], ["128c1d5d-2359-4ba1-8739-2cd30d69sds67"]]
-
-
+  let [data, setValue] = useState([
+    "128c1d5d-2359-4ba1-8739-2cd30d694d67",
+    "128c1d5d-2359-4ba1-8739-2cd30d69sds67",
+  
+    
+ ]);
+  
+  
+ 
   return (
+    <>
+    
     <Admin_navigation>
 
-      <Center>
+   
 
-        <Grid style={{ width: "80vh" }}>
-          <Grid.Col span={12} style={{ height: "500px", marginLeft: "2%", marginTop: "2%", border: '1px solid' }}>
+    
+<Admin_console consoleWidth={80} consoleHeight={80} groupList={data} addObjectLabel = "Key" deleteObjectLabel="Key" tableHeader={["Key ID"]} tableBody={[]} caption="API Key Management Console" pointerEvents={false} ></Admin_console>
 
-
-
-
-
-
-            <Table>
-              <tr>
-
-                <td>
-                  <Text underline weight={700} style={{ marginLeft: "1%", marginTop: "1%" }}> <h2>API Key Mangement</h2>   </Text>
-
-                </td>
-
-
-
-
-              </tr>
-
-
-
-            </Table>
-            <Grid.Col span={12}>
-              <Table style={{ height: "300px" }}>
-
-
-                <tr >
-                  <td>
-                    <Text underline weight={700} style={{ marginLeft: "1%", marginTop: "1%" }}> Key ID </Text>
-                  </td>
-
-
-                </tr>
-
-
-                {data.map((userlist, index) => {
-                  return (
-
-                    <tr>
-                      {userlist.map((user, sIndex) => {
-                        return <td> {user} </td>;
-                      })}
-
-
-                    </tr>
-
-
-
-                  );
-                })}
-
-                <tr>
-
-                  <td>
-
-
-
-                    <Button style={{ marginLeft: "", marginTop: "1%" }} component={Link} to="/Admin_create_key"  >Create Key</Button>
-
-
-                  </td>
-                  <td>
-                    <Button style={{ marginLeft: "", marginTop: "3%" }}  >Delete Key</Button>
-
-                  </td>
-
-                </tr>
-
-
-
-
-
-
-
-              </Table>
-            </Grid.Col>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          </Grid.Col>
-
-
-
-        </Grid>
-      </Center>
     </Admin_navigation>
 
-
+    </>
   );
 }
 

@@ -19,7 +19,7 @@ import Admin_performmaintenance from "./Admin_performmaintenance";
 import Admin_key_management from "./Admin_key_management";
 import Admin_create_sso_key from "./Admin_create_sso_key";
 import Admin_ssogroups_inside from "./Admin_ssogroups_inside";
-
+import {BrowserView, MobileView} from 'react-device-detect';
 
 import LoginPage from "./LoginPage";
 import {
@@ -118,7 +118,7 @@ function Admin_navigation(props: AppBaseProps) {
     { link: '', label: 'Settings', icon: Settings, to: "/Admin_settings" },
     { link: '', label: 'Rotate Key', icon: Rotate, to: "/Admin_configuration" },
     { link: '', label: 'Key Management', icon: Edit, to: "/Admin_key_management" },
-  ];
+  ]; 
   const { classes, cx } = useStyles();
   const backgroundimage = require('../src/images/2.webp');
   const [opened, setOpened] = useState(false);
@@ -144,7 +144,7 @@ function Admin_navigation(props: AppBaseProps) {
   ));
   return (
     <>
-
+<BrowserView>
       <AppShell
         styles={{
           main: {
@@ -163,6 +163,7 @@ function Admin_navigation(props: AppBaseProps) {
         asideOffsetBreakpoint="sm"
         fixed
         navbar={
+       
           <Navbar height={"100vh"} width={{ sm: "10vw" }} p="md" className={classes.navbar}>
             <Navbar.Section grow>
 
@@ -207,6 +208,74 @@ function Admin_navigation(props: AppBaseProps) {
       >
         {props.children}
       </AppShell>
+      </BrowserView>
+
+      <MobileView>
+      <AppShell
+        styles={{
+          main: {
+            background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.colors.gray[1],
+            backgroundImage:
+              `url(${backgroundimage})`,
+            backgroundPosition: "center",
+            backgroundSize: "cover",
+            backgroundRepeat: "no-repeat",
+            width: "100vw",
+            height: "100vh",
+          },
+
+        }}
+        navbarOffsetBreakpoint="sm"
+        asideOffsetBreakpoint="sm"
+        fixed
+        navbar={
+       
+          <Navbar height={"100vh"} width={{ sm: "1" }} p="md" className={classes.navbar}>
+            <Navbar.Section grow>
+
+              {links}
+            </Navbar.Section>
+
+            <Navbar.Section className={classes.footer}>
+
+
+              <a href="#" className={classes.link} >
+
+                <Text color="dark" style={{ marginBottom: "20%", height: "50px" }} component={Link} to="/" variant="link"   >
+                  Logout
+                </Text>
+              </a>
+            </Navbar.Section>
+          </Navbar>
+        }
+
+
+
+        header={
+          <Header height={70} p="md">
+            <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+              <MediaQuery largerThan="sm" styles={{ display: 'none' }}>
+                <Burger
+                  opened={opened}
+                  onClick={() => setOpened((o) => !o)}
+                  size="sm"
+                  color={theme.colors.gray[6]}
+                  mr="xl"
+                />
+              </MediaQuery>
+
+              <Title style={{ marginLeft: "1%" }} order={2}>Ohana </Title>
+            </div>
+          </Header>
+
+
+
+        }
+      >
+        {props.children}
+      </AppShell>
+      </MobileView>  
+
 
     </>
   );

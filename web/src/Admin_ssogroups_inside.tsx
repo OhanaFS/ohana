@@ -1,128 +1,90 @@
 
 
-import { Grid, Table, Button, Text, Center } from "@mantine/core";
+import { Grid, Table, Button, Text, Center, ScrollArea, Card, Checkbox, useMantineTheme } from "@mantine/core";
 import Admin_navigation from "./Admin_navigation";
 import {
   Link,
 
 
 } from "react-router-dom";
+import { useState } from "react";
 
 
 function Admin_ssogroups_inside() {
 
   const data = [["Tom"], ["Peter"], ["Raymond"]]
+  
+  const ths = (
+    <tr >
+      <th style={{ width: "80%", textAlign: "left", fontWeight: "700", fontSize: "16px", color: "black" }}>List of Users inside this group</th>
+     
+    </tr>
+  );
+  const rows = data.map((items) => (
+    <tr >
+      <td width="80%" style={{ textAlign: "left", fontWeight: "400", fontSize: "16px", color: "black" }}>{items}</td>
+      <td><Checkbox  ></Checkbox> </td>
+    </tr>
+  ));
 
+  const theme = useMantineTheme();
 
   return (
 
     <>
       <Admin_navigation>
-        <Center>
-          <Grid style={{ width: "80vh" }}>
-            <Grid.Col span={12} style={{ height: "500px", marginLeft: "2%", marginTop: "2%", border: '1px solid' }}>
+     
+        <Center style={{ marginRight: "" }}>
 
+<Grid style={{ width: "50vh" }}>
 
+  <Grid.Col span={12}>
 
+    <Card style={{ marginLeft: "0%", height: '50vh', border: '1px solid ', marginTop: "3%", width: "160%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}
+      shadow="sm"
+      p="xl"
 
+    >
+      <Card.Section style={{ textAlign: 'left', marginLeft: "0%" }}>
 
 
-              <Table>
-                <tr>
+      </Card.Section>
 
-                  <td>
-                    <Text underline weight={700} style={{ marginLeft: "1%", marginTop: "1%" }}> <h2>SSO Group: </h2>   </Text>
 
-                  </td>
 
 
 
+      <ScrollArea style={{ height: "90%", width: "100%", marginTop: "1%" }}>
+        <Table captionSide="top" striped highlightOnHover verticalSpacing="sm" >
+          <caption style={{ textAlign: "center", fontWeight: "600", fontSize: "24px", color: "black" }}>User Management Console</caption>
+          <thead>{ths}</thead>
+          <tbody>{rows}</tbody>
 
-                </tr>
+        </Table>
+      
+      </ScrollArea>
+            <tr>
+     <td width={"80%"}>   <Button variant="default" color="dark" size="md" style={{ marginLeft: "auto", marginTop: "3%" }}   >Add User</Button></td>
+      
+     <td>   <Button variant="default" color="dark" size="md" style={{ marginLeft: "auto", marginTop: "3%" }}    >Delete User</Button></td>
+     
+     </tr>
+    </Card>
 
 
 
-              </Table>
-              <Grid.Col span={12}>
-                <Table style={{ height: "300px" }}>
 
 
-                  <tr >
-                    <td>
-                      <Text underline weight={700} style={{ marginLeft: "1%", marginTop: "1%" }}> List of Users inside this group </Text>
-                    </td>
 
 
-                  </tr>
 
 
-                  {data.map((userlist, index) => {
-                    return (
+  </Grid.Col>
 
-                      <tr>
-                        {userlist.map((user, sIndex) => {
-                          return <td> {user} </td>;
-                        })}
+</Grid>
 
+</Center>
 
-                      </tr>
-
-
-
-                    );
-                  })}
-
-                  <tr>
-
-                    <td>
-
-
-
-                      <Button style={{ marginLeft: "", marginTop: "1%" }} component={Link} to="/Admin_create_key"  >Add User</Button>
-
-
-                    </td>
-                    <td>
-                      <Button style={{ marginLeft: "", marginTop: "3%" }}  >Delete User</Button>
-
-                    </td>
-
-                  </tr>
-
-
-
-
-
-
-
-                </Table>
-              </Grid.Col>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            </Grid.Col>
-
-
-
-          </Grid>
-        </Center>
       </Admin_navigation>
     </>
 

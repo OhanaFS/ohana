@@ -8,10 +8,12 @@ import {
   BrowserRouter as Router,
   Link,
 } from "react-router-dom";
+import Admin_console from "./Admin_console";
+import Admin_logs from "./Admin_logs";
 
 function Admin_maintenancelogs() {
-  const theme = useMantineTheme();
-  const { scrollableRef } = useScrollIntoView();
+  
+
 
 
 
@@ -719,79 +721,22 @@ function Admin_maintenancelogs() {
       "Maintenance Type": "Corrective"
     }
   ];
-  const ths = (
-    <tr >
-      <th style={{ width: "20%", textAlign: "left", fontWeight: "700", fontSize: "16px", color: "black" }}>Maintenance Date</th>
-      <th style={{ width: "15%", textAlign: "left", fontWeight: "700", fontSize: "16px", color: "black" }}>Total Files</th>
-      <th style={{ width: "15%", textAlign: "left", fontWeight: "700", fontSize: "16px", color: "black" }}>	Time Started</th>
-      <th style={{ width: "15%", textAlign: "left", fontWeight: "700", fontSize: "16px", color: "black" }}>Time Ended</th>
-      <th style={{ width: "10%", textAlign: "left", fontWeight: "700", fontSize: "16px", color: "black" }}>Maintenance Type:</th>
-    </tr>
-  );
-  const rows = maintenanceLogss.map((items) => (
-    <tr >
-      <td width="20%" style={{ textAlign: "left", fontWeight: "400", fontSize: "16px", color: "black" }}>{items["Maintenance date"]}</td>
-      <td width="15%" style={{ textAlign: "left", fontWeight: "400", fontSize: "16px", color: "black" }}>{items["Total Files"]}</td>
-      <td width="15%" style={{ textAlign: "left", fontWeight: "400", fontSize: "16px", color: "black" }}>{items["Start Time"]}</td>
-      <td width="15%" style={{ textAlign: "left", fontWeight: "400", fontSize: "16px", color: "black" }}>{items["End Time"]}</td>
-      <td width="10%" style={{ textAlign: "left", fontWeight: "400", fontSize: "16px", color: "black" }}>{items["Maintenance Type"]}</td>
-    </tr>
-  ));
+  
 
 
   return (
 
     <>
       <Admin_navigation>
-        <Center style={{ marginRight: "25%" }}>
-
-          <Grid style={{ width: "100vh" }}>
-
-            <Grid.Col span={12}>
-
-              <Card style={{ marginLeft: "0%", height: '80vh', border: '1px solid ', marginTop: "3%", width: "160%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}
-                shadow="sm"
-                p="xl"
-
-              >
-                <Card.Section style={{ textAlign: 'left', marginLeft: "0%" }}>
-
-
-                </Card.Section>
+    
 
 
 
+        
 
 
-                <ScrollArea style={{ height: "90%", width: "100%", marginTop: "1%" }}>
-                  <Table captionSide="top" striped highlightOnHover verticalSpacing="sm" >
-                    <caption style={{ textAlign: "center", fontWeight: "600", fontSize: "24px", color: "black" }}>Maintenance Records</caption>
-                    <thead>{ths}</thead>
-                    <tbody>{rows}</tbody>
-
-                  </Table>
-                </ScrollArea>
-
-                <div style={{ display: "flex" }}>
-                  <Button variant="default" color="dark" size="md" style={{ marginLeft: "auto", marginTop: "3%" }} component={Link} to="/Admin_runmaintenance"  >Perform Maintenance</Button>
-
-                </div>
-
-              </Card>
-
-
-
-
-
-
-
-
-
-            </Grid.Col>
-
-          </Grid>
-
-        </Center>
+        <Admin_logs consoleWidth={120} consoleHeight={80} groupList={maintenanceLogss} addObjectLabel = "Group" deleteObjectLabel="Group" tableHeader={ [ ["Maintenance Date"],["Total Files"],["Time Started"],["Time Ended"],["Maintenance Type"]]} tableBody={[]} caption="SSO Group Management Console" pointerEvents={true} ></Admin_logs>
+   
       </Admin_navigation>
     </>
 
