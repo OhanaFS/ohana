@@ -24,7 +24,6 @@ func (u uploadService) CreateFile(file multipart.File, fileName string) (string,
 	if err != nil {
 		return "", err
 	}
-
 	// Copy the uploaded file to the created file on the filesystem
 	if _, err := io.Copy(dst, file); err != nil {
 		return "", err

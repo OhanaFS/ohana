@@ -23,7 +23,6 @@ func (s *UploadController) uploadHandler(w http.ResponseWriter, r *http.Request)
 	if r.Method == "GET" {
 		fmt.Print(w, "upload", nil)
 	} else {
-
 		// Just for now
 		var max_upload_size int64 = 10 * 1024 * 1024
 		r.ParseMultipartForm(max_upload_size)

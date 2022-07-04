@@ -144,7 +144,6 @@ func GetRolesFromJWT(accesTokenString string) (clientRoles, error) {
 	} else {
 		fmt.Println(err)
 	}
-
 	// extracting necessary info from the token
 	claims := token.Claims.(jwt.MapClaims)
 	userID := claims["sub"].(string)
