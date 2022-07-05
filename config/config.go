@@ -1,7 +1,6 @@
 package config
 
 import (
-
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
@@ -21,7 +20,7 @@ type Config struct {
 }
 
 type HttpConfig struct {
-	// Bind is the address:port to bind the HTTP server to.
+	// Bind is the Address:port to bind the HTTP server to.
 	Bind string `yaml:"bind"`
 	// BaseURL is the publicly accessible URL for the HTTP server.
 	BaseURL string `yaml:"base_url"`
@@ -32,11 +31,10 @@ type DatabaseConfig struct {
 	ConnectionString string `yaml:"connection_string"`
 }
 
-
 type RedisConfig struct {
-	password string `yaml:"password"`
-	address  string `yaml:"address"`
-	db       int    `yaml:"db"`
+	Password string `yaml:"password"`
+	Address  string `yaml:"address"`
+	Db       int    `yaml:"db"`
 }
 
 // SPAConfig is the configuration for the SPA router. It is not exposed to the

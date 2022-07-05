@@ -32,7 +32,8 @@ dev-up:
 	docker run --rm -d \
 		--name ohana-redis-dev \
 		-p 127.0.0.1:6379:6379 \
-		redis:7
+		redis:7 \
+		--requirepass ohanaMeansFamily
 
 dev-down:
 	-docker stop ohana-postgres-dev
