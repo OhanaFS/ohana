@@ -2,7 +2,7 @@
 
 TARGET = bin/ohana
 
-all: clean test web $(TARGET) upx
+all: clean web test $(TARGET) upx
 
 $(TARGET): $(shell find . -name '*.go')
 	mkdir -p bin
@@ -56,6 +56,7 @@ dev: dev-up
 clean:
 	rm -rf $(TARGET)
 	rm -rf coverage.*
+	cd web && yarn clean
 
 test:
 	go test -coverprofile=coverage.out ./...
