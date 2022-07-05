@@ -18,3 +18,5 @@ coverage.html
 
 # Go workspace file
 go.work
+
+/web/node_modules
