@@ -1,8 +1,8 @@
-.PHONY: run upx clean clean-db test docker dev-up dev-down
+.PHONY: run upx clean clean-db test docker dev-up dev-down web
 
 TARGET = bin/ohana
 
-all: clean test $(TARGET) upx
+all: clean test web $(TARGET) upx
 
 $(TARGET): $(shell find . -name '*.go')
 	mkdir -p bin
@@ -18,10 +18,15 @@ $(TARGET): $(shell find . -name '*.go')
 upx: $(TARGET)
 	-upx $(TARGET)
 
+web:
+	cd web && \
+		yarn && \
+		yarn build
+
 run: $(TARGET)
 	./$(TARGET)
 
-dev-up:
+dev-up: dev-down
 	docker run --rm -d \
 		--name ohana-postgres-dev \
 		-p 127.0.0.1:5432:5432 \
@@ -41,7 +46,7 @@ dev-down:
 
 dev: dev-up
 	go install github.com/codegangsta/gin@latest
-	gin --immediate\
+	`go env GOPATH`/bin/gin --immediate\
 		--port 8000 \
 		--appPort 4000 \
 		--build cmd/ohana/ \
