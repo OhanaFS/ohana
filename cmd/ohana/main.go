@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/OhanaFS/ohana/dbfs"
 
 	"go.uber.org/fx"
@@ -31,6 +32,8 @@ func main() {
 			// Services
 			service.NewHealth,
 			service.NewSession,
+			service.NewAuth,
+			service.NewUploadService,
 		),
 		fx.Invoke(
 			// HTTP Server
@@ -38,6 +41,8 @@ func main() {
 
 			// Register routes
 			controller.RegisterHealth,
+			controller.RegisterAuth,
+			controller.RegisterUpload,
 
 			// DB
 			dbfs.InitDB,

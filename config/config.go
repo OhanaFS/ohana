@@ -1,9 +1,14 @@
 package config
 
 import (
+<<<<<<< HEAD
 	"gopkg.in/yaml.v3"
+=======
+>>>>>>> ba7ebe8 (SSO, Upload Feature Working)
 	"log"
 	"os"
+
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -12,11 +17,12 @@ const (
 )
 
 type Config struct {
-	Environment string         `yaml:"environment"`
-	HTTP        HttpConfig     `yaml:"http"`
-	Database    DatabaseConfig `yaml:"database"`
-	Redis       RedisConfig    `yaml:"redis"`
-	SPA         SPAConfig      `yaml:"-"`
+	Environment    string         `yaml:"environment"`
+	HTTP           HttpConfig     `yaml:"http"`
+	Database       DatabaseConfig `yaml:"database"`
+	Authentication AuthConfig     `yaml:"authentication"`
+	Redis          RedisConfig    `yaml:"redis"`
+	SPA            SPAConfig      `yaml:"-"`
 }
 
 type HttpConfig struct {
@@ -29,6 +35,17 @@ type HttpConfig struct {
 type DatabaseConfig struct {
 	// ConnectionString is the connection string for the database.
 	ConnectionString string `yaml:"connection_string"`
+}
+
+type AuthConfig struct {
+	//URL for the SSO authenticating server
+	ConfigURL string `yaml:"config_url"`
+	//Client ID required for the SSO authenticating server
+	ClientID string `yaml:"client_id"`
+	//Client secret required for the SSO authenticating server
+	ClientSecret string `yaml:"client_secret"`
+	//URL for the callback after authentication
+	RedirectURL string `yaml:"redirect_url"`
 }
 
 type RedisConfig struct {
