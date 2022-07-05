@@ -10,9 +10,9 @@ func NewRedis(config *Config) (*redis.Client, context.Context) {
 	ctx := context.Background()
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     config.Redis.address,
-		Password: config.Redis.password,
-		DB:       config.Redis.db,
+		Addr:     config.Redis.Address,
+		Password: config.Redis.Password,
+		DB:       config.Redis.Db,
 	})
 
 	return rdb, ctx
