@@ -19,10 +19,10 @@ func InitDB(db *gorm.DB) error {
 	return db.Transaction(func(db *gorm.DB) error {
 		// Create SuperUser if it doesn't already exist
 		var superUser *User
-		err = db.Where("username = ?", "superuser").First(&superUser).Error
+		err = db.Where("email = ?", "superuser").First(&superUser).Error
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
-				superUser, err = CreateNewUser(db, "superuser", "Super User", 2, "")
+				superUser, err = CreateNewUser(db, "superuser", "Super User", 2, "", "refreshToken", "accessToken", "idToken")
 				if err != nil {
 					return err
 				}

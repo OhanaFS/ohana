@@ -12,6 +12,7 @@ type Group struct {
 	Activated     bool   `gorm:"not null"`
 	MappedGroupId string
 	Users         []*User `gorm:"many2many:user_groups;"`
+	Roles         []*Role `gorm:"many2many:group_roles;"`
 }
 
 type GroupInterface interface {
@@ -119,8 +120,14 @@ func (g *Group) GetUsers(tx *gorm.DB) ([]User, error) {
 }
 
 // ModifyMappedGroupId modifies the mapped group Id and saves it instantly.
+// UNUSED
 func (g *Group) ModifyMappedGroupId(tx *gorm.DB, newMappedGroup string) error {
 	g.MappedGroupId = newMappedGroup
 
 	return tx.Save(&g).Error
+}
+
+// AddMappedRole adds a role to a group
+func (g *Group) AddMappedRole(tx *gorm.DB, role *Role) error {
+	return tx.Model(&g).Association("Roles").Append([]Role{*role})
 }

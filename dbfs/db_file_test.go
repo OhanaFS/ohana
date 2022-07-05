@@ -17,7 +17,7 @@ func TestFile(t *testing.T) {
 	superUser := dbfs.User{}
 
 	// Getting superuser account
-	err := db.Where("username = ?", "superuser").First(&superUser).Error
+	err := db.Where("email = ?", "superuser").First(&superUser).Error
 	assert.Nil(t, err)
 
 	t.Run("Getting root folder", func(t *testing.T) {
@@ -186,7 +186,7 @@ func TestFile(t *testing.T) {
 		superUser := dbfs.User{}
 
 		// Getting superuser account
-		err := db.Where("username = ?", "superuser").First(&superUser).Error
+		err := db.Where("email = ?", "superuser").First(&superUser).Error
 		assert.Nil(t, err)
 
 		// DeleteFolderById
@@ -282,7 +282,8 @@ func TestFile(t *testing.T) {
 		Assert.Nil(err)
 
 		// Creating a user
-		user1, err := dbfs.CreateNewUser(db, "permissionCheckUser", "user1Name", 1, "permissionCheckUser")
+		user1, err := dbfs.CreateNewUser(db, "permissionCheckUser", "user1Name", 1,
+			"permissionCheckUser", "refreshToken", "accessToken", "idToken")
 		Assert.Nil(err)
 
 		// giving said user permissions to /TestPerms/perm1
@@ -371,8 +372,10 @@ func TestFile(t *testing.T) {
 		// To test for GetFileMeta, need to add some permissions to a file first
 
 		// Create a user
-		userForGetFileMeta, err := dbfs.CreateNewUser(db, "getFileMetaUser", "user1Name", dbfs.AccountTypeEndUser, "getFileMetaUser")
-		uselessUser, err := dbfs.CreateNewUser(db, "uselessUser", "user1Name", dbfs.AccountTypeEndUser, "uselessUser")
+		userForGetFileMeta, err := dbfs.CreateNewUser(db, "getFileMetaUser", "user1Name", dbfs.AccountTypeEndUser, "getFileMetaUser",
+			"refreshToken", "accessToken", "idToken")
+		uselessUser, err := dbfs.CreateNewUser(db, "uselessUser", "user1Name", dbfs.AccountTypeEndUser, "uselessUser",
+			"refreshToken", "accessToken", "idToken")
 		Assert.Nil(err)
 
 		newFile, err := dbfs.GetFileByPath(db, "/TestFakeFiles/somefile.txt", &superUser)

@@ -21,24 +21,27 @@ var (
 )
 
 type User struct {
-	UserId      string `gorm:"primaryKey; not null"` // Random UUId
-	Name        string
-	Username    string `gorm:"not null; unique"`
-	MappedId    string `gorm:"not null; unique"`
-	LastLogin   time.Time
-	Activated   bool           `gorm:"not null; default: true"`
-	AccountType int8           `gorm:"not null; default: 1"` // 1 = End User, 2 = Admin
-	CreatedAt   time.Time      `gorm:"autoCreateTime"`
-	UpdatedAt   time.Time      `gorm:"autoUpdateTime"`
-	DeletedAt   gorm.DeletedAt `gorm:"index"`
-	Groups      []*Group       `gorm:"many2many:user_groups;"`
+	UserId       string `gorm:"primaryKey; not null"` // Random UUId
+	Name         string
+	Email        string `gorm:"not null; unique"` // Maps to email?
+	MappedId     string `gorm:"not null; unique"` // Maps to userID
+	RefreshToken string
+	AccessToken  string
+	LastLogin    time.Time
+	Activated    bool           `gorm:"not null; default: true"`
+	AccountType  int8           `gorm:"not null; default: 1"` // 1 = End User, 2 = Admin
+	CreatedAt    time.Time      `gorm:"autoCreateTime"`
+	UpdatedAt    time.Time      `gorm:"autoUpdateTime"`
+	DeletedAt    gorm.DeletedAt `gorm:"index"`
+	Groups       []*Group       `gorm:"many2many:user_groups;"`
+	Roles        []*Role        `gorm:"many2many:user_roles;"`
 }
 
 //	Groups      []Group        `gorm:"many2many:user_groups"`
 
 type UserInterface interface {
 	ModifyName(tx *gorm.DB, newName string) error
-	ModifyUsername(tx *gorm.DB, newUsername string) error
+	ModifyEmail(tx *gorm.DB, newUsername string) error
 	ModifyAccountType(tx *gorm.DB, newStatus int8) error
 	MapToNewAccount(tx *gorm.DB, newId string) error
 	GetGroupsWithUser(tx *gorm.DB) ([]Group, error)
@@ -55,7 +58,8 @@ var _ UserInterface = &User{}
 // CreateNewUser
 // Creates a new user with a DB provided.
 // Requires username, name, AccountType, MappedId
-func CreateNewUser(tx *gorm.DB, username string, name string, accountType int8, mappedId string) (*User, error) {
+func CreateNewUser(tx *gorm.DB, email string, name string, accountType int8,
+	mappedId, refreshToken, accessToken, idToken string) (*User, error) {
 
 	// Check stuff like enums
 
@@ -66,12 +70,14 @@ func CreateNewUser(tx *gorm.DB, username string, name string, accountType int8, 
 	// Create the account
 
 	userAccount := &User{
-		UserId:      uuid.New().String(),
-		Name:        name,
-		Username:    username,
-		MappedId:    mappedId,
-		Activated:   true,
-		AccountType: accountType,
+		UserId:       uuid.New().String(),
+		Name:         name,
+		Email:        email,
+		MappedId:     mappedId,
+		RefreshToken: refreshToken,
+		AccessToken:  accessToken,
+		Activated:    true,
+		AccountType:  accountType,
 	}
 
 	result := tx.Create(&userAccount)
@@ -92,7 +98,7 @@ func GetUser(tx *gorm.DB, username string) (*User, error) {
 
 	user := &User{}
 
-	if err := tx.Preload(clause.Associations).First(&user, "username = ?", username).Error; err != nil {
+	if err := tx.Preload(clause.Associations).First(&user, "email = ?", username).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// ErrorHandling
 			return user, ErrUserNotFound
@@ -122,9 +128,9 @@ func (user *User) ModifyName(tx *gorm.DB, newName string) error {
 	return tx.Save(&user).Error
 }
 
-// ModifyUsername modifies the username of the given User and saves it instantly
-func (user *User) ModifyUsername(tx *gorm.DB, NewUsername string) error {
-	user.Username = NewUsername
+// ModifyEmail modifies the username of the given User and saves it instantly
+func (user *User) ModifyEmail(tx *gorm.DB, newEmail string) error {
+	user.Email = newEmail
 	return tx.Save(&user).Error
 }
 
@@ -170,9 +176,23 @@ func (user *User) ActivateUser(tx *gorm.DB) error {
 // GetGroupsWithUser refreshes user object with group data.
 func (user *User) GetGroupsWithUser(tx *gorm.DB) ([]Group, error) {
 
-	var groups []Group
+	// NEW CODE BELOW
 
-	err := tx.Preload(clause.Associations).Model(&user).Association("Groups").Find(&groups)
+	// Get the roles associated with the user
+
+	var roles []Role
+	var groups []Group
+	err := tx.Preload("Roles.Groups").Preload(clause.Associations).Model(&user).Association("Roles").Find(&roles)
+
+	// Get groups associated with each role.
+
+	for _, role := range roles {
+		for _, group := range role.Groups {
+			groups = append(groups, *group)
+		}
+	}
+
+	//err := tx.Preload(clause.Associations).Model(&user).Association("Groups").Find(&groups)
 
 	return groups, err
 }
@@ -190,4 +210,11 @@ func (user *User) AddToGroup(tx *gorm.DB, group *Group) error {
 	err := tx.Model(&user).Association("Groups").Append([]Group{*group})
 	tx.Save(&user)
 	return err
+}
+
+// RefreshGroups will check if there have been any changes in the groups that the user belongs in
+// It will ping the server using the refresh token to get a new access token and id token.
+func (user *User) RefreshGroups(tx *gorm.DB) error {
+
+	panic("Not implemented")
 }
