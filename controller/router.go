@@ -39,13 +39,13 @@ func NewServer(
 			return err
 		}
 		rp := httputil.NewSingleHostReverseProxy(rpURL)
-		router.PathPrefix("/").Handler(rp)
+		router.NotFoundHandler = rp
 	} else {
 		spa := &spaHandler{
 			staticPath: config.SPA.StaticPath,
 			indexPath:  config.SPA.IndexPath,
 		}
-		router.PathPrefix("/").Handler(spa)
+		router.NotFoundHandler = spa
 	}
 
 	// Wrap the router in a handler that logs requests
