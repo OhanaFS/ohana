@@ -1,10 +1,10 @@
 package config
 
 import (
+
+	"gopkg.in/yaml.v3"
 	"log"
 	"os"
-
-	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -16,6 +16,7 @@ type Config struct {
 	Environment string         `yaml:"environment"`
 	HTTP        HttpConfig     `yaml:"http"`
 	Database    DatabaseConfig `yaml:"database"`
+	Redis       RedisConfig    `yaml:"redis"`
 	SPA         SPAConfig      `yaml:"-"`
 }
 
@@ -29,6 +30,13 @@ type HttpConfig struct {
 type DatabaseConfig struct {
 	// ConnectionString is the connection string for the database.
 	ConnectionString string `yaml:"connection_string"`
+}
+
+
+type RedisConfig struct {
+	password string `yaml:"password"`
+	address  string `yaml:"address"`
+	db       int    `yaml:"db"`
 }
 
 // SPAConfig is the configuration for the SPA router. It is not exposed to the
