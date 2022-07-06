@@ -26,11 +26,11 @@ func main() {
 			config.LoadConfig,
 			config.NewLogger,
 			config.NewDatabase,
-			config.NewRedis,
 			controller.NewRouter,
 
 			// Services
 			service.NewHealth,
+			service.NewSession,
 		),
 		fx.Invoke(
 			// HTTP Server
@@ -41,7 +41,6 @@ func main() {
 
 			// DB
 			dbfs.InitDB,
-			dbfs.RedisTest,
 		),
 	).Run()
 }
