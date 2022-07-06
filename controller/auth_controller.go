@@ -15,8 +15,8 @@ type Authentication struct {
 
 func RegisterAuth(r *mux.Router, service service.Auth) {
 	s := &Authentication{service}
-	r.HandleFunc("/login", s.GetAuth).Methods("GET")
-	r.HandleFunc("/callback", s.HandCallback).Methods("GET")
+	r.HandleFunc("/auth/login", s.GetAuth).Methods("GET")
+	r.HandleFunc("/auth/callback", s.HandCallback).Methods("GET")
 }
 
 func (s *Authentication) GetAuth(w http.ResponseWriter, r *http.Request) {

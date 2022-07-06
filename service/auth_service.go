@@ -107,25 +107,21 @@ func (a *auth) Callback(ctx context.Context, code string, checkState string) (cl
 		return clientRoles{}, err
 	}
 
-	// Will remove this if not required later
-	data, err := json.MarshalIndent(resp, "", "    ")
-	data = data // avoid unused variable error
-
 	if err != nil {
 		return clientRoles{}, err
 	}
 
 	// service
 	tokenString := oauth2Token.AccessToken
-	roles, err := GetRolesFromJWT(tokenString)
+	info, err := GetInfoFromJWT(tokenString)
 	if err != nil {
 		return clientRoles{}, err
 	}
-	return roles, err
+	return info, err
 }
 
 // function to get the roles from the token
-func GetRolesFromJWT(accesTokenString string) (clientRoles, error) {
+func GetInfoFromJWT(accesTokenString string) (clientRoles, error) {
 	// Parsing the token just to extract values without validation.(as validated before)
 	token, _, err := new(jwt.Parser).ParseUnverified(accesTokenString, jwt.MapClaims{})
 	if err != nil {
@@ -133,7 +129,7 @@ func GetRolesFromJWT(accesTokenString string) (clientRoles, error) {
 	}
 
 	userInfo := clientRoles{}
-	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+	/*if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		resourceAccess := claims["resource_access"]
 		// TODO: doing casts like this is dangerous, maybe find a better way to do it - need to update
 		resourceAccessClient := resourceAccess.(map[string]interface{})["DemoServiceClient"]
@@ -143,21 +139,22 @@ func GetRolesFromJWT(accesTokenString string) (clientRoles, error) {
 		}
 	} else {
 		fmt.Println(err)
-	}
+	}*/
+
 	// extracting necessary info from the token
 	claims := token.Claims.(jwt.MapClaims)
+	roles := claims["roles"].(string)
 	userID := claims["sub"].(string)
 	name := claims["name"].(string)
 	email := claims["email"].(string)
 	scope := claims["scope"].(string)
 
+	userInfo.Roles = roles
 	userInfo.UserID = userID
 	userInfo.Name = name
 	userInfo.Email = email
 	userInfo.Scope = scope
 	userInfo.Fetched = true
-
-	fmt.Print("USER SHIT", userInfo)
 
 	return userInfo, nil
 }
