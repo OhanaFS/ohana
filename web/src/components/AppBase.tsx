@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { IconHome2, IconStar, IconShare, IconLogin, IconServer2, IconSettings, IconKey } from '@tabler/icons';
+
 import {
   AppShell,
   Navbar,
@@ -16,11 +18,24 @@ type AppBaseProps = {
   image: string
   name: string;
   username: string;
+  userType: string;
 }
 
 export default function AppBase(props: AppBaseProps) {
   const theme = useMantineTheme();
   const [opened, setOpened] = useState(false);
+  const data_user = [
+    { icon: <IconHome2 size={16} />, color: 'blue', label: 'Home' },
+    { icon: <IconStar size={16} />, color: 'teal', label: 'Favourites' },
+    { icon: <IconShare size={16} />, color: 'violet', label: 'Shared' },
+  ];
+  const data_admin = [
+    { icon: <IconHome2 size={16} />, color: 'blue', label: 'Dashboard' },
+    { icon: <IconLogin size={16} />, color: 'blue', label: 'SSO' },
+    { icon: <IconServer2 size={16} />, color: 'blue', label: 'Nodes' },
+    { icon: <IconSettings size={16} />, color: 'blue', label: 'Settings' },
+    { icon: <IconKey size={16} />, color: 'blue', label: 'KeyManagement' },
+  ]
   return (
     <AppShell
       styles={{
@@ -32,9 +47,9 @@ export default function AppBase(props: AppBaseProps) {
       asideOffsetBreakpoint="sm"
       fixed
       navbar={
-        <Navbar p="md" hiddenBreakpoint="sm" hidden={!opened} width={{ sm: 200 }}>
+        <Navbar p="md" hiddenBreakpoint="sm" hidden={!opened} width={{ sm: 250 }}>
           <Navbar.Section grow mt="md">
-            <MainLinks />
+            <MainLinks links={(props.userType === 'user' ? data_user : data_admin)} />
           </Navbar.Section>
           <Navbar.Section>
             <User name={props.name} username={props.username} image={props.image} />

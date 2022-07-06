@@ -16,7 +16,7 @@ function LoginPage() {
     }}>
       <div className='loginBox'>
         <Title style={{
-          marginBottom: '15px'
+          marginBottom: '15 px'
         }} order={2}>Ohana </Title>
         <TextInput required label="Email" placeholder="Email" sx={(theme) => ({
           display: 'block',
