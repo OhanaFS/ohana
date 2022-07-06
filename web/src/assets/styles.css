@@ -1,0 +1,14 @@
+.loginBox {
+    border: 1px solid #ccc;
+    border-radius: 3%;
+    text-align: center;
+    width: 400px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+@media screen and (max-width: 450px) {
+    .loginBox {
+        width: 350px;
+    }
+}

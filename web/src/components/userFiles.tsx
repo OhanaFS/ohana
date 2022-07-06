@@ -1,4 +1,4 @@
-import AppBase from "./AppShell";
+import AppBase from "./AppBase";
 import {
   ChonkyActions,
   ChonkyFileActionData,

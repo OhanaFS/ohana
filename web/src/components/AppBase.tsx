@@ -12,10 +12,10 @@ import { MainLinks } from './MainLinks';
 import { User } from './user';
 
 type AppBaseProps = {
-    children: React.ReactNode;
-    image: string
-    name: string;
-    username: string;
+  children: React.ReactNode;
+  image: string
+  name: string;
+  username: string;
 }
 
 export default function AppBase(props: AppBaseProps) {
@@ -34,12 +34,12 @@ export default function AppBase(props: AppBaseProps) {
       navbar={
         <Navbar p="md" hiddenBreakpoint="sm" hidden={!opened} width={{ sm: 200 }}>
           <Navbar.Section grow mt="md">
-          <MainLinks />
-        </Navbar.Section>
-        <Navbar.Section>
-          <User name={props.name} username={props.username} image={props.image} />
-        </Navbar.Section> 
-      </Navbar>}
+            <MainLinks />
+          </Navbar.Section>
+          <Navbar.Section>
+            <User name={props.name} username={props.username} image={props.image} />
+          </Navbar.Section>
+        </Navbar>}
       header={
         <Header height={70} p="md">
           <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>

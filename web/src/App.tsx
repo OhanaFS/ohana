@@ -1,7 +1,7 @@
 //import AppBase from "./AppBase";
 import { Helmet } from 'react-helmet';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import AppBase from "./components/AppShell"; //switched to responsive base
+import AppBase from "./components/AppBase"; //switched to responsive base
 import { VFSBrowser } from './components/userFiles';
 
 import Admin_ssogroups from './Admin_ssogroups';
