@@ -30,7 +30,7 @@ func main() {
 
 			// Services
 			service.NewHealth,
-			service.NewService,
+			service.NewSession,
 		),
 		fx.Invoke(
 			// HTTP Server

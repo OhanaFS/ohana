@@ -26,7 +26,7 @@ type session struct {
 	store kv.KV
 }
 
-func NewService(cfg *config.Config) (Session, error) {
+func NewSession(cfg *config.Config) (Session, error) {
 
 	return &session{
 		store: kv.NewRedis(cfg),
