@@ -2,45 +2,36 @@
 
 
 
-import { TextInput, Button, Title,useMantineTheme,BackgroundImage, Box, Center ,Text, Group, MediaQuery, CSSObject   } from '@mantine/core';
+import { TextInput, Button, Title, useMantineTheme, BackgroundImage, Box, Center, Text, Group, MediaQuery, CSSObject, MantineProvider } from '@mantine/core';
 
 
-import img from '../src/images/1.png';
 
-import{
+
+import {
   BrowserRouter as Router,
   Link,
-  Route,
-  Routes
+
 
 
 } from "react-router-dom";
 
 
-import { useMediaQuery } from '@mantine/hooks';
+import { useMediaQuery, useViewportSize } from '@mantine/hooks';
 
 
-import {BrowserView, MobileView} from 'react-device-detect';
+import { BrowserView, MobileView } from 'react-device-detect';
 
 
-function LoginPage({setIsToggled}:any) {
+function LoginPage({ setIsToggled }: any) {
   const theme = useMantineTheme();
 
 
 
 
 
-  const backgroundimage = require('../src/images/5.webp'); 
-  
-  const highlight: CSSObject = {
+  const backgroundimage = require('../src/images/5.webp');
 
-    border: '1px solid ',  marginTop: "50%",textAlign: "center", width: "80%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white 
-  };
-  const mobile = useMediaQuery('(min-width:600px)');
-  const desktop = useMediaQuery('(min-width:1400px)');
-    return (
- <>   
-  <div style={{
+  const highlight: CSSObject = {
     backgroundImage:
       `url(${backgroundimage})`,
     backgroundPosition: "center",
@@ -48,176 +39,448 @@ function LoginPage({setIsToggled}:any) {
     backgroundRepeat: "no-repeat",
     width: "100vw",
     height: "100vh",
-  }}>
-            <BrowserView>
-          
-          
-            {desktop==true ?   
-              <Box  sx={{}} mx="auto">
-     
-              <Center >
-             
-              <div style={{ border: '1px solid ',  marginTop: "15%",textAlign: "center", width: "20%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}>
-              <Title order={2}>Ohana </Title>
-              <TextInput required label="Email" placeholder="Email" sx={(theme) => ({
-                                display: 'block',
-                                textAlign: "left",
-                                width: "90%",
-                                height: "10vh",
-                                padding: theme.spacing.xs,
-                                borderRadius: theme.radius.sm,
-                                color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
-                            })} />
-         
-                <Button<typeof Link> style={{marginBottom:"2%"}}variant="default" color="dark" radius="xs" size="md"    component={Link} to="/Admin_statistics"    > 
-                                Login Using SSO
-                            </Button>
-                           
-                   </div>
-                         
-                 
-                        
-              </Center>
-            
-              </Box>
-            
-            
-            :   
-            
-            <Box  sx={{}} mx="auto">
-     
-            <Center >
+
+  };
+  const mobile = useMediaQuery('(min-width:600px)');
+
+
+
+  const { height, width } = useViewportSize();
+
+  return (
+    <>
+  
+      <MantineProvider
+        theme={{
+          breakpoints: {
+            xs: 576,
+            sm: 768,
+            md: 992,
+            lg: 1200,
+            xl: 1400,
+          },
+        }}
+      >
+
+
+        <BrowserView>
+
+    
+          {width > 1400 &&
+            <MediaQuery largerThan="lg" styles={highlight}>
            
-            <div style={{ border: '1px solid ',  marginTop: "30%",textAlign: "center", width: "30%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}>
-            <Title order={2}>Ohana </Title>
-            <TextInput required label="Email" placeholder="Email" sx={(theme) => ({
-                              display: 'block',
-                              textAlign: "left",
-                              width: "90%",
-                              height: "10vh",
-                              padding: theme.spacing.xs,
-                              borderRadius: theme.radius.sm,
-                              color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
-                          })} />
-       
-              <Button<typeof Link> style={{marginBottom:"2%"}}variant="default" color="dark" radius="xs" size="md"    component={Link} to="/Admin_statistics"    > 
-                              Login Using SSO
-                          </Button>
-                         
-                 </div>
-                       
+              <Box sx={(theme) => ({
+      
+      })} mx="auto"> 
+           
+              <div>Width: {width}px, height: {height}px</div>
+                screen is xl
+           
+                <Center >
                
-                      
-            </Center>
-          
-            </Box>
+                  <div style={{ border: '1px solid ', marginTop: "15%", textAlign: "center", width: "20%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}>
+                    <Title order={2}>Ohana </Title>
+                    <TextInput required label="Email" placeholder="Email" sx={(theme) => ({
+                      display: 'block',
+                      textAlign: "left",
+                      width: "90%",
+                      height: "10vh",
+                      padding: theme.spacing.xs,
+                      borderRadius: theme.radius.sm,
+                      color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+                    })} />
+
+                    <Button<typeof Link> style={{ marginBottom: "2%" }} variant="default" color="dark" radius="xs" size="md" component={Link} to="/Admin_statistics"    >
+                      Login Using SSO
+                    </Button>
+
+                  </div>
             
-            
-            }
-    
-   
-            </BrowserView>
-
-
-        
-            <MobileView>
-
-           
-
-
-{mobile==true ?         
-
-<Box sx={{}} mx="auto">
-     
-     <Center >
-
-  
- 
-       <div style={{  border: '1px solid ',  marginTop: "15%",textAlign: "center", width: "40%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}>
-     <Title order={2}>Ohana </Title>
-     <TextInput required label="Email" placeholder="Email" sx={(theme) => ({
-                       display: 'block',
-                       textAlign: "left",
-                       width: "90%",
-                       height: "15vh",
-                       padding: theme.spacing.xs,
-                       borderRadius: theme.radius.sm,
-                       color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
-                   })} />
-
-       <Button<typeof Link> style={{marginBottom:"2%"}}variant="default" color="dark" radius="xs" size="md"    component={Link} to="/Admin_statistics"    > 
-                       Login Using SSO
-                   </Button>
-                  
-          
-                   </div>         
-     
+                </Center>
               
-            
-     </Center>
-   
-     </Box>
-     
-     
-     
-     : 
+              </Box>
+             
+            </MediaQuery>
+          }
 
+          {width > 1200 && width < 1400 &&
+
+            <MediaQuery largerThan="lg" smallerThan="xl" styles={highlight}>
+              <Box sx={{}} mx="auto">
+              <div>Width: {width}px, height: {height}px</div>
+                screen is lg
+
+                <Center >
+                  <div style={{ border: '1px solid ', marginTop: "20%", textAlign: "center", width: "25%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}>
+                    <Title order={2}>Ohana </Title>
+                    <TextInput required label="Email" placeholder="Email" sx={(theme) => ({
+                      display: 'block',
+                      textAlign: "left",
+                      width: "90%",
+                      height: "10vh",
+                      padding: theme.spacing.xs,
+                      borderRadius: theme.radius.sm,
+                      color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+                    })} />
+                    <Button<typeof Link> style={{ marginBottom: "2%" }} variant="default" color="dark" radius="xs" size="md" component={Link} to="/Admin_statistics"    >
+                      Login Using SSO
+                    </Button>
+                  </div>
+                </Center>
+
+              </Box>
+            </MediaQuery>
+          }
+
+
+          {width > 992 && width < 1200 &&
+
+            <MediaQuery largerThan="md" smallerThan="lg" styles={highlight}>
+              <Box sx={{}} mx="auto">
+              <div>Width: {width}px, height: {height}px</div>
+                screen is md
+                <Center >
+
+                  <div style={{ border: '1px solid ', marginTop: "25%", textAlign: "center", width: "30%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}>
+                    <Title order={2}>Ohana </Title>
+                    <TextInput required label="Email" placeholder="Email" sx={(theme) => ({
+                      display: 'block',
+                      textAlign: "left",
+                      width: "90%",
+                      height: "10vh",
+                      padding: theme.spacing.xs,
+                      borderRadius: theme.radius.sm,
+                      color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+                    })} />
+
+                    <Button<typeof Link> style={{ marginBottom: "2%" }} variant="default" color="dark" radius="xs" size="md" component={Link} to="/Admin_statistics"    >
+                      Login Using SSO
+                    </Button>
+
+                  </div>
+                </Center>
+              </Box>
+            </MediaQuery>
+          }
+
+          {width > 768 && width < 992 &&
+
+            <MediaQuery largerThan="sm" smallerThan="md" styles={highlight}>
+              <Box sx={{}} mx="auto">
+              <div>Width: {width}px, height: {height}px</div>
+                screen is sm
+                <Center >
+
+                  <div style={{ border: '1px solid ', marginTop: "25%", textAlign: "center", width: "35%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}>
+                    <Title order={2}>Ohana </Title>
+                    <TextInput required label="Email" placeholder="Email" sx={(theme) => ({
+                      display: 'block',
+                      textAlign: "left",
+                      width: "90%",
+                      height: "10vh",
+                      padding: theme.spacing.xs,
+                      borderRadius: theme.radius.sm,
+                      color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+                    })} />
+
+                    <Button<typeof Link> style={{ marginBottom: "2%" }} variant="default" color="dark" radius="xs" size="md" component={Link} to="/Admin_statistics"    >
+                      Login Using SSO
+                    </Button>
+
+                  </div>
+                </Center>
+              </Box>
+            </MediaQuery>
+          }
+
+{width < 768 && width >576 &&
+
+<MediaQuery largerThan="xs" smallerThan="sm" styles={highlight}>
+  <Box sx={{}} mx="auto">
+    screen is xs
+    <Center >
+
+      <div style={{ border: '1px solid ', marginTop: "30%", textAlign: "center", width: "50%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}>
+        <Title order={2}>Ohana </Title>
+        <TextInput required label="Email" placeholder="Email" sx={(theme) => ({
+          display: 'block',
+          textAlign: "left",
+          width: "90%",
+          height: "10vh",
+          padding: theme.spacing.xs,
+          borderRadius: theme.radius.sm,
+          color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+        })} />
+
+        <Button<typeof Link> style={{ marginBottom: "2%" }} variant="default" color="dark" radius="xs" size="md" component={Link} to="/Admin_statistics"    >
+          Login Using SSO
+        </Button>
+
+      </div>
+    </Center>
+  </Box>
+</MediaQuery>
+}
+{width < 576  &&
+
+<MediaQuery  smallerThan="xs" styles={highlight}>
 <Box sx={{}} mx="auto">
-     
-     <Center >
+  screen is less than xs 
+  <Center >
 
-  
- 
-       <div style={{  border: '1px solid ',  marginTop: "50%",textAlign: "center", width: "80%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}>
-     <Title order={2}>Ohana </Title>
-     <TextInput required label="Email" placeholder="Email" sx={(theme) => ({
-                       display: 'block',
-                       textAlign: "left",
-                       width: "90%",
-                       height: "15vh",
-                       padding: theme.spacing.xs,
-                       borderRadius: theme.radius.sm,
-                       color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
-                   })} />
+    <div style={{ border: '1px solid ', marginTop: "50%", textAlign: "center", width: "60%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}>
+      <Title order={2}>Ohana </Title>
+      <TextInput required label="Email" placeholder="Email" sx={(theme) => ({
+        display: 'block',
+        textAlign: "left",
+        width: "90%",
+        height: "10vh",
+        padding: theme.spacing.xs,
+        borderRadius: theme.radius.sm,
+        color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+      })} />
 
-       <Button<typeof Link> style={{marginBottom:"2%"}}variant="default" color="dark" radius="xs" size="md"    component={Link} to="/Admin_statistics"    > 
-                       Login Using SSO
-                   </Button>
-                  
-          
-                   </div>         
-     
+      <Button<typeof Link> style={{ marginBottom: "2%" }} variant="default" color="dark" radius="xs" size="md" component={Link} to="/Admin_statistics"    >
+        Login Using SSO
+      </Button>
+
+    </div>
+  </Center>
+</Box>
+</MediaQuery>
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        </BrowserView>
+
+
+
+        <MobileView>
+
+
+        {width > 1400 &&
+            <MediaQuery largerThan="lg" styles={highlight}>
               
-            
-     </Center>
-   
-     </Box>
-     
-                  }
+              <Box sx={{}} mx="auto">
+              <div>Width: {width}px, height: {height}px</div>
+                screen is xl
+                <Center >
+
+                  <div style={{ border: '1px solid ', marginTop: "15%", textAlign: "center", width: "20%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}>
+                    <Title order={2}>Ohana </Title>
+                    <TextInput required label="Email" placeholder="Email" sx={(theme) => ({
+                      display: 'block',
+                      textAlign: "left",
+                      width: "90%",
+                      height: "10vh",
+                      padding: theme.spacing.xs,
+                      borderRadius: theme.radius.sm,
+                      color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+                    })} />
+
+                    <Button<typeof Link> style={{ marginBottom: "2%" }} variant="default" color="dark" radius="xs" size="md" component={Link} to="/Admin_statistics"    >
+                      Login Using SSO
+                    </Button>
+
+                  </div>
+                </Center>
+              </Box>
+            </MediaQuery>
+          }
+
+          {width > 1200 && width < 1400 &&
+
+            <MediaQuery largerThan="lg" smallerThan="xl" styles={highlight}>
+              <Box sx={{}} mx="auto">
+              <div>Width: {width}px, height: {height}px</div>
+                screen is lg
+
+                <Center >
+                  <div style={{ border: '1px solid ', marginTop: "20%", textAlign: "center", width: "25%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}>
+                    <Title order={2}>Ohana </Title>
+                    <TextInput required label="Email" placeholder="Email" sx={(theme) => ({
+                      display: 'block',
+                      textAlign: "left",
+                      width: "90%",
+                      height: "10vh",
+                      padding: theme.spacing.xs,
+                      borderRadius: theme.radius.sm,
+                      color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+                    })} />
+                    <Button<typeof Link> style={{ marginBottom: "2%" }} variant="default" color="dark" radius="xs" size="md" component={Link} to="/Admin_statistics"    >
+                      Login Using SSO
+                    </Button>
+                  </div>
+                </Center>
+
+              </Box>
+            </MediaQuery>
+          }
+
+
+          {width > 992 && width < 1200 &&
+
+            <MediaQuery largerThan="md" smallerThan="lg" styles={highlight}>
+              <Box sx={{}} mx="auto">
+              <div>Width: {width}px, height: {height}px</div>
+                screen is md
+                <Center >
+
+                  <div style={{ border: '1px solid ', marginTop: "25%", textAlign: "center", width: "30%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}>
+                    <Title order={2}>Ohana </Title>
+                    <TextInput required label="Email" placeholder="Email" sx={(theme) => ({
+                      display: 'block',
+                      textAlign: "left",
+                      width: "90%",
+                      height: "10vh",
+                      padding: theme.spacing.xs,
+                      borderRadius: theme.radius.sm,
+                      color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+                    })} />
+
+                    <Button<typeof Link> style={{ marginBottom: "2%" }} variant="default" color="dark" radius="xs" size="md" component={Link} to="/Admin_statistics"    >
+                      Login Using SSO
+                    </Button>
+
+                  </div>
+                </Center>
+              </Box>
+            </MediaQuery>
+          }
+
+          {width > 768 && width < 992 &&
+
+            <MediaQuery largerThan="sm" smallerThan="md" styles={highlight}>
+              <Box sx={{}} mx="auto">
+              <div>Width: {width}px, height: {height}px</div>
+                screen is sm
+                <Center >
+
+                  <div style={{ border: '1px solid ', marginTop: "25%", textAlign: "center", width: "35%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}>
+                    <Title order={2}>Ohana </Title>
+                    <TextInput required label="Email" placeholder="Email" sx={(theme) => ({
+                      display: 'block',
+                      textAlign: "left",
+                      width: "90%",
+                      height: "10vh",
+                      padding: theme.spacing.xs,
+                      borderRadius: theme.radius.sm,
+                      color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+                    })} />
+
+                    <Button<typeof Link> style={{ marginBottom: "2%" }} variant="default" color="dark" radius="xs" size="md" component={Link} to="/Admin_statistics"    >
+                      Login Using SSO
+                    </Button>
+
+                  </div>
+                </Center>
+              </Box>
+            </MediaQuery>
+          }
+
+{width < 768 && width >576 &&
+
+<MediaQuery largerThan="xs" smallerThan="sm" styles={highlight}>
+  <Box sx={{}} mx="auto">
+    screen is xs
+    <Center >
+
+      <div style={{ border: '1px solid ', marginTop: "10%", textAlign: "center", width: "50%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}>
+        <Title order={2}>Ohana </Title>
+        <TextInput required label="Email" placeholder="Email" sx={(theme) => ({
+          display: 'block',
+          textAlign: "left",
+          width: "90%",
+          height: "20vh",
+          padding: theme.spacing.xs,
+          borderRadius: theme.radius.sm,
+          color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+        })} />
+
+        <Button<typeof Link> style={{ marginBottom: "2%" }} variant="default" color="dark" radius="xs" size="md" component={Link} to="/Admin_statistics"    >
+          Login Using SSO
+        </Button>
+
+      </div>
+    </Center>
+  </Box>
+</MediaQuery>
+}
+{width < 576  &&
+
+<MediaQuery  smallerThan="xs" styles={highlight}>
+<Box sx={{}} mx="auto">
+  screen is less than xs 
+  <Center >
+
+    <div style={{ border: '1px solid ', marginTop: "50%", textAlign: "center", width: "60%", background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.white }}>
+      <Title order={2}>Ohana </Title>
+      <TextInput required label="Email" placeholder="Email" sx={(theme) => ({
+        display: 'block',
+        textAlign: "left",
+        width: "90%",
+        height: "10vh",
+        padding: theme.spacing.xs,
+        borderRadius: theme.radius.sm,
+        color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+      })} />
+
+      <Button<typeof Link> style={{ marginBottom: "2%" }} variant="default" color="dark" radius="xs" size="md" component={Link} to="/Admin_statistics"    >
+        Login Using SSO
+      </Button>
+
+    </div>
+  </Center>
+</Box>
+</MediaQuery>
+}
 
 
 
-            </MobileView>
-
-
-            </div>
-    
-
-
- 
 
 
 
-  
 
 
-       
-
-      </>
 
 
-    );
-    
+
+
+
+
+        </MobileView>
+
+
+
+
+
+
+
+
+
+
+
+
+
+      </MantineProvider>
+
+    </>
+
+
+  );
+
 }
 
 
