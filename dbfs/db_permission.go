@@ -11,22 +11,22 @@ var (
 )
 
 type Permission struct {
-	FileId       string `gorm:"primaryKey"`
-	PermissionId int    `gorm:"primaryKey;autoIncrement"`
-	User         User   `gorm:"foreignKey:UserId"`
-	UserId       *string
-	Group        Group `gorm:"foreignKey:GroupId"`
-	GroupId      *string
-	CanRead      bool
-	CanWrite     bool
-	CanExecute   bool
-	CanShare     bool
-	VersionNo    int
-	Audit        bool
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	DeletedAt    gorm.DeletedAt `gorm:"index"`
-	Status       int8           // 1 indicates active, 0 indicates time needs to be updated properly
+	FileId       string         `gorm:"primaryKey" json:"file_id"`
+	PermissionId int            `gorm:"primaryKey;autoIncrement" json:"permission_id"`
+	User         User           `gorm:"foreignKey:UserId" json:"-"`
+	UserId       *string        `json:"user_id"`
+	Group        Group          `gorm:"foreignKey:GroupId" json:"-"`
+	GroupId      *string        `json:"group_id"`
+	CanRead      bool           `json:"can_read"`
+	CanWrite     bool           `json:"can_write"`
+	CanExecute   bool           `json:"can_execute"`
+	CanShare     bool           `json:"can_share"`
+	VersionNo    int            `json:"version_no"`
+	Audit        bool           `json:"audit"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
+	Status       int8           `json:"status"` // 1 indicates active, 0 indicates time needs to be updated properly
 }
 
 type PermissionHistory struct {

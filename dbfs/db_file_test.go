@@ -31,13 +31,13 @@ func TestFile(t *testing.T) {
 		Assert.Equal("00000000-0000-0000-0000-000000000000", file.FileId)
 		Assert.Equal("root", file.FileName)
 
-		jsonOutput, err := json.Marshal(file)
-
-		Assert.Nil(err)
-
-		if debugPrint {
-			fmt.Println(string(jsonOutput))
-		}
+		//jsonOutput, err := json.Marshal(file)
+		//
+		//Assert.Nil(err)
+		//
+		//if debugPrint {
+		//	fmt.Println(string(jsonOutput))
+		//}
 
 	})
 
@@ -177,6 +177,10 @@ func TestFile(t *testing.T) {
 		ls, err = dbfs.ListFilesByPath(db, "Test2/", &superUser)
 		Assert.Nil(err)
 		Assert.Equal(1, len(ls))
+
+		// json marshall test
+		jsonOutput, err := json.Marshal(innerFolder)
+		fmt.Println(string(jsonOutput))
 
 	})
 
