@@ -1,10 +1,11 @@
 package dbfs_test
 
 import (
+	"testing"
+
 	"github.com/OhanaFS/ohana/dbfs"
 	"github.com/OhanaFS/ohana/util/testutil"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestUsers(t *testing.T) {
@@ -56,6 +57,16 @@ func TestUsers(t *testing.T) {
 		assert := assert.New(t)
 
 		user3, err := dbfs.GetUser(db, "test3")
+
+		assert.Nil(err)
+
+		assert.Equal("test3", user3.Email)
+	})
+
+	t.Run("Get User based on userId", func(t *testing.T) {
+		assert := assert.New(t)
+
+		user3, err := dbfs.GetUserById(db, user3.UserId)
 
 		assert.Nil(err)
 

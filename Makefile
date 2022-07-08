@@ -27,22 +27,10 @@ run: $(TARGET)
 	./$(TARGET)
 
 dev-up: dev-down
-	docker run --rm -d \
-		--name ohana-postgres-dev \
-		-p 127.0.0.1:5432:5432 \
-		-e POSTGRES_USER=ohanaAdmin \
-		-e POSTGRES_PASSWORD=ohanaMeansFamily \
-		-e POSTGRES_DB=ohana \
-		postgres:14.2
-	docker run --rm -d \
-		--name ohana-redis-dev \
-		-p 127.0.0.1:6379:6379 \
-		redis:7 \
-		--requirepass ohanaMeansFamily
+	docker-compose -f .dev/docker-compose.yaml up -d
 
 dev-down:
-	-docker stop ohana-postgres-dev
-	-docker stop ohana-redis-dev
+	-docker-compose -f .dev/docker-compose.yaml down
 
 dev: dev-up
 	go install github.com/codegangsta/gin@latest
@@ -56,7 +44,7 @@ dev: dev-up
 clean:
 	rm -rf $(TARGET)
 	rm -rf coverage.*
-	cd web && yarn clean
+	cd web && yarn && yarn clean
 
 test:
 	go test -coverprofile=coverage.out ./...
