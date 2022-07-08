@@ -1,11 +1,15 @@
 package testutil
 
 import (
+	"testing"
+
+	"github.com/OhanaFS/ohana/config"
 	"github.com/OhanaFS/ohana/dbfs"
+	"github.com/OhanaFS/ohana/service"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"testing"
 )
 
 func NewMockDB(t *testing.T) *gorm.DB {
@@ -22,4 +26,12 @@ func NewMockDB(t *testing.T) *gorm.DB {
 	t.Logf("Tables: %v", tables)
 
 	return appDB
+}
+
+func NewMockSession(t *testing.T) service.Session {
+	assert := assert.New(t)
+	session, err := service.NewSession(&config.Config{}, zap.NewNop())
+	assert.Nil(err)
+
+	return session
 }
