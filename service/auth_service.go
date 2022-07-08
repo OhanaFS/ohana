@@ -2,28 +2,34 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/OhanaFS/ohana/config"
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/oauth2"
 )
 
-type clientRoles struct {
-	Roles   string `json:"roles,omitempty"`
-	UserID  string `json:"user_id,omitempty"`
-	Name    string `json:"name,omitempty"`
-	Email   string `json:"email,omitempty"`
-	Scope   string `json:"scope,omitempty"`
-	Fetched bool   `json:"fetched,omitempty"`
+type callbackResult struct {
+	AccessToken string  `json:"access_token"`
+	IdToken     string  `json:"id_token"`
+	UserInfo    *claims `json:"user_info"`
+}
+
+type claims struct {
+	IssuedAt int64  `json:"iat,omitempty"`
+	Expires  int64  `json:"exp,omitempty"`
+	Subject  string `json:"sub,omitempty"`
+
+	Roles []string `json:"roles,omitempty"`
+	Name  string   `json:"name,omitempty"`
+	Email string   `json:"email,omitempty"`
+	Scope string   `json:"scope,omitempty"`
 }
 
 type Auth interface {
 	SendRequest(ctx context.Context, rawAccessToken string) (string, error)
-	Callback(ctx context.Context, code string, checkState string) (clientRoles, error)
+	Callback(ctx context.Context, code string, checkState string) (*callbackResult, error)
 }
 
 type auth struct {
@@ -35,16 +41,19 @@ type auth struct {
 var state = "somestate"
 
 func NewAuth(c *config.Config) (Auth, error) {
+	// Fetch the provider configuration from the discovery endpoint.
 	ctx := context.Background()
 	provider, err := oidc.NewProvider(ctx, c.Authentication.ConfigURL)
 	if err != nil {
 		return nil, err
 	}
 
+	// Configure the OAuth2 client.
 	oidcConfig := &oidc.Config{
 		ClientID: c.Authentication.ClientID,
 	}
 	verifier := provider.Verifier(oidcConfig)
+
 	return &auth{
 		provider: provider,
 		verifier: verifier,
@@ -78,83 +87,35 @@ func (a *auth) SendRequest(ctx context.Context, rawAccessToken string) (string, 
 	return "Hello Ohanians", nil
 }
 
-func (a *auth) Callback(ctx context.Context, code string, checkState string) (clientRoles, error) {
+func (a *auth) Callback(ctx context.Context, code string, checkState string) (*callbackResult, error) {
 	if checkState != state {
-		return clientRoles{}, fmt.Errorf("state is invalid")
+		return nil, fmt.Errorf("state is invalid")
 	}
 
-	oauth2Token, err := a.oauth2Config.Exchange(ctx, code)
+	// Exchange the authorization code for an access token.
+	accessToken, err := a.oauth2Config.Exchange(ctx, code)
 	if err != nil {
-		return clientRoles{}, err
+		return nil, fmt.Errorf("failed to exchange token: %v", err)
 	}
 
-	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
+	rawIDToken, ok := accessToken.Extra("id_token").(string)
 	if !ok {
-		return clientRoles{}, fmt.Errorf("No id_token field in oauth2 token.")
+		return nil, fmt.Errorf("No id_token field in oauth2 token.")
 	}
 
 	idToken, err := a.verifier.Verify(ctx, rawIDToken)
 	if err != nil {
-		return clientRoles{}, err
+		return nil, fmt.Errorf("Failed to verify ID Token: %v", err)
 	}
 
-	resp := struct {
-		OAuth2Token   *oauth2.Token
-		IDTokenClaims *json.RawMessage // ID Token payload is just JSON.
-	}{oauth2Token, new(json.RawMessage)}
-
-	if err := idToken.Claims(&resp.IDTokenClaims); err != nil {
-		return clientRoles{}, err
+	var idTokenClaims claims
+	if err := idToken.Claims(&idTokenClaims); err != nil {
+		return nil, fmt.Errorf("Failed to parse ID Token claims: %v", err)
 	}
 
-	if err != nil {
-		return clientRoles{}, err
-	}
-
-	// service
-	tokenString := oauth2Token.AccessToken
-	info, err := GetInfoFromJWT(tokenString)
-	if err != nil {
-		return clientRoles{}, err
-	}
-	return info, err
-}
-
-// function to get the roles from the token
-func GetInfoFromJWT(accesTokenString string) (clientRoles, error) {
-	// Parsing the token just to extract values without validation.(as validated before)
-	token, _, err := new(jwt.Parser).ParseUnverified(accesTokenString, jwt.MapClaims{})
-	if err != nil {
-		return clientRoles{}, err
-	}
-
-	userInfo := clientRoles{}
-	/*if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		resourceAccess := claims["resource_access"]
-		// TODO: doing casts like this is dangerous, maybe find a better way to do it - need to update
-		resourceAccessClient := resourceAccess.(map[string]interface{})["DemoServiceClient"]
-		resourceAccessRole := resourceAccessClient.(map[string]interface{})["roles"]
-		for _, role := range resourceAccessRole.([]interface{}) {
-			userInfo.Roles = userInfo.Roles + " " + role.(string)
-		}
-	} else {
-		fmt.Println(err)
-	}*/
-
-	// extracting necessary info from the token
-	claims := token.Claims.(jwt.MapClaims)
-	roles := claims["roles"].(string)
-	userID := claims["sub"].(string)
-	name := claims["name"].(string)
-	email := claims["email"].(string)
-	scope := claims["scope"].(string)
-
-	userInfo.Roles = roles
-	userInfo.UserID = userID
-	userInfo.Name = name
-	userInfo.Email = email
-	userInfo.Scope = scope
-	userInfo.Fetched = true
-
-	return userInfo, nil
+	return &callbackResult{
+		AccessToken: accessToken.AccessToken,
+		IdToken:     rawIDToken,
+		UserInfo:    &idTokenClaims,
+	}, nil
 }
