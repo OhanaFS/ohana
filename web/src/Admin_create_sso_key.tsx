@@ -12,6 +12,7 @@ import {
 
 
 } from "react-router-dom";
+import AppBase from "./components/AppBase";
 
 
 
@@ -22,7 +23,8 @@ function Admin_create_sso_key() {
   return (
 
     <>
-      <Admin_navigation>
+       <AppBase userType="admin" name='Alex Simmons' username='@alex' image='https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80'>
+       
         <Center >
           <Grid style={{ width: "100vh" }}>
             <Grid.Col span={12} style={{ marginLeft: "2%", marginTop: "2%", border: '1px solid' }}>
@@ -63,7 +65,7 @@ function Admin_create_sso_key() {
 
               <div style={{ display: "flex" }}>
 
-                <Button style={{ marginLeft: "auto", marginTop: "3%" }} component={Link} to="/Admin_ssogroups" >Create</Button>
+                <Button style={{ marginLeft: "auto", marginTop: "3%" }} component={Link} to="/sso" >Create</Button>
 
               </div>
 
@@ -80,7 +82,7 @@ function Admin_create_sso_key() {
 
           </Grid>
         </Center>
-      </Admin_navigation>
+</AppBase>
     </>
 
   );

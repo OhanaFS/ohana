@@ -10,6 +10,7 @@ import {
 
 } from "react-router-dom";
 import { useState } from "react";
+import AppBase from "./components/AppBase";
 
 function generateRandomString() {
     var result = "";
@@ -41,7 +42,8 @@ function Admin_create_key() {
 
     return (
 
-        <Admin_navigation>
+        <AppBase userType="admin" name='Alex Simmons' username='@alex' image='https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80'>
+       
 
             <Center>
                 <Grid style={{ width: "80vh" }}>
@@ -122,7 +124,7 @@ function Admin_create_key() {
 
                 </Grid>
             </Center>
-        </Admin_navigation>
+</AppBase>
 
 
     );

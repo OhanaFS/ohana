@@ -33,8 +33,10 @@ export default function AppBase(props: AppBaseProps) {
     { icon: <IconHome2 size={16} />, color: 'blue', label: 'Dashboard' },
     { icon: <IconLogin size={16} />, color: 'blue', label: 'SSO' },
     { icon: <IconServer2 size={16} />, color: 'blue', label: 'Nodes' },
+    { icon: <IconServer2 size={16} />, color: 'blue', label: 'Maintenance' },
     { icon: <IconSettings size={16} />, color: 'blue', label: 'Settings' },
-    { icon: <IconKey size={16} />, color: 'blue', label: 'KeyManagement' },
+    { icon: <IconServer2 size={16} />, color: 'blue', label: 'Rotate Key' },
+    { icon: <IconKey size={16} />, color: 'blue', label: 'Key Management' },
   ]
   return (
     <AppShell

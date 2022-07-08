@@ -29,7 +29,7 @@ function LoginPage() {
           color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
         })} />
 
-        <Button<typeof Link> style={{ marginBottom: "2%" }} variant="default" color="dark" radius="xs" size="md" component={Link} to="/Admin_statistics"    >
+        <Button<typeof Link> style={{ marginBottom: "2%" }} variant="default" color="dark" radius="xs" size="md" component={Link} to="/dashboard"    >
           Login Using SSO
         </Button>
       </div>

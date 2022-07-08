@@ -35,19 +35,19 @@ export default function Demo() {
         <Route path='/files' element={<AppBase userType='user' name='Alex' username='@alex' image='https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80'><></></AppBase>} />
         <Route path='/home' element={<VFSBrowser />} />
         <Route path='/' element={<LoginPage />} />
-        <Route path="/Admin_create_sso_key" element={<Admin_create_sso_key />} />
-        <Route path="/Admin_ssogroups_inside" element={<Admin_ssogroups_inside />} />
-        <Route path="/keymanagement" element={<Admin_key_management />} />
-        <Route path="/Admin_maintenanceresults" element={<Admin_maintenanceresults />} />
-        <Route path="/Admin_performmaintenance" element={<Admin_performmaintenance />} />
-        <Route path="/Admin_maintenancesettings" element={<Admin_maintenancesettings />} />
-        <Route path="/Admin_runmaintenance" element={<Admin_runmaintenance />} />
+        <Route path="/create_sso_key" element={<Admin_create_sso_key />} />
+        <Route path="/ssogroups_inside" element={<Admin_ssogroups_inside />} />
+        <Route path="/key%20management" element={<Admin_key_management />} />
+        <Route path="/maintenanceresults" element={<Admin_maintenanceresults />} />
+        <Route path="/performmaintenance" element={<Admin_performmaintenance />} />
+        <Route path="/maintenance" element={<Admin_maintenancesettings />} />
+        <Route path="/runmaintenance" element={<Admin_runmaintenance />} />
         <Route path="/dashboard" element={<Admin_statistics />} />
         <Route path="/sso" element={<Admin_ssogroups />} />
         <Route path="/nodes" element={<Admin_nodes />} />
-        <Route path="/Admin_maintenancelogs" element={<Admin_maintenancelogs />} />
+        <Route path="/maintenancelogs" element={<Admin_maintenancelogs />} />
         <Route path="/settings" element={<Admin_settings />} />
-        <Route path="/Admin_configuration" element={<Admin_configuration />} />
+        <Route path="/rotate%20key" element={<Admin_configuration />} />
         <Route path="/Admin_create_key" element={<Admin_create_key />} />
 
       </Routes>
