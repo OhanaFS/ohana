@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -35,17 +34,15 @@ func (s *Authentication) HandCallback(w http.ResponseWriter, r *http.Request) {
 	checkState := r.URL.Query().Get("state")
 	code := r.URL.Query().Get("code")
 
-	roles, _ := s.service.Callback(ctx, code, checkState)
+	roles, err := s.service.Callback(ctx, code, checkState)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
 	if roles.Fetched == false {
 		http.Error(w, "invalid token", http.StatusBadRequest)
 		return
 	}
 
-	j, err := json.Marshal(roles)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	util.HttpJson(w, http.StatusOK, string(j))
+	util.HttpJson(w, http.StatusOK, roles)
 }
