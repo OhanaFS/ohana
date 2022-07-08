@@ -9,7 +9,7 @@ redis:
   address: localhost:6379
   db: 0
 authentication:
-  config_url: http://localhost:8080/auth/realms/DEMOREALM
-  client_id: DemoServiceClient
-  client_secret: 6ca21ba3-b24f-4b6f-93e7-42ea840a7140
+  config_url: http://localhost:8080
+  client_id: ohana
+  client_secret: family
   redirect_url: http://localhost:8000/auth/callback

@@ -29,9 +29,6 @@ cd ohana
 # Build
 make
 
-# Bring up postgres and redis
-make dev-up
-
 # Run backend in development mode
 CONFIG_FILE=config.example.yaml make dev
 
@@ -42,7 +39,9 @@ yarn dev
 ```
 
 Then try it out! Go to https://127.0.0.1:8000/ in your browser and you should
-see the React app.
+see the React app. The login URL is `/auth/login` and the default credentials is
+`admin:password`, as defined in the `.dev/docker-compose.yaml` file (the
+`USERS_CONFIGURATION_INLINE` part).
 
 When you're done, don't forget to tear down redis and the postgres database:
 
