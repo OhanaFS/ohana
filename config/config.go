@@ -1,10 +1,6 @@
 package config
 
 import (
-<<<<<<< HEAD
-	"gopkg.in/yaml.v3"
-=======
->>>>>>> ba7ebe8 (SSO, Upload Feature Working)
 	"log"
 	"os"
 
@@ -38,13 +34,13 @@ type DatabaseConfig struct {
 }
 
 type AuthConfig struct {
-	//URL for the SSO authenticating server
+	// URL for the SSO authenticating server
 	ConfigURL string `yaml:"config_url"`
-	//Client ID required for the SSO authenticating server
+	// Client ID required for the SSO authenticating server
 	ClientID string `yaml:"client_id"`
-	//Client secret required for the SSO authenticating server
+	// Client secret required for the SSO authenticating server
 	ClientSecret string `yaml:"client_secret"`
-	//URL for the callback after authentication
+	// URL for the callback after authentication
 	RedirectURL string `yaml:"redirect_url"`
 }
 

@@ -15,10 +15,10 @@ type UploadController struct {
 func RegisterUpload(r *mux.Router, service service.UploadService) {
 	s := &UploadController{service}
 	// Upload route
-	r.HandleFunc("/api/v1/file/upload", s.uploadHandler)
+	r.HandleFunc("/api/v1/file/upload", s.UploadHandler)
 }
 
-func (s *UploadController) uploadHandler(w http.ResponseWriter, r *http.Request) {
+func (s *UploadController) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		fmt.Print(w, "upload", nil)
 	} else {

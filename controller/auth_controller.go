@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/OhanaFS/ohana/service"
+	"github.com/OhanaFS/ohana/util"
 	"github.com/gorilla/mux"
 )
 
@@ -46,5 +47,5 @@ func (s *Authentication) HandCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write([]byte(j))
+	util.HttpJson(w, http.StatusOK, string(j))
 }
