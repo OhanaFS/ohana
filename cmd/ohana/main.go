@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/OhanaFS/ohana/controller/middleware"
 	"github.com/OhanaFS/ohana/dbfs"
 
 	"go.uber.org/fx"
@@ -27,6 +28,7 @@ func main() {
 			config.LoadConfig,
 			config.NewLogger,
 			config.NewDatabase,
+			middleware.Provide,
 			controller.NewRouter,
 
 			// Services

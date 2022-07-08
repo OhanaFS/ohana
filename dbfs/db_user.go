@@ -19,6 +19,7 @@ var (
 	ErrUserNotFound    = errors.New("user not found")
 	ErrUsernameExists  = errors.New("username already is in use")
 	ErrInvalidUserType = errors.New("invalid account type")
+	ErrCredentials     = errors.New("invalid credentials")
 )
 
 type User struct {
