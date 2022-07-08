@@ -50,17 +50,17 @@ type File struct {
 	FileName           string    `json:"file_name"`
 	MIMEType           string    `json:"mime_type"`
 	EntryType          int8      `gorm:"not null" json:"entry_type"`
-	ParentFolder       *File     `gorm:"foreignKey:ParentFolderFileId"`
+	ParentFolder       *File     `gorm:"foreignKey:ParentFolderFileId" json:"-"`
 	ParentFolderFileId *string   `json:"parent_folder_id"`
 	VersionNo          int       `gorm:"not null" json:"version_no"`
 	DataId             string    `json:"-"`
 	DataIdVersion      int       `json:"data_version_no"`
 	Size               int       `gorm:"not null" json:"size"`
 	ActualSize         int       `gorm:"not null" json:"actual_size"`
-	CreatedTime        time.Time `gorm:"not null" `
+	CreatedTime        time.Time `gorm:"not null"  json:"created_time"`
 	ModifiedUser       *User     `gorm:"foreignKey:ModifiedUserUserId" json:"-"`
 	ModifiedUserUserId *string   `json:"modified_user_user_id"`
-	ModifiedTime       time.Time `gorm:"not null; autoUpdateTime"`
+	ModifiedTime       time.Time `gorm:"not null; autoUpdateTime" json:"modified_time"`
 	VersioningMode     int8      `gorm:"not null" json:"versioning_mode"`
 	Checksum           string    `json:"checksum"`
 	FragCount          int       `json:"frag_count"`
@@ -1604,6 +1604,7 @@ func (f File) IsFileOrEmptyFolder(tx *gorm.DB, user *User) (bool, error) {
 	}
 }
 
+// GetDecryptionKey returns the Key and IV of a file given a password (or not)
 func (f *File) GetDecryptionKey(tx *gorm.DB, user *User, password string) (string, string, error) {
 
 	// Check if user has read permission (if not 404)
@@ -1653,5 +1654,60 @@ func (f *File) GetDecryptionKey(tx *gorm.DB, user *User, password string) (strin
 		return fileKey, fileIv, nil
 
 	}
+
+}
+
+// GetAllVersins returns all versions of a file
+func (f *File) GetAllVersions(tx *gorm.DB, user *User) ([]FileVersion, error) {
+
+	// Check if user has read permission (if not 404)
+	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
+	if !hasPermissions {
+		return nil, ErrFileNotFound
+	} else if err != nil {
+		return nil, err
+	}
+
+	var fileVersions []FileVersion
+
+	err = tx.Model(&FileVersion{}).Where("file_id = ? AND status <> ?", f.FileId, FileStatusDeleted).Find(&fileVersions).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return fileVersions, nil
+
+}
+
+// DeleteFileVersion marks a FileVersion for deletion.
+func (f *File) DeleteFileVersion(tx *gorm.DB, user *User, versionNo int) error {
+
+	// Check if user has read permission (if not 404)
+	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
+	if !hasPermissions {
+		return ErrFileNotFound
+	} else if err != nil {
+		return err
+	}
+
+	// Check if user has write permission (if not 403)
+	hasPermissions, err = user.HasPermission(tx, f, &PermissionNeeded{Write: true})
+	if err != nil {
+		return err
+	} else if !hasPermissions {
+		return ErrNoPermission
+	}
+
+	// Check if the version exists
+	var fileVersion FileVersion
+	err = tx.Model(&FileVersion{}).Where("file_id = ? AND version_no = ?", f.FileId, versionNo).First(&fileVersion).Error
+	if err != nil {
+		return ErrVersionNotFound
+	}
+
+	// Mark version for deletion
+	return tx.Model(&FileVersion{}).Where("file_id = ? AND version_no = ?",
+		f.FileId, versionNo).Update("status", FileStatusDeleted).Error
 
 }

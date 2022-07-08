@@ -11,8 +11,6 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"io"
-	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -29,7 +27,6 @@ type BackendController struct {
 func NewBackend(
 	router *mux.Router,
 	logger *zap.Logger,
-	config *config.Config,
 	db *gorm.DB,
 ) error {
 
@@ -283,6 +280,7 @@ func (bc *BackendController) DownloadFile(w http.ResponseWriter, r *http.Request
 
 	// Opening input files
 	var shards []io.ReadSeeker
+	var shardFiles []*os.File
 	for _, shardMeta := range shardsMeta {
 		// TODO: Should pick up the inital part of the path from config file.
 		shardFile, err := os.Open(shardMeta.FileFragmentPath)
@@ -290,8 +288,8 @@ func (bc *BackendController) DownloadFile(w http.ResponseWriter, r *http.Request
 			util.HttpError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		defer shardFile.Close()
 		shards = append(shards, shardFile)
+		shardFiles = append(shardFiles, shardFile)
 	}
 
 	hexKey, hexIv, err := file.GetDecryptionKey(bc.db, user, password)
@@ -319,31 +317,21 @@ func (bc *BackendController) DownloadFile(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// TODO: Don't know how you want to handle this. Not safe code rn
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/octet-stream")
 
-	outputFile, err := os.Create(file.FileName)
-	if err != nil {
-		log.Fatalln("Failed to open output file:", err)
-	}
-	defer outputFile.Close()
-
-	_, err = io.Copy(outputFile, reader)
-	if err != nil {
-		log.Fatalln("Failed to decode file:", err)
-	}
-
-	// TODO: This isn't streaming but idk
-
-	fileBytes, err := ioutil.ReadFile(file.FileName)
+	_, err = io.Copy(w, reader)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/octet-stream")
-	_, err = w.Write(fileBytes)
-	if err != nil {
-		return
+
+	for _, shardFile := range shardFiles {
+		err := shardFile.Close()
+		if err != nil {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 
 }
@@ -555,8 +543,8 @@ func (bc *BackendController) AddPermissionsFile(w http.ResponseWriter, r *http.R
 	canExecute := r.Header.Get("can_execute")
 	canShare := r.Header.Get("can_share")
 	canAudit := r.Header.Get("can_audit")
-	users := r.Header.Get("users")
-	groups := r.Header.Get("groups")
+	// users := r.Header.Get("users")
+	// groups := r.Header.Get("groups")
 
 	// need to process 'em
 
@@ -623,4 +611,254 @@ func (bc *BackendController) AddPermissionsFile(w http.ResponseWriter, r *http.R
 
 	// Success
 	util.HttpJson(w, http.StatusOK, nil)
+}
+
+//GetFileVersionMetadata gets the metadata of a file version
+func (bc *BackendController) GetFileVersionMetadata(w http.ResponseWriter, r *http.Request) {
+
+	// somehow get user idk
+	user, err := dbfs.GetUser(bc.db, "1")
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// fileID and versionID
+	vars := mux.Vars(r)
+	fileID := vars["fileID"]
+	versionID := vars["versionID"]
+
+	// convert versionID into int
+	versionIDInt, err := strconv.Atoi(versionID)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if fileID == "" || versionID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
+		return
+	}
+
+	file, err := dbfs.GetFileById(bc.db, fileID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// get version
+	version, err := file.GetOldVersion(bc.db, user, versionIDInt)
+	if errors.Is(err, dbfs.ErrVersionNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	util.HttpJson(w, http.StatusOK, version)
+
+}
+
+//GetFileVersionHistory returns all the historical versions of a file
+func (bc *BackendController) GetFileVersionHistory(w http.ResponseWriter, r *http.Request) {
+
+	// somehow get user idk
+	user, err := dbfs.GetUser(bc.db, "1")
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// fileID and versionID
+	vars := mux.Vars(r)
+	fileID := vars["fileID"]
+
+	if fileID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
+		return
+	}
+
+	file, err := dbfs.GetFileById(bc.db, fileID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// get version
+	versions, err := file.GetAllVersions(bc.db, user)
+	if errors.Is(err, dbfs.ErrVersionNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	util.HttpJson(w, http.StatusOK, versions)
+
+}
+
+//DownloadFileVersion downloads a file version
+func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.Request) {
+
+	// somehow get user idk
+	user, err := dbfs.GetUser(bc.db, "1")
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// fileID and versionID
+	vars := mux.Vars(r)
+	fileID := vars["fileID"]
+	versionID := vars["versionID"]
+
+	// get password
+	password := r.Header.Get("password")
+
+	// convert versionID into int
+	versionIDInt, err := strconv.Atoi(versionID)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if fileID == "" || versionID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
+		return
+	}
+
+	// get file
+	file, err := dbfs.GetFileById(bc.db, fileID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// get version
+	version, err := file.GetOldVersion(bc.db, user, versionIDInt)
+	if errors.Is(err, dbfs.ErrVersionNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	// get file
+	shardsMeta, err := version.GetFragments(bc.db, user)
+	if err != nil {
+		return
+	}
+
+	// TODO: Now assuming that all fragments are on the same server, else you need to query multiple
+	// servers for the file fragments
+
+	// Opening input files
+	var shards []io.ReadSeeker
+	var shardFiles []*os.File
+	for _, shardMeta := range shardsMeta {
+		// TODO: Should pick up the inital part of the path from config file.
+		shardFile, err := os.Open(shardMeta.FileFragmentPath)
+		if err != nil {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		shards = append(shards, shardFile)
+		shardFiles = append(shardFiles, shardFile)
+	}
+
+	hexKey, hexIv, err := file.GetDecryptionKey(bc.db, user, password)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Getting key and iv
+	key, err := hex.DecodeString(hexKey)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	iv, err := hex.DecodeString(hexIv)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Decode file
+	reader, err := bc.encoder.NewReadSeeker(shards, key, iv)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/octet-stream")
+
+	_, err = io.Copy(w, reader)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	for _, shardFile := range shardFiles {
+		err := shardFile.Close()
+		if err != nil {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+}
+
+// DeleteFileVersion deletes a file version
+func (bc *BackendController) DeleteFileVersion(w http.ResponseWriter, r *http.Request) {
+
+	// somehow get user idk
+	user, err := dbfs.GetUser(bc.db, "1")
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// fileID and versionID
+	vars := mux.Vars(r)
+	fileID := vars["fileID"]
+	versionID := vars["versionID"]
+
+	// convert versionID into int
+	versionIDInt, err := strconv.Atoi(versionID)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if fileID == "" || versionID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
+		return
+	}
+
+	// get file
+	file, err := dbfs.GetFileById(bc.db, fileID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// delete version
+	err = file.DeleteFileVersion(bc.db, user, versionIDInt)
+	if errors.Is(err, dbfs.ErrVersionNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	util.HttpJson(w, http.StatusOK, nil)
+
 }

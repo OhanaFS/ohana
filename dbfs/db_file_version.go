@@ -6,37 +6,37 @@ import (
 )
 
 type FileVersion struct {
-	FileId                string `gorm:"primaryKey"`
-	VersionNo             int    `gorm:"primaryKey"`
-	FileName              string `gorm:"not null"`
-	MIMEType              string
-	EntryType             int8         `gorm:"not null"`
-	ParentFolder          *FileVersion `gorm:"foreignKey:ParentFolderFileId,ParentFolderVersionNo"`
-	ParentFolderFileId    *string
-	ParentFolderVersionNo *int
-	DataId                string
-	DataIdVersion         int
-	Size                  int       `gorm:"not null"`
-	ActualSize            int       `gorm:"not null"`
-	CreatedTime           time.Time `gorm:"not null"`
-	ModifiedUser          User      `gorm:"foreignKey:ModifiedUserUserId"`
-	ModifiedUserUserId    *string
-	ModifiedTime          time.Time `gorm:"not null; autoUpdateTime"`
-	VersioningMode        int8      `gorm:"not null"`
-	Checksum              string
-	FragCount             int
-	ParityCount           int
-	EncryptionKey         string
-	EncryptionIv          string
-	PasswordProtected     bool
-	LinkFile              *FileVersion `gorm:"foreignKey:LinkFileFileId,LinkFileVersionNo"`
-	LinkFileFileId        *string
-	LinkFileVersionNo     *int
-	LastChecked           time.Time
-	Status                int8   `gorm:"not null"`
-	HandledServer         string `gorm:"not null"`
-	Patch                 bool
-	PatchBaseVersion      int
+	FileId                string       `gorm:"primaryKey" json:"file_id"`
+	VersionNo             int          `gorm:"primaryKey" json:"version_no"`
+	FileName              string       `gorm:"not null" json:"file_name"`
+	MIMEType              string       `json:"mime_type"`
+	EntryType             int8         `gorm:"not null" json:"entry_type"`
+	ParentFolder          *FileVersion `gorm:"foreignKey:ParentFolderFileId,ParentFolderVersionNo" json:"'-'"`
+	ParentFolderFileId    *string      `json:"parent_folder_id"`
+	ParentFolderVersionNo *int         `json:"-"`
+	DataId                string       `json:"-"`
+	DataIdVersion         int          `json:"data_version_no"`
+	Size                  int          `gorm:"not null" json:"size"`
+	ActualSize            int          `gorm:"not null" json:"actual_size"`
+	CreatedTime           time.Time    `gorm:"not null" json:"created_time"`
+	ModifiedUser          User         `gorm:"foreignKey:ModifiedUserUserId" json:"-"`
+	ModifiedUserUserId    *string      `json:"modified_user_user_id"`
+	ModifiedTime          time.Time    `gorm:"not null; autoUpdateTime" json:"modified_time"`
+	VersioningMode        int8         `gorm:"not null" json:"versioning_mode"`
+	Checksum              string       `json:"checksum"`
+	FragCount             int          `json:"frag_count"`
+	ParityCount           int          `json:"parity_count"`
+	EncryptionKey         string       `json:"-"`
+	EncryptionIv          string       `json:"-"`
+	PasswordProtected     bool         `json:"password_protected"`
+	LinkFile              *FileVersion `gorm:"foreignKey:LinkFileFileId,LinkFileVersionNo" json:"-"`
+	LinkFileFileId        *string      `json:"link_file_id"`
+	LinkFileVersionNo     *int         `json:"-"`
+	LastChecked           time.Time    `json:"last_checked"`
+	Status                int8         `gorm:"not null" json:"status"`
+	HandledServer         string       `gorm:"not null" json:"-"`
+	Patch                 bool         `json:"-"`
+	PatchBaseVersion      int          `json:"-"`
 }
 
 // createFileVersionFromFile creates a FileVersion from a File
