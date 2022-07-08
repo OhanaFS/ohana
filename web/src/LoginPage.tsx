@@ -6,13 +6,14 @@ import './assets/styles.css'
 
 function LoginPage() {
   const theme = useMantineTheme();
-
+  const backgroundimage = require('../src/images/2.webp');
   return (
     <div style={{
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       height: "100vh",
+      backgroundImage: `url(${backgroundimage})`,
     }}>
       <div className='loginBox'>
         <Title style={{
