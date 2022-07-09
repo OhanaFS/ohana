@@ -14,6 +14,11 @@ function LoginPage() {
       justifyContent: "center",
       height: "100vh",
       backgroundImage: `url(${backgroundimage})`,
+      backgroundPosition: 'center',
+      backgroundSize: 'cover',
+      backgroundRepeat: 'no-repeat',
+      width: '100vw',
+    
     }}>
       <div className='loginBox'>
         <Title style={{

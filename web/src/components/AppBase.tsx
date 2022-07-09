@@ -38,11 +38,18 @@ export default function AppBase(props: AppBaseProps) {
     { icon: <IconServer2 size={16} />, color: 'blue', label: 'Rotate Key' },
     { icon: <IconKey size={16} />, color: 'blue', label: 'Key Management' },
   ]
+  const backgroundimage = require('../images/2.webp'); 
+
   return (
     <AppShell
       styles={{
         main: {
           background: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.colors.gray[0],
+          backgroundImage: props.userType === 'user' ? "":`url(${backgroundimage})`,
+          backgroundPosition: props.userType === 'user' ? "":'center',
+          backgroundSize: props.userType === 'user' ? "":'cover',
+          backgroundRepeat: props.userType === 'user' ? "":'no-repeat',
+          width: props.userType === 'user' ? "": '100vw',
         },
       }}
       navbarOffsetBreakpoint="sm"
