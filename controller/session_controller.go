@@ -16,10 +16,10 @@ type SessionService struct {
 // create session controller for session service
 func RegisterSession(r *mux.Router, session service.Session) {
 	s := &SessionService{session}
-	// session route
-	r.HandleFunc("/api/v1/session", s.CreateSession).Methods("POST")
-	r.HandleFunc("/api/v1/session/{sessionId}", s.GetSession).Methods("GET")
-	r.HandleFunc("/api/v1/session/{sessionId}/invalidate", s.InvalidateSession).Methods("POST")
+	// session route - I guess need to be changed
+	r.HandleFunc("/api/v1/session/create", s.CreateSession).Methods("POST")
+	r.HandleFunc("/api/v1/session/get", s.GetSession).Methods("GET")
+	r.HandleFunc("/api/v1/session/invalidate", s.InvalidateSession).Methods("POST")
 }
 
 // create session from cookie

@@ -10,6 +10,8 @@ import (
 const (
 	EnvironmentDevelopment = "development"
 	EnvironmentProduction  = "production"
+
+	CookieSessionName = "ohana_session"
 )
 
 type Config struct {
