@@ -20,7 +20,7 @@ jobs:
       uses: docker/metadata-action@v3
       with:
         images: |
-          ghcr.io/orgname/repo
+          ghcr.io/OhanaFS/ohana
         tags: |
           type=ref,event=branch
           type=ref,event=pr
