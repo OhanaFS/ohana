@@ -19,7 +19,7 @@ import Admin_performmaintenance from './Admin_performmaintenance';
 import Admin_runmaintenance from './Admin_runmaintenance';
 import Admin_settings from './Admin_settings';
 import Admin_ssogroups_inside from './Admin_ssogroups_inside';
-import { Admin_statistics } from './Admin_statistics';
+import { AdminDashboard } from './AdminDashboard';
 
 
 export default function Demo() {
@@ -42,7 +42,7 @@ export default function Demo() {
         <Route path="/performmaintenance" element={<Admin_performmaintenance />} />
         <Route path="/maintenance" element={<Admin_maintenancesettings />} />
         <Route path="/runmaintenance" element={<Admin_runmaintenance />} />
-        <Route path="/dashboard" element={<Admin_statistics />} />
+        <Route path="/dashboard" element={<AdminDashboard />} />
         <Route path="/sso" element={<Admin_ssogroups />} />
         <Route path="/nodes" element={<Admin_nodes />} />
         <Route path="/maintenancelogs" element={<Admin_maintenancelogs />} />

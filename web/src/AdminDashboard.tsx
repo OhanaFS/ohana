@@ -14,7 +14,7 @@ import { Area, AreaChart, Cell, Legend, Pie, PieChart, Tooltip, XAxis, YAxis, Re
 
 
 
-export function Admin_statistics() {
+export function AdminDashboard() {
 
 
   const theme = useMantineTheme();
