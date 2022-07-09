@@ -1,49 +1,56 @@
 package httprs_test
 
 import (
+	"bytes"
 	"context"
-	"embed"
+	"crypto/rand"
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
+	"time"
 
 	"github.com/OhanaFS/ohana/util/httprs"
 	"github.com/stretchr/testify/assert"
 )
 
-//go:embed httprs_test.go
-var testFS embed.FS
-
 func TestHttpRS(t *testing.T) {
 	assert := assert.New(t)
 
+	sampleData := make([]byte, 1024)
+	n, err := rand.Read(sampleData)
+	assert.NoError(err)
+	assert.Equal(1024, n)
+
 	// Set up a mock HTTP server
-	fs := http.FileServer(http.FS(testFS))
-	server := httptest.NewServer(fs)
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				http.ServeContent(
+					w, r, "test.txt", time.Now(),
+					bytes.NewReader(sampleData),
+				)
+			},
+		),
+	)
 
 	ctx := context.Background()
-	hrs, err := httprs.NewHttpRS(ctx, server.URL+"/httprs_test.go")
+	hrs, err := httprs.NewHttpRS(ctx, server.URL+"/test.txt")
 	assert.NoError(err)
 
 	// Read
 	buf := make([]byte, 32)
-	n, err := hrs.Read(buf)
+	n, err = hrs.Read(buf)
 	assert.NoError(err)
 	assert.Equal(32, n)
-	assert.True(string(buf[:8]) == "package ")
+	assert.Equal(sampleData[:32], buf)
 
 	// Seek to end of the file
-	buf = make([]byte, 16)
-	_, err = hrs.Seek(-16, io.SeekEnd)
+	buf = make([]byte, 32)
+	_, err = hrs.Seek(-32, io.SeekEnd)
 	assert.NoError(err)
 	n, err = hrs.Read(buf)
 	assert.NoError(err)
-	assert.Equal(16, n)
-	assert.True(
-		strings.HasSuffix(strings.TrimSpace(string(buf)), "END OF THE FILE"),
-	)
+	assert.Equal(32, n)
+	assert.Equal(sampleData[len(sampleData)-32:], buf)
 }
-
-// LEAVE THIS COMMENT AT THE END OF THE FILE
