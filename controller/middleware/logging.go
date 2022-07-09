@@ -1,4 +1,4 @@
-package controller
+package middleware
 
 import (
 	"net/http"
@@ -35,9 +35,9 @@ func (rw *responseWriter) WriteHeader(code int) {
 	return
 }
 
-// NewLoggingMiddleware creates a middleware that logs the incoming request and
+// NewLoggingMW creates a middleware that logs the incoming request and
 // its duration.
-func NewLoggingMiddleware(logger *zap.Logger) func(http.Handler) http.Handler {
+func NewLoggingMW(logger *zap.Logger) middleware {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			defer func() {

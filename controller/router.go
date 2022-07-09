@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/OhanaFS/ohana/config"
+	"github.com/OhanaFS/ohana/controller/middleware"
 	"github.com/OhanaFS/ohana/web"
 )
 
@@ -27,6 +28,7 @@ func NewServer(
 	router *mux.Router,
 	logger *zap.Logger,
 	config *config.Config,
+	mw *middleware.Middlewares,
 ) error {
 	logger.Info(
 		"Starting HTTP server",
@@ -50,7 +52,7 @@ func NewServer(
 	}
 
 	// Wrap the router in a handler that logs requests
-	handler := NewLoggingMiddleware(logger)(router)
+	handler := mw.Logging(router)
 
 	// Set up the server
 	srv := &http.Server{

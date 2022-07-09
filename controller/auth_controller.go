@@ -22,11 +22,14 @@ func RegisterAuth(r *mux.Router, service service.Auth) {
 func (s *Authentication) GetAuth(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	rawAccessToken := r.Header.Get("Authorization")
+
 	ourl, err := s.service.SendRequest(ctx, rawAccessToken)
-	fmt.Print(ourl)
-	if err == nil {
-		http.Redirect(w, r, ourl, http.StatusFound)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, fmt.Sprintf("Error sending request: %s", err))
+		return
 	}
+
+	http.Redirect(w, r, ourl, http.StatusFound)
 }
 
 func (s *Authentication) HandCallback(w http.ResponseWriter, r *http.Request) {
@@ -34,15 +37,11 @@ func (s *Authentication) HandCallback(w http.ResponseWriter, r *http.Request) {
 	checkState := r.URL.Query().Get("state")
 	code := r.URL.Query().Get("code")
 
-	roles, err := s.service.Callback(ctx, code, checkState)
+	result, err := s.service.Callback(ctx, code, checkState)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-
-	if roles.Fetched == false {
-		http.Error(w, "invalid token", http.StatusBadRequest)
+		util.HttpError(w, http.StatusInternalServerError, fmt.Sprintf("Error getting roles: %s", err))
 		return
 	}
 
-	util.HttpJson(w, http.StatusOK, roles)
+	util.HttpJson(w, http.StatusOK, result)
 }
