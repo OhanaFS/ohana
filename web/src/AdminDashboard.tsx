@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Button, Card, Table, Text, ScrollArea } from '@mantine/core';
-import { useScrollIntoView } from '@mantine/hooks';
 
 import { Area, AreaChart, Cell, Legend, Pie, PieChart, Tooltip, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 
 import AppBase from './components/AppBase';
+import '../src/assets/styles.css';
 
 export function AdminDashboard() {
   const [status, setStatus] = useState(["Healthy"]);
@@ -183,58 +183,62 @@ export function AdminDashboard() {
         flexDirection: "row",
         flexWrap: "wrap",
         justifyContent: "center",
-        alignItems: 'center'
+        alignItems: 'flex-start'
       }}>
 
         <Card className='dashboardCard' style={dashboardCard}
           shadow="sm" p="xl">
           <Text weight={700}>Total Data Used:</Text>
-          <AreaChart width={360} height={220} data={NewUserChartData}
-            margin={{ top: 20, right: 55, left: -10, bottom: 0 }}>
-            <defs>
-              <linearGradient id="color" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="#8884d8" stopOpacity={0.0} />
-              </linearGradient>
-            </defs>
+          <ResponsiveContainer width='100%' height={220}>
+            <AreaChart data={NewUserChartData}
+              margin={{ top: 20, right: 10, left: -10, bottom: 0 }}>
+              <defs>
+                <linearGradient id="color" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#8884d8" stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
 
-            //delete this if dont want mouseover
-            <Tooltip></Tooltip>
+              //delete this if dont want mouseover
+              <Tooltip></Tooltip>
 
-            <XAxis dataKey="Date" />
-            <YAxis dataKey="Total Data Used" />
-            //use this if want axis CartesianGrid strokeDasharray="1 1"
-            <Area type="monotone" dataKey="Total Data Used" stroke="#8884d8" fillOpacity={1} fill="url(#color)" />
-          </AreaChart>
+              <XAxis dataKey="Date" />
+              <YAxis dataKey="Total Data Used" />
+              //use this if want axis CartesianGrid strokeDasharray="1 1"
+              <Area type="monotone" dataKey="Total Data Used" stroke="#8884d8" fillOpacity={1} fill="url(#color)" />
+            </AreaChart>
+          </ResponsiveContainer>
         </Card>
 
         <Card className='dashboardCard' style={dashboardCard}
           shadow="sm" p="xl">
           <Text weight={700}>Total File Stored:</Text>
-          <AreaChart width={360} height={220} data={NewFileChartData}
-            margin={{ top: 20, right: 55, left: -10, bottom: 0 }}>
-            <defs>
-              <linearGradient id="color" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="#8884d8" stopOpacity={0.0} />
-              </linearGradient>
-            </defs>
+          <ResponsiveContainer width='100%' height={220}>
+            <AreaChart data={NewFileChartData}
+              margin={{ top: 20, right: 10, left: -10, bottom: 0 }}>
+              <defs>
+                <linearGradient id="color" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#8884d8" stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
 
-            //delete this if dont want mouseover
-            <Tooltip></Tooltip>
+              //delete this if dont want mouseover
+              <Tooltip></Tooltip>
 
-            <XAxis dataKey="Date" />
-            <YAxis dataKey="Total New File Stored" />
-            //use this if want axis CartesianGrid strokeDasharray="1 1"
-            <Area type="monotone" dataKey="Total New File Stored" stroke="#8884d8" fillOpacity={1} fill="url(#color)" />
-          </AreaChart>
+              <XAxis dataKey="Date" />
+              <YAxis dataKey="Total New File Stored" />
+              //use this if want axis CartesianGrid strokeDasharray="1 1"
+              <Area type="monotone" dataKey="Total New File Stored" stroke="#8884d8" fillOpacity={1} fill="url(#color)" />
+            </AreaChart>
+          </ResponsiveContainer>
         </Card>
 
         <Card style={dashboardCard} shadow="sm" p="xl">
           <Text weight={700}>  Total Disk usage:   </Text>
-          <div style={{ marginLeft: '-21px', marginTop: '-10px' }}>
-            <ResponsiveContainer width={360} height={250}>
-              <PieChart width={360} height={250}>
+          <div style={{ marginTop: '-10px' }}>
+            <ResponsiveContainer width='100%' height={250}>
+              <PieChart>
                 <Pie
                   data={DiskUsageChartData}
                   cx="50%"
@@ -258,9 +262,9 @@ export function AdminDashboard() {
 
         <Card style={dashboardCard} shadow="sm" p="xl">
           <Text style={{ marginTop: '-10px', marginBottom: '10px' }} weight={700}> Cluster Health : {status} </Text>
-          <div style={{ marginLeft: '-21px', marginTop: '-10px' }}>
-            <ResponsiveContainer width={360} height={250} >
-              <PieChart width={360} height={250}>
+          <div style={{ marginTop: '-10px' }}>
+            <ResponsiveContainer width='100%' height={250} >
+              <PieChart>
                 <Pie
                   data={ClusterHealthChartData}
                   cx="50%"
@@ -282,16 +286,15 @@ export function AdminDashboard() {
           </div>
         </Card>
 
-        <Card style={{ width: '750px', border: '0px', margin: '10px', }}
-          shadow="sm" p="xl">
-          <ScrollArea style={{ height: "95%", width: "103%" }}>
+        <Card className='dashboardLogsCard' shadow="sm" p="xl">
+          <ScrollArea style={{ height: "95%", width: "100%" }}>
             <Table captionSide="top" striped highlightOnHover verticalSpacing="xs" >
               <caption style={{ textAlign: "left", fontWeight: "600", fontSize: "24px", color: "black", marginLeft: "2%" }}> Logs</caption>
               <thead>{ths}</thead>
               <tbody>{rows}</tbody>
             </Table>
           </ScrollArea>
-          <Button variant="default" color="dark" size="md" style={{ textAlign: "right", marginLeft: '75%', marginTop: '1%' }}>
+          <Button variant="default" color="dark" size="md" style={{ textAlign: "right", marginTop: '1%' }}>
             View All Logs
           </Button>
         </Card>
