@@ -1,0 +1,39 @@
+.loginBox {
+    border: 1px solid #ccc;
+    border-radius: 3%;
+    text-align: center;
+    width: 400px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    background-color: white;
+
+}
+
+.console {
+    border: 1px solid #ccc;
+    border-radius: 1%;
+    text-align: left;
+    width: 800px;
+
+    background-color: white;
+
+}
+
+@media screen and (max-width: 450px) {
+    .loginBox {
+        width: 350px;
+    }
+
+}
+
+.dashboardLogsCard {
+    width: 750px;
+    border: none;
+    margin: 10px;
+}
+
+@media screen and (min-width: 1830px) {
+    .dashboardLogsCard {
+        width: 1520px;
+    }
+}
