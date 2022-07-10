@@ -1,0 +1,94 @@
+version: '3'
+services:
+  postgres:
+    image: postgres:14.2
+    ports:
+    - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_USER: ohanaAdmin
+      POSTGRES_PASSWORD: ohanaMeansFamily
+      POSTGRES_DB: ohana
+
+  redis:
+    image: redis:7
+    ports:
+    - "127.0.0.1:6379:6379"
+    command: --requirepass ohanaMeansFamily
+
+  oidc-server-mock:
+    container_name: ohana-idp
+    image: ghcr.io/soluto/oidc-server-mock:latest
+    ports:
+    - "127.0.0.1:8080:80"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      SERVER_OPTIONS_INLINE: |
+        {
+          "AccessTokenJwtType": "JWT",
+          "Discovery": {
+            "ShowKeySet": true
+          },
+          "Authentication": {
+            "CookieSameSiteMode": "Lax",
+            "CheckSessionCookieSameSiteMode": "Lax"
+          }
+        }
+      ACCOUNT_OPTIONS_INLINE: |
+        {
+          "AutomaticRedirectAfterSignOut": true
+        }
+      USERS_CONFIGURATION_INLINE: |
+        [
+          {
+            "SubjectId":"1",
+            "Username":"admin",
+            "Password":"password",
+            "Roles":["Admin"]
+            "Claims": [
+              {
+                "Type": "name",
+                "Value": "Ohana"
+              },
+              {
+                "Type": "email",
+                "Value": "ohana@ohanais.live"
+              },
+              {
+                "Type": "custom-claim",
+                "Value": "test custom claim"
+              },
+              {
+                "Type": "roles",
+                "Value": "['a', 'b']",
+                "ValueType": "json"
+              }
+            ]
+          }
+        ]
+      CLIENTS_CONFIGURATION_INLINE: |
+        [{
+            "ClientId": "ohana",
+            "ClientSecrets": [
+                "family"
+            ],
+            "Description": "Sample client",
+            "AllowedGrantTypes": [
+                "authorization_code",
+                "refresh_token",
+            ],
+            "RequirePkce": false,
+            "AlwaysIncludeUserClaimsInIdToken": true,
+            "RedirectUris": [
+                "http://localhost:8000/auth/callback"
+            ],
+            "AllowOfflineAccess": true,
+            "AllowedScopes": [
+                "openid",
+                "offline_access",
+                "profile",
+                "email"
+            ],
+            "ClientClaimsPrefix": "",
+            "Claims": []
+
+        }]
