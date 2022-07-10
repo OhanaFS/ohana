@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/OhanaFS/ohana/controller/middleware"
 	"github.com/OhanaFS/ohana/service"
 	"github.com/OhanaFS/ohana/util"
 	"github.com/gorilla/mux"
@@ -45,8 +46,8 @@ func (s *AuthController) HandCallback(w http.ResponseWriter, r *http.Request) {
 		util.HttpError(w, http.StatusInternalServerError, fmt.Sprintf("Error getting roles: %s", err))
 		return
 	}
-	util.HttpJson(w, http.StatusOK, result)
 
+	// Set the session cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:    middleware.SessionCookieName,
 		Value:   result.SessionId,
@@ -54,6 +55,7 @@ func (s *AuthController) HandCallback(w http.ResponseWriter, r *http.Request) {
 		Path:    "/",
 	})
 
+	util.HttpJson(w, http.StatusOK, result)
 }
 
 func (s *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +68,7 @@ func (s *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
 	sessionId := c.Value
 
 	// remove the users session from the session map
-	err = s.service.InvalidateUser(ctx, sessionId)
+	err = s.service.InvalidateSession(ctx, sessionId)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, fmt.Sprintf("Error invalidating user: %s", err))
 		return
