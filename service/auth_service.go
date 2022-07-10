@@ -16,12 +16,18 @@ import (
 )
 
 type callbackResult struct {
-	AccessToken  string  `json:"access_token"`
-	IdToken      string  `json:"id_token"`
-	RefreshToken string  `json:"refresh_token"`
-	UserInfo     *claims `json:"user_info"`
-	TTL          time.Duration
-	Subject      string `json:"sub,omitempty"`
+	AccessToken  string        `json:"access_token"`
+	IdToken      string        `json:"id_token"`
+	RefreshToken string        `json:"refresh_token"`
+	UserInfo     *claims       `json:"user_info"`
+	TTL          time.Duration `json:"ttl"`
+	SessionId    string        `json:"session_id"`
+}
+
+type claims struct {
+	IssuedAt int64  `json:"iat,omitempty"`
+	Expires  int64  `json:"exp,omitempty"`
+	Subject  string `json:"sub,omitempty"`
 
 	Roles []string `json:"roles,omitempty"`
 	Name  string   `json:"name,omitempty"`
@@ -32,7 +38,7 @@ type callbackResult struct {
 type Auth interface {
 	SendRequest(ctx context.Context, rawAccessToken string) (string, error)
 	Callback(ctx context.Context, code string, checkState string) (*callbackResult, error)
-	InvalidateUser(ctx context.Context, userId string) error
+	InvalidateSession(ctx context.Context, userId string) error
 }
 
 type auth struct {
@@ -122,11 +128,11 @@ func (a *auth) Callback(ctx context.Context, code string, checkState string) (*c
 	// refresh token
 
 	refreshToken, ok := accessToken.Extra("refresh_token").(string)
-	if err != nil {
+	if !ok {
 		return nil, fmt.Errorf("Failed to get refresh token: %v", err)
 	}
 
-	// account type
+	// account type for sending to createnewuser
 	// need to include roles in the jwt
 	var accountType int8 = 0
 	/*if idTokenClaims.Roles[0] == "admin" {
@@ -134,25 +140,29 @@ func (a *auth) Callback(ctx context.Context, code string, checkState string) (*c
 	} else {
 		accountType = 0
 	}*/
+
 	ttl := time.Duration(time.Hour * 24 * 7)
 	uid := idTokenClaims.Subject
 	tx := ctxutil.GetTransaction(ctx, a.db)
-
-	// creating a new session
-	sessionId, err := a.sess.Create(ctx, uid, ttl)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create session: %v", err)
-	}
+	var user *dbfs.User
 
 	// validating user
-	valid, err := ValidateUser(ctx, uid, a) // if doesn't exist create a new user
-	if !valid {
+	user, err = ValidateUser(ctx, uid, a) // if doesn't exist create a new user
+	if err != nil {
 		// create new user
-		_, err := dbfs.CreateNewUser(tx, idTokenClaims.Email, idTokenClaims.Name, accountType, uid,
+		user, err = dbfs.CreateNewUser(tx, idTokenClaims.Email, idTokenClaims.Name, accountType, uid,
 			refreshToken, accessToken.AccessToken, rawIDToken)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to create new user: %v", err)
 		}
+	}
+	// get id from user
+	dbId := user.UserId
+
+	// creating a new session
+	sessionId, err := a.sess.Create(ctx, dbId, ttl)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create session: %v", err)
 	}
 
 	return &callbackResult{
@@ -166,23 +176,24 @@ func (a *auth) Callback(ctx context.Context, code string, checkState string) (*c
 }
 
 // validating if user is legit by checking userId with the database
-func ValidateUser(ctx context.Context, uid string, a *auth) (bool, error) {
-	v := validate(ctx, uid, a)
-	if !v {
-		return false, fmt.Errorf("User doesn't exist")
-	}
-	return true, nil
-}
-
-func validate(ctx context.Context, userId string, a *auth) bool {
-	_, err := dbfs.GetUserById(a.db, userId)
+func ValidateUser(ctx context.Context, uid string, a *auth) (*dbfs.User, error) {
+	user, err := a.validate(ctx, uid)
 	if err != nil {
-		return false
+		return nil, fmt.Errorf("User doesn't exist")
 	}
-	return true
+	return user, nil
 }
 
-func (a *auth) InvalidateUser(ctx context.Context, userId string) error {
+func (a *auth) validate(ctx context.Context, userId string) (*dbfs.User, error) {
+	getGorm := ctxutil.GetTransaction(ctx, a.db)
+	user, err := dbfs.GetUserById(getGorm, userId)
+	if err.Error() == "user not found" {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (a *auth) InvalidateSession(ctx context.Context, userId string) error {
 	err := a.sess.Invalidate(ctx, userId)
 	if err != nil {
 		return fmt.Errorf("Failed to invalidate user: %v", err)
