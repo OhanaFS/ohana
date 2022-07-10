@@ -2,16 +2,17 @@ FROM golang:1.18-alpine AS builder
 
 RUN set -ex; \
     mkdir -p /src; \
-    apk add --update --no-cache build-base git wget ca-certificates tzdata; \
+    apk add --update --no-cache \
+        build-base git wget ca-certificates tzdata nodejs npm upx; \
     rm -rf /var/cache/apk/*; \
     update-ca-certificates; \
-    wget https://github.com/upx/upx/releases/download/v3.96/upx-3.96-amd64_linux.tar.xz; \
-    tar -xJvf upx-3.96-amd64_linux.tar.xz -C /usr/local/bin; \
-    mv /usr/local/bin/upx-3.96-amd64_linux/upx /usr/local/bin/upx; \
-    rm -rvf upx-3.96-amd64_linux.tar.xz /usr/local/bin/upx-3.96-amd64_linux;
+    npm install -g yarn; \
+    node --version;
+
 WORKDIR /src
-COPY go.mod go.sum ./
-RUN go mod download
+COPY go.mod go.sum Makefile ./
+COPY web/package.json web/yarn.lock ./web/
+RUN make deps
 COPY . .
 RUN make
 

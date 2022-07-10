@@ -43,7 +43,10 @@ services:
             "SubjectId":"1",
             "Username":"admin",
             "Password":"password",
+<<<<<<< HEAD
             "Roles":["Admin"]
+=======
+>>>>>>> c6eccda8861c6f2d873d22ed83ef567825b64bd1
             "Claims": [
               {
                 "Type": "name",
@@ -73,18 +76,27 @@ services:
             ],
             "Description": "Sample client",
             "AllowedGrantTypes": [
+<<<<<<< HEAD
                 "authorization_code",
                 "refresh_token",
+=======
+                "authorization_code"
+>>>>>>> c6eccda8861c6f2d873d22ed83ef567825b64bd1
             ],
             "RequirePkce": false,
             "AlwaysIncludeUserClaimsInIdToken": true,
             "RedirectUris": [
                 "http://localhost:8000/auth/callback"
             ],
+<<<<<<< HEAD
             "AllowOfflineAccess": true,
             "AllowedScopes": [
                 "openid",
                 "offline_access",
+=======
+            "AllowedScopes": [
+                "openid",
+>>>>>>> c6eccda8861c6f2d873d22ed83ef567825b64bd1
                 "profile",
                 "email"
             ],

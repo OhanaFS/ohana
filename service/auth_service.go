@@ -20,14 +20,8 @@ type callbackResult struct {
 	IdToken      string  `json:"id_token"`
 	RefreshToken string  `json:"refresh_token"`
 	UserInfo     *claims `json:"user_info"`
-	SessionId    string
 	TTL          time.Duration
-}
-
-type claims struct {
-	IssuedAt int64  `json:"iat,omitempty"`
-	Expires  int64  `json:"exp,omitempty"`
-	Subject  string `json:"sub,omitempty"`
+	Subject      string `json:"sub,omitempty"`
 
 	Roles []string `json:"roles,omitempty"`
 	Name  string   `json:"name,omitempty"`

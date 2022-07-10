@@ -1,8 +1,7 @@
-.PHONY: run upx clean clean-db test docker dev-up dev-down
-
 TARGET = bin/ohana
 
-all: clean test $(TARGET) upx
+.PHONY: all
+all: clean web test $(TARGET) postbuild
 
 $(TARGET): $(shell find . -name '*.go')
 	mkdir -p bin
@@ -15,45 +14,58 @@ $(TARGET): $(shell find . -name '*.go')
 		-o $(TARGET) \
 		cmd/ohana/main.go
 
-upx: $(TARGET)
-	-upx $(TARGET)
+.PHONY: postbuild
+postbuild: $(TARGET)
+	strip $(TARGET)
+	upx $(TARGET)
 
+.PHONY: web
+web: deps
+	cd web && yarn build
+
+.PHONY: clean
+clean: deps
+	rm -rf $(TARGET) coverage.*
+	cd web && yarn clean
+
+.PHONY: deps
+deps:
+	go mod download -x
+	cd web && yarn
+
+.PHONY: run
 run: $(TARGET)
 	./$(TARGET)
 
-dev-up:
-	docker run --rm -d \
-		--name ohana-postgres-dev \
-		-p 127.0.0.1:5432:5432 \
-		-e POSTGRES_USER=ohanaAdmin \
-		-e POSTGRES_PASSWORD=ohanaMeansFamily \
-		-e POSTGRES_DB=ohana \
-		postgres:14.2
-	docker run --rm -d \
-		--name ohana-redis-dev \
-		-p 127.0.0.1:6379:6379 \
-		redis:7
+.PHONY: dev-up
+dev-up: dev-down
+	docker-compose -f .dev/docker-compose.yaml up -d
 
+.PHONY: dev-down
 dev-down:
-	-docker stop ohana-postgres-dev
-	-docker stop ohana-redis-dev
+	-docker-compose -f .dev/docker-compose.yaml down
 
+.PHONY: dev
 dev: dev-up
 	go install github.com/codegangsta/gin@latest
-	gin --immediate\
+	`go env GOPATH`/bin/gin \
+		--immediate \
 		--port 8000 \
 		--appPort 4000 \
 		--build cmd/ohana/ \
 		--bin ./bin/ohana.gin \
 		--buildArgs "-tags osusergo,netgo"
 
-clean:
-	rm -rf $(TARGET)
-	rm -rf coverage.*
+.PHONY: format
+format:
+	go fmt ./...
 
-test:
-	go test -coverprofile=coverage.out ./...
+.PHONY: test
+test: web
+	go vet ./...
+	go test -coverprofile=coverage.out -tags osusergo,netgo ./...
 	go tool cover -html=coverage.out -o coverage.html
 
+.PHONY: docker
 docker:
 	docker build -f ./.docker/Dockerfile -t ohana .

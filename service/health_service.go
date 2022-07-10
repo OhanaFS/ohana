@@ -2,8 +2,9 @@ package service
 
 import (
 	"database/sql"
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type healthStatus string

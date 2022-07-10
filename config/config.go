@@ -1,10 +1,10 @@
 package config
 
 import (
-
-	"gopkg.in/yaml.v3"
 	"log"
 	"os"
+
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -13,15 +13,16 @@ const (
 )
 
 type Config struct {
-	Environment string         `yaml:"environment"`
-	HTTP        HttpConfig     `yaml:"http"`
-	Database    DatabaseConfig `yaml:"database"`
-	Redis       RedisConfig    `yaml:"redis"`
-	SPA         SPAConfig      `yaml:"-"`
+	Environment    string         `yaml:"environment"`
+	HTTP           HttpConfig     `yaml:"http"`
+	Database       DatabaseConfig `yaml:"database"`
+	Authentication AuthConfig     `yaml:"authentication"`
+	Redis          RedisConfig    `yaml:"redis"`
+	SPA            SPAConfig      `yaml:"-"`
 }
 
 type HttpConfig struct {
-	// Bind is the address:port to bind the HTTP server to.
+	// Bind is the Address:port to bind the HTTP server to.
 	Bind string `yaml:"bind"`
 	// BaseURL is the publicly accessible URL for the HTTP server.
 	BaseURL string `yaml:"base_url"`
@@ -32,11 +33,21 @@ type DatabaseConfig struct {
 	ConnectionString string `yaml:"connection_string"`
 }
 
+type AuthConfig struct {
+	// URL for the SSO authenticating server
+	ConfigURL string `yaml:"config_url"`
+	// Client ID required for the SSO authenticating server
+	ClientID string `yaml:"client_id"`
+	// Client secret required for the SSO authenticating server
+	ClientSecret string `yaml:"client_secret"`
+	// URL for the callback after authentication
+	RedirectURL string `yaml:"redirect_url"`
+}
 
 type RedisConfig struct {
-	password string `yaml:"password"`
-	address  string `yaml:"address"`
-	db       int    `yaml:"db"`
+	Password string `yaml:"password"`
+	Address  string `yaml:"address"`
+	Db       int    `yaml:"db"`
 }
 
 // SPAConfig is the configuration for the SPA router. It is not exposed to the

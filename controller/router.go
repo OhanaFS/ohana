@@ -12,6 +12,8 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/OhanaFS/ohana/config"
+	"github.com/OhanaFS/ohana/controller/middleware"
+	"github.com/OhanaFS/ohana/web"
 )
 
 // NewRouter creates a new gorilla/mux router.
@@ -26,6 +28,7 @@ func NewServer(
 	router *mux.Router,
 	logger *zap.Logger,
 	config *config.Config,
+	mw *middleware.Middlewares,
 ) error {
 	logger.Info(
 		"Starting HTTP server",
@@ -39,17 +42,17 @@ func NewServer(
 			return err
 		}
 		rp := httputil.NewSingleHostReverseProxy(rpURL)
-		router.PathPrefix("/").Handler(rp)
+		router.NotFoundHandler = rp
 	} else {
-		spa := &spaHandler{
-			staticPath: config.SPA.StaticPath,
-			indexPath:  config.SPA.IndexPath,
+		webApp, err := web.GetWebApp()
+		if err != nil {
+			return err
 		}
-		router.PathPrefix("/").Handler(spa)
+		router.NotFoundHandler = http.FileServer(http.FS(webApp))
 	}
 
 	// Wrap the router in a handler that logs requests
-	handler := NewLoggingMiddleware(logger)(router)
+	handler := mw.Logging(router)
 
 	// Set up the server
 	srv := &http.Server{

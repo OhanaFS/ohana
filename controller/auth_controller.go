@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/OhanaFS/ohana/controller/middleware"
 	"github.com/OhanaFS/ohana/service"
 	"github.com/OhanaFS/ohana/util"
 	"github.com/gorilla/mux"

@@ -4,5 +4,12 @@ http:
   base_url: http://localhost:8000
 database:
   connection_string: postgres://ohanaAdmin:ohanaMeansFamily@127.0.0.1:5432/ohana
-
-
+redis:
+  password: ohanaMeansFamily
+  address: localhost:6379
+  db: 0
+authentication:
+  config_url: http://localhost:8080
+  client_id: ohana
+  client_secret: family
+  redirect_url: http://localhost:8000/auth/callback

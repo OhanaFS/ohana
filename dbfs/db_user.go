@@ -2,22 +2,24 @@ package dbfs
 
 import (
 	"errors"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/mattn/go-sqlite3"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"time"
 )
 
 const (
-	AccountTypeEndUser = int8(1)
-	AccountTypeAdmin   = int8(2)
+	AccountTypeEndUser int8 = 1
+	AccountTypeAdmin   int8 = 2
 )
 
 var (
 	ErrUserNotFound    = errors.New("user not found")
 	ErrUsernameExists  = errors.New("username already is in use")
 	ErrInvalidUserType = errors.New("invalid account type")
+	ErrCredentials     = errors.New("invalid credentials")
 )
 
 type User struct {
@@ -55,20 +57,17 @@ type UserInterface interface {
 // Compile time assertion to ensure that User follows UserInterface interface.
 var _ UserInterface = &User{}
 
-// CreateNewUser
-// Creates a new user with a DB provided.
+// CreateNewUser creates a new user with a DB provided.
 // Requires username, name, AccountType, MappedId
 func CreateNewUser(tx *gorm.DB, email string, name string, accountType int8,
 	mappedId, refreshToken, accessToken, idToken string) (*User, error) {
 
-	// Check stuff like enums
-
+	// Validate account type
 	if !(accountType >= 1 || accountType <= 2) {
 		return nil, ErrInvalidUserType
 	}
 
 	// Create the account
-
 	userAccount := &User{
 		UserId:       uuid.New().String(),
 		Name:         name,
@@ -79,39 +78,49 @@ func CreateNewUser(tx *gorm.DB, email string, name string, accountType int8,
 		Activated:    true,
 		AccountType:  accountType,
 	}
-
 	result := tx.Create(&userAccount)
 
 	if result.Error != nil {
-		if err, ok := result.Error.(sqlite3.Error); ok && err.Code == sqlite3.ErrConstraint {
+		if err, ok := result.Error.(sqlite3.Error); ok &&
+			err.Code == sqlite3.ErrConstraint {
 			return nil, ErrUsernameExists
 		}
 		return nil, result.Error
-	} else {
-		return userAccount, nil
 	}
 
+	return userAccount, nil
 }
 
 // GetUser returns the User struct based on the given username
 func GetUser(tx *gorm.DB, username string) (*User, error) {
-
 	user := &User{}
 
-	if err := tx.Preload(clause.Associations).First(&user, "email = ?", username).Error; err != nil {
+	if err := tx.Preload(clause.Associations).
+		First(&user, "email = ?", username).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// ErrorHandling
-			return user, ErrUserNotFound
+			return nil, ErrUserNotFound
 		}
 	}
 
 	return user, nil
+}
 
+// GetUserById returns the User struct based on the given userId
+func GetUserById(tx *gorm.DB, userId string) (*User, error) {
+	user := &User{}
+
+	if err := tx.Preload(clause.Associations).
+		First(&user, "user_id = ?", userId).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrUserNotFound
+		}
+	}
+
+	return user, nil
 }
 
 // DeleteUser deletes the user and removes the associated links instantly.
 func DeleteUser(tx *gorm.DB, username string) error {
-
 	user, err := GetUser(tx, username)
 
 	if err != nil {
@@ -119,7 +128,6 @@ func DeleteUser(tx *gorm.DB, username string) error {
 	}
 
 	return tx.Select(clause.Associations).Delete(&user).Error
-
 }
 
 // ModifyName modifies the name of the given User and saves it instantly
@@ -136,7 +144,6 @@ func (user *User) ModifyEmail(tx *gorm.DB, newEmail string) error {
 
 // ModifyAccountType modifies the type of the given User and saves it instantly
 func (user *User) ModifyAccountType(tx *gorm.DB, NewStatus int8) error {
-
 	//	Check if Account Type is valid
 	if NewStatus >= 1 || NewStatus <= 2 {
 		user.AccountType = NewStatus
@@ -182,7 +189,12 @@ func (user *User) GetGroupsWithUser(tx *gorm.DB) ([]Group, error) {
 
 	var roles []Role
 	var groups []Group
-	err := tx.Preload("Roles.Groups").Preload(clause.Associations).Model(&user).Association("Roles").Find(&roles)
+	err := tx.
+		Preload("Roles.Groups").
+		Preload(clause.Associations).
+		Model(&user).
+		Association("Roles").
+		Find(&roles)
 
 	// Get groups associated with each role.
 
