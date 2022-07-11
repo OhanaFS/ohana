@@ -96,7 +96,7 @@ export function AdminPerformMaintenance() {
                   variant="default"
                   color="dark"
                   component={Link}
-                  to="/Admin_maintenanceresults"
+                  to="/maintenanceresults"
                   style={{ marginLeft: '25%', width: '20%' }}
                 >
                   Stop

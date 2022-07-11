@@ -295,7 +295,7 @@ export function AdminMaintenanceSettings() {
                 color="dark"
                 size="md"
                 component={Link}
-                to="/Admin_runmaintenance"
+                to="/runmaintenance"
               >
                 Save Settings
               </Button>

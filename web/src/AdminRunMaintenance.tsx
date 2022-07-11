@@ -113,10 +113,10 @@ export function AdminRunMaintenance() {
                   {' '}
                   <Button
                     variant="default"
-                    color="dark"
+                    color="dark" 
                     size="md"
                     component={Link}
-                    to="/Admin_maintenancesettings"
+                    to="/maintenancesettings"
                     leftIcon={<Settings />}
                   >
                     {' '}
@@ -280,7 +280,7 @@ export function AdminRunMaintenance() {
                   color="dark"
                   size="md"
                   component={Link}
-                  to="/Admin_performmaintenance"
+                  to="/performmaintenance"
                 >
                   Run Maintenance
                 </Button>

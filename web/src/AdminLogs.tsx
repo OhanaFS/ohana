@@ -152,7 +152,7 @@ export function AdminLogs(props: LogsDetails) {
                   size="md"
                   style={{ marginLeft: 'auto', marginTop: '3%' }}
                   component={Link}
-                  to="/Admin_runmaintenance"
+                  to="/runmaintenance"
                 >
                   Perform Maintenance
                 </Button>

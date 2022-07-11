@@ -728,7 +728,7 @@ export function AdminMaintenanceLogs() {
             ['Maintenance Type'],
           ]}
           tableBody={[]}
-          caption="SSO Group Management Console"
+          caption="Maintenance Records"
           pointerEvents={true}
         ></AdminLogs>
       </AppBase>
