@@ -49,10 +49,13 @@ func (s *AuthController) HandCallback(w http.ResponseWriter, r *http.Request) {
 
 	// Set the session cookie
 	http.SetCookie(w, &http.Cookie{
-		Name:    middleware.SessionCookieName,
-		Value:   result.SessionId,
-		Expires: time.Now().Add(result.TTL),
-		Path:    "/",
+		Name:     middleware.SessionCookieName,
+		Value:    result.SessionId,
+		Expires:  time.Now().Add(result.TTL),
+		Secure:   false,
+		SameSite: http.SameSiteNoneMode,
+		HttpOnly: true,
+		Path:     "/",
 	})
 
 	util.HttpJson(w, http.StatusOK, result)
@@ -62,9 +65,16 @@ func (s *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	c, err := r.Cookie(middleware.SessionCookieName)
+	fmt.Print("valuecookie", c)
 	if err != nil {
 		util.HttpError(w, http.StatusUnauthorized, "No session cookie")
 	}
+
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, fmt.Sprintf("Error getting cookie: %s", err))
+		return
+	}
+
 	sessionId := c.Value
 
 	// remove the users session from the session map
@@ -79,5 +89,9 @@ func (s *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
 		Name:    middleware.SessionCookieName,
 		Value:   "",
 		Expires: time.Now(),
+		Path:    "/",
 	})
+
+	util.HttpJson(w, http.StatusOK, "Logged out")
+
 }

@@ -51,7 +51,7 @@ type auth struct {
 
 var state = "somestate"
 
-func NewAuth(c *config.Config, db *gorm.DB) (Auth, error) {
+func NewAuth(c *config.Config, db *gorm.DB, sess Session) (Auth, error) {
 	// Fetch the provider configuration from the discovery endpoint.
 	ctx := context.Background()
 	provider, err := oidc.NewProvider(ctx, c.Authentication.ConfigURL)
@@ -77,7 +77,8 @@ func NewAuth(c *config.Config, db *gorm.DB) (Auth, error) {
 			// "openid" is a required scope for OpenID Connect flows.
 			Scopes: []string{oidc.ScopeOpenID, oidc.ScopeOfflineAccess, "profile", "email"},
 		},
-		db: db,
+		db:   db,
+		sess: sess,
 	}, nil
 }
 
