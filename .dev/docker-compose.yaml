@@ -43,7 +43,7 @@ services:
             "SubjectId":"1",
             "Username":"admin",
             "Password":"password",
-            "Roles":["Admin"]
+            "Roles":["Admin"],
             "Claims": [
               {
                 "Type": "name",

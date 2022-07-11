@@ -51,7 +51,7 @@ type auth struct {
 
 var state = "somestate"
 
-func NewAuth(c *config.Config) (Auth, error) {
+func NewAuth(c *config.Config, db *gorm.DB) (Auth, error) {
 	// Fetch the provider configuration from the discovery endpoint.
 	ctx := context.Background()
 	provider, err := oidc.NewProvider(ctx, c.Authentication.ConfigURL)
@@ -77,7 +77,7 @@ func NewAuth(c *config.Config) (Auth, error) {
 			// "openid" is a required scope for OpenID Connect flows.
 			Scopes: []string{oidc.ScopeOpenID, oidc.ScopeOfflineAccess, "profile", "email"},
 		},
-		//db: &gorm.DB{},
+		db: db,
 	}, nil
 }
 
@@ -147,7 +147,7 @@ func (a *auth) Callback(ctx context.Context, code string, checkState string) (*c
 	var user *dbfs.User
 
 	// validating user
-	user, err = ValidateUser(ctx, uid, a) // if doesn't exist create a new user
+	user, err = a.validate(ctx, uid) // if doesn't exist create a new user
 	if err != nil {
 		// create new user
 		user, err = dbfs.CreateNewUser(tx, idTokenClaims.Email, idTokenClaims.Name, accountType, uid,
@@ -159,8 +159,10 @@ func (a *auth) Callback(ctx context.Context, code string, checkState string) (*c
 	// get id from user
 	dbId := user.UserId
 
+	fmt.Print("Hello world: ", dbId)
 	// creating a new session
 	sessionId, err := a.sess.Create(ctx, dbId, ttl)
+	fmt.Print("sessionId: ", sessionId)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create session: %v", err)
 	}
@@ -175,15 +177,6 @@ func (a *auth) Callback(ctx context.Context, code string, checkState string) (*c
 	}, nil
 }
 
-// validating if user is legit by checking userId with the database
-func ValidateUser(ctx context.Context, uid string, a *auth) (*dbfs.User, error) {
-	user, err := a.validate(ctx, uid)
-	if err != nil {
-		return nil, fmt.Errorf("User doesn't exist")
-	}
-	return user, nil
-}
-
 func (a *auth) validate(ctx context.Context, userId string) (*dbfs.User, error) {
 	getGorm := ctxutil.GetTransaction(ctx, a.db)
 	user, err := dbfs.GetUserById(getGorm, userId)
@@ -193,8 +186,8 @@ func (a *auth) validate(ctx context.Context, userId string) (*dbfs.User, error) 
 	return user, nil
 }
 
-func (a *auth) InvalidateSession(ctx context.Context, userId string) error {
-	err := a.sess.Invalidate(ctx, userId)
+func (a *auth) InvalidateSession(ctx context.Context, sessionId string) error {
+	err := a.sess.Invalidate(ctx, sessionId)
 	if err != nil {
 		return fmt.Errorf("Failed to invalidate user: %v", err)
 	}
