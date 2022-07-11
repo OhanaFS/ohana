@@ -5,7 +5,7 @@ import AppBase from './components/AppBase'; //switched to responsive base
 import { VFSBrowser } from './components/userFiles';
 
 import { AdminDashboard } from './AdminDashboard';
-import LoginPage from './LoginPage';
+import {LoginPage} from './LoginPage';
 import { AdminConfiguration } from './AdminConfiguration';
 import { AdminCreateKey } from './AdminCreateKey';
 import { AdminCreateSsoKey } from './AdminCreateSsoKey';

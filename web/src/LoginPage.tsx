@@ -1,6 +1,5 @@
 
 import {
-  
   Title,
   TextInput,
   Button,
@@ -10,7 +9,7 @@ import { Link } from 'react-router-dom';
 import './assets/styles.css';
 import backgroundimage from './images/2.webp';
 
-function LoginPage() {
+export function LoginPage() {
   const theme = useMantineTheme();
   return (
     <div
@@ -67,4 +66,4 @@ function LoginPage() {
   );
 }
 
-export default LoginPage;
+
