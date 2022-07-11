@@ -1,12 +1,10 @@
-import React from 'react';
-import CSS from 'csstype';
+
 import {
-  MediaQuery,
+  
   Title,
   TextInput,
   Button,
   useMantineTheme,
-  CSSObject,
 } from '@mantine/core';
 import { Link } from 'react-router-dom';
 import './assets/styles.css';

@@ -7,11 +7,7 @@ import {
   ScrollArea,
   Table,
 } from '@mantine/core';
-import Admin_navigation from './Admin_navigation';
-import { useScrollIntoView } from '@mantine/hooks';
-
 import { BrowserRouter as Router, Link } from 'react-router-dom';
-import Admin_console from './Admin_console';
 import { useState } from 'react';
 
 export interface LogsDetails {
@@ -28,8 +24,6 @@ export interface LogsDetails {
 
 function Admin_logs(props: LogsDetails) {
   const theme = useMantineTheme();
-  const { scrollableRef } = useScrollIntoView();
-
   let [logs, setValue] = useState(props.groupList);
 
   const ths = props.tableHeader.map((items) => (

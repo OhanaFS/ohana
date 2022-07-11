@@ -11,17 +11,10 @@ import {
 } from '@mantine/core';
 import { useState } from 'react';
 
-import { BrowserRouter as Router, Link } from 'react-router-dom';
-
-import Admin_maintenancesettings from './Admin_maintenancesettings';
-import Admin_maintenanceresults from './Admin_maintenanceresults';
-import Admin_performmaintenance from './Admin_performmaintenance';
-import Admin_key_management from './Admin_key_management';
-import Admin_create_sso_key from './Admin_create_sso_key';
-import Admin_ssogroups_inside from './Admin_ssogroups_inside';
+import {  Link } from 'react-router-dom';
 import { BrowserView, MobileView } from 'react-device-detect';
 
-import LoginPage from './LoginPage';
+
 import {
   Icon as TablerIcon,
   User,

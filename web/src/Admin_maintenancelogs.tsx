@@ -1,17 +1,4 @@
-import {
-  Card,
-  Grid,
-  useMantineTheme,
-  Button,
-  Center,
-  ScrollArea,
-  Table,
-} from '@mantine/core';
-import Admin_navigation from './Admin_navigation';
-import { useScrollIntoView } from '@mantine/hooks';
 
-import { BrowserRouter as Router, Link } from 'react-router-dom';
-import Admin_console from './Admin_console';
 import Admin_logs from './Admin_logs';
 import AppBase from './components/AppBase';
 

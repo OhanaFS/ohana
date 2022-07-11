@@ -8,11 +8,9 @@ import {
   useMantineTheme,
 } from '@mantine/core';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 
-import { BrowserRouter as Router, Link } from 'react-router-dom';
-import { Settings } from 'tabler-icons-react';
-import Admin_navigation from './Admin_navigation';
+import {  Link } from 'react-router-dom';
 import AppBase from './components/AppBase';
 
 function Admin_maintenancesettings() {
