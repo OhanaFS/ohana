@@ -21,6 +21,8 @@ import { AdminSsoGroups } from './AdminSsoGroups';
 import { AdminSsoGroupsInside } from './AdminSsoGroupsInside';
 
 export default function Demo() {
+
+  
   return (
     <Router>
       <Helmet>
@@ -49,11 +51,11 @@ export default function Demo() {
           element={<LoginPage />} 
           />
         <Route 
-          path="/create_sso_key"
+          path="/createssokey"
           element={<AdminCreateSsoKey/>} 
           />
         <Route 
-          path="/ssogroups_inside" 
+          path="/insidessogroup" 
           element={<AdminSsoGroupsInside />} 
           />
         <Route 
@@ -65,11 +67,11 @@ export default function Demo() {
           element={<AdminMaintenanceResults />}
         />
         <Route
-          path="/performmaintenance"
+          path='/performmaintenance'
           element={<AdminPerformMaintenance />}
         />
         <Route 
-          path="/maintenance" 
+          path="/maintenancesettings" 
           element={<AdminMaintenanceSettings />} 
           />
         <Route 
@@ -77,7 +79,7 @@ export default function Demo() {
           element={<AdminRunMaintenance />} 
           />
         <Route 
-          path="/dashboard"
+          path='dashboard'
           element={<AdminDashboard />} 
           />
         <Route 
@@ -89,7 +91,7 @@ export default function Demo() {
           element={<AdminNodes />} 
           />
         <Route 
-          path="/maintenancelogs" 
+          path="/maintenance" 
           element={<AdminMaintenanceLogs />} 
           />
         <Route 
@@ -101,7 +103,7 @@ export default function Demo() {
           element={<AdminConfiguration />} 
           />
         <Route 
-        path="/Admin_create_key" 
+        path="/createkey" 
         element={<AdminCreateKey />} 
         />
       </Routes>

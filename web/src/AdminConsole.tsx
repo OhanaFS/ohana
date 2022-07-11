@@ -82,7 +82,7 @@ export function AdminConsole(props: ConsoleDetails) {
             pointerEvents: props.pointerEvents ? 'auto' : 'none',
           }}
           component={Link}
-          to="/Admin_ssogroups_inside"
+          to="/insidessogroup"
           variant="link"
         >
           {items}

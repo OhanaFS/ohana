@@ -58,7 +58,7 @@ export function LoginPage() {
           size="md"
           component={Link}
           to="/dashboard"
-        >
+        > 
           Login Using SSO
         </Button>
       </div>

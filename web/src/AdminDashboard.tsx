@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Button, Card, Table, Text, ScrollArea } from '@mantine/core';
-
 import {
   Area,
   AreaChart,
@@ -13,7 +12,6 @@ import {
   YAxis,
   ResponsiveContainer,
 } from 'recharts';
-
 import AppBase from './components/AppBase';
 import '../src/assets/styles.css';
 
