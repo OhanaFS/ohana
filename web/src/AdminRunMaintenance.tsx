@@ -12,7 +12,7 @@ import { useState } from 'react';
 import { Settings } from 'tabler-icons-react';
 import AppBase from './components/AppBase';
 
-function Admin_runmaintenance() {
+export function AdminRunMaintenance() {
   const theme = useMantineTheme();
   let MaintenanceSettings = [
     { name: 'CrawlPermissions', setting: 'true' },
@@ -293,4 +293,3 @@ function Admin_runmaintenance() {
   );
 }
 
-export default Admin_runmaintenance;

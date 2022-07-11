@@ -9,10 +9,9 @@ import {
   Card,
 } from '@mantine/core';
 
-import Admin_navigation from './Admin_navigation';
 import AppBase from './components/AppBase';
 
-function Admin_configuration() {
+export function AdminConfiguration() {
   const theme = useMantineTheme();
   return (
     <>
@@ -113,4 +112,3 @@ function Admin_configuration() {
   );
 }
 
-export default Admin_configuration;

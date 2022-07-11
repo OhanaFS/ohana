@@ -2,19 +2,15 @@ import {
   Grid,
   Table,
   Button,
-  Text,
   Center,
   ScrollArea,
   Card,
   Checkbox,
   useMantineTheme,
 } from '@mantine/core';
-import Admin_navigation from './Admin_navigation';
-import { Link } from 'react-router-dom';
-import { useState } from 'react';
 import AppBase from './components/AppBase';
 
-function Admin_ssogroups_inside() {
+export function AdminSsoGroupsInside() {
   const data = [['Tom'], ['Peter'], ['Raymond']];
 
   const ths = (
@@ -140,4 +136,4 @@ function Admin_ssogroups_inside() {
   );
 }
 
-export default Admin_ssogroups_inside;
+

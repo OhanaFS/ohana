@@ -7,7 +7,6 @@ import {
   TextInput,
   Center,
 } from '@mantine/core';
-import Admin_navigation from './Admin_navigation';
 
 import { BrowserRouter as Router, Link } from 'react-router-dom';
 import { useState } from 'react';
@@ -25,7 +24,7 @@ function generateRandomString() {
   return result;
 }
 
-function Admin_create_key() {
+export function AdminCreateKey() {
   let [value, setValue] = useState('');
   function generateKeys() {
     setValue((prevValue) => generateRandomString());
@@ -97,5 +96,3 @@ function Admin_create_key() {
     </AppBase>
   );
 }
-
-export default Admin_create_key;

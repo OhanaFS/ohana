@@ -6,12 +6,12 @@ import {
   useMantineTheme,
   Center,
 } from '@mantine/core';
-import Admin_navigation from './Admin_navigation';
+
 
 import { BrowserRouter as Router, Link } from 'react-router-dom';
 import AppBase from './components/AppBase';
 
-function Admin_create_sso_key() {
+export function AdminCreateSsoKey() {
   const theme = useMantineTheme();
   return (
     <>
@@ -58,4 +58,4 @@ function Admin_create_sso_key() {
   );
 }
 
-export default Admin_create_sso_key;
+

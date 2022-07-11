@@ -1,8 +1,8 @@
 
-import Admin_logs from './Admin_logs';
+import { AdminLogs } from './AdminLogs';
 import AppBase from './components/AppBase';
 
-function Admin_maintenancelogs() {
+export function AdminMaintenanceLogs() {
   const maintenanceLogss = [
     {
       'Maintenance date': '26/05/2023',
@@ -714,7 +714,7 @@ function Admin_maintenancelogs() {
         username="@alex"
         image="https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80"
       >
-        <Admin_logs
+        <AdminLogs
           consoleWidth={120}
           consoleHeight={80}
           groupList={maintenanceLogss}
@@ -730,10 +730,8 @@ function Admin_maintenancelogs() {
           tableBody={[]}
           caption="SSO Group Management Console"
           pointerEvents={true}
-        ></Admin_logs>
+        ></AdminLogs>
       </AppBase>
     </>
   );
 }
-
-export default Admin_maintenancelogs;

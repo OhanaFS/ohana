@@ -12,7 +12,7 @@ import { ResponsiveContainer, PieChart, Pie, Legend, Tooltip } from 'recharts';
 import { Cell } from 'tabler-icons-react';
 import AppBase from './components/AppBase';
 
-function Admin_performmaintenance() {
+export function AdminPerformMaintenance() {
   const logs = [
     'Turning server one offline',
     'Cleaning server one',
@@ -109,5 +109,3 @@ function Admin_performmaintenance() {
     </>
   );
 }
-
-export default Admin_performmaintenance;

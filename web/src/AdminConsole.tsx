@@ -22,9 +22,7 @@ export interface ConsoleDetails {
   consoleHeight: number;
 }
 
-import backgroundimage from './images/2.webp';
-
-function Admin_console(props: ConsoleDetails) {
+export function AdminConsole(props: ConsoleDetails) {
   // take from database.
 
   const theme = useMantineTheme();
@@ -173,4 +171,4 @@ function Admin_console(props: ConsoleDetails) {
   );
 }
 
-export default Admin_console;
+

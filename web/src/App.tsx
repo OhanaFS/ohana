@@ -4,22 +4,21 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import AppBase from './components/AppBase'; //switched to responsive base
 import { VFSBrowser } from './components/userFiles';
 
-import Admin_ssogroups from './Admin_ssogroups';
-
-import LoginPage from './LoginPage';
-import Admin_configuration from './Admin_configuration';
-import Admin_create_key from './Admin_create_key';
-import Admin_create_sso_key from './Admin_create_sso_key';
-import Admin_key_management from './Admin_key_management';
-import Admin_maintenancelogs from './Admin_maintenancelogs';
-import Admin_maintenanceresults from './Admin_maintenanceresults';
-import Admin_maintenancesettings from './Admin_maintenancesettings';
-import Admin_nodes from './Admin_nodes';
-import Admin_performmaintenance from './Admin_performmaintenance';
-import Admin_runmaintenance from './Admin_runmaintenance';
-import Admin_settings from './Admin_settings';
-import Admin_ssogroups_inside from './Admin_ssogroups_inside';
 import { AdminDashboard } from './AdminDashboard';
+import LoginPage from './LoginPage';
+import { AdminConfiguration } from './AdminConfiguration';
+import { AdminCreateKey } from './AdminCreateKey';
+import { AdminCreateSsoKey } from './AdminCreateSsoKey';
+import { AdminKeyManagement } from './AdminKeyManagement';
+import { AdminMaintenanceLogs } from './AdminMaintenanceLogs';
+import { AdminMaintenanceResults } from './AdminMaintenanceResults';
+import { AdminMaintenanceSettings } from './AdminMaintenanceSettings';
+import { AdminNodes } from './AdminNodes';
+import { AdminPerformMaintenance } from './AdminPerformMaintenance';
+import { AdminRunMaintenance } from './AdminRunMaintenance';
+import { AdminSettings } from './AdminSettings';
+import { AdminSsoGroups } from './AdminSsoGroups';
+import { AdminSsoGroupsInside } from './AdminSsoGroupsInside';
 
 export default function Demo() {
   return (
@@ -41,28 +40,70 @@ export default function Demo() {
             </AppBase>
           }
         />
-        <Route path="/home" element={<VFSBrowser />} />
-        <Route path="/" element={<LoginPage />} />
-        <Route path="/create_sso_key" element={<Admin_create_sso_key />} />
-        <Route path="/ssogroups_inside" element={<Admin_ssogroups_inside />} />
-        <Route path="/key%20management" element={<Admin_key_management />} />
+        <Route 
+          path="/home" 
+          element={<VFSBrowser />} 
+          />
+        <Route 
+          path="/" 
+          element={<LoginPage />} 
+          />
+        <Route 
+          path="/create_sso_key"
+          element={<AdminCreateSsoKey/>} 
+          />
+        <Route 
+          path="/ssogroups_inside" 
+          element={<AdminSsoGroupsInside />} 
+          />
+        <Route 
+          path="/key%20management" 
+          element={<AdminKeyManagement />} 
+          />
         <Route
           path="/maintenanceresults"
-          element={<Admin_maintenanceresults />}
+          element={<AdminMaintenanceResults />}
         />
         <Route
           path="/performmaintenance"
-          element={<Admin_performmaintenance />}
+          element={<AdminPerformMaintenance />}
         />
-        <Route path="/maintenance" element={<Admin_maintenancesettings />} />
-        <Route path="/runmaintenance" element={<Admin_runmaintenance />} />
-        <Route path="/dashboard" element={<AdminDashboard />} />
-        <Route path="/sso" element={<Admin_ssogroups />} />
-        <Route path="/nodes" element={<Admin_nodes />} />
-        <Route path="/maintenancelogs" element={<Admin_maintenancelogs />} />
-        <Route path="/settings" element={<Admin_settings />} />
-        <Route path="/rotate%20key" element={<Admin_configuration />} />
-        <Route path="/Admin_create_key" element={<Admin_create_key />} />
+        <Route 
+          path="/maintenance" 
+          element={<AdminMaintenanceSettings />} 
+          />
+        <Route 
+          path="/runmaintenance" 
+          element={<AdminRunMaintenance />} 
+          />
+        <Route 
+          path="/dashboard"
+          element={<AdminDashboard />} 
+          />
+        <Route 
+          path="/sso" 
+          element={<AdminSsoGroups />} 
+          />
+        <Route 
+          path="/nodes" 
+          element={<AdminNodes />} 
+          />
+        <Route 
+          path="/maintenancelogs" 
+          element={<AdminMaintenanceLogs />} 
+          />
+        <Route 
+          path="/settings" 
+          element={<AdminSettings />} 
+          />
+        <Route 
+          path="/rotate%20key" 
+          element={<AdminConfiguration />} 
+          />
+        <Route 
+        path="/Admin_create_key" 
+        element={<AdminCreateKey />} 
+        />
       </Routes>
     </Router>
   );

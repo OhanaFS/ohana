@@ -13,7 +13,7 @@ import { useState } from 'react';
 import {  Link } from 'react-router-dom';
 import AppBase from './components/AppBase';
 
-function Admin_maintenancesettings() {
+export function AdminMaintenanceSettings() {
   const theme = useMantineTheme();
   let MaintenanceSettings = [
     { name: 'CrawlPermissions', setting: 'true' },
@@ -306,5 +306,3 @@ function Admin_maintenancesettings() {
     </AppBase>
   );
 }
-
-export default Admin_maintenancesettings;

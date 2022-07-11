@@ -8,11 +8,9 @@ import {
   useMantineTheme,
 } from '@mantine/core';
 import { useState } from 'react';
-import Admin_console from './Admin_console';
-import Admin_navigation from './Admin_navigation';
 import AppBase from './components/AppBase';
 
-function Admin_settings() {
+export function AdminSettings() {
   const theme = useMantineTheme();
   //retrieve from database
   let ConfigurationSettings = [
@@ -335,4 +333,4 @@ function Admin_settings() {
   );
 }
 
-export default Admin_settings;
+

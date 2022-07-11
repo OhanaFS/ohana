@@ -22,7 +22,7 @@ export interface LogsDetails {
   consoleHeight: number;
 }
 
-function Admin_logs(props: LogsDetails) {
+export function AdminLogs(props: LogsDetails) {
   const theme = useMantineTheme();
   let [logs, setValue] = useState(props.groupList);
 
@@ -164,5 +164,3 @@ function Admin_logs(props: LogsDetails) {
     </>
   );
 }
-
-export default Admin_logs;
