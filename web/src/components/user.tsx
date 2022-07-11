@@ -1,13 +1,20 @@
 import React from 'react';
-import { UnstyledButton, Group, Avatar, Text, Box, useMantineTheme } from '@mantine/core';
+import {
+  UnstyledButton,
+  Group,
+  Avatar,
+  Text,
+  Box,
+  useMantineTheme,
+} from '@mantine/core';
 
 interface FullName {
-  image: string
+  image: string;
   name: string;
   username: string;
 }
 
-export function User(props:FullName) {
+export function User(props: FullName) {
   const theme = useMantineTheme();
 
   return (
@@ -15,7 +22,9 @@ export function User(props:FullName) {
       sx={{
         paddingTop: theme.spacing.sm,
         borderTop: `1px solid ${
-          theme.colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[2]
+          theme.colorScheme === 'dark'
+            ? theme.colors.dark[4]
+            : theme.colors.gray[2]
         }`,
       }}
     >
@@ -25,19 +34,19 @@ export function User(props:FullName) {
           width: '100%',
           padding: theme.spacing.xs,
           borderRadius: theme.radius.sm,
-          color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+          color:
+            theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
 
           '&:hover': {
             backgroundColor:
-              theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0],
+              theme.colorScheme === 'dark'
+                ? theme.colors.dark[6]
+                : theme.colors.gray[0],
           },
         }}
       >
         <Group>
-          <Avatar
-            src={props.image}
-            radius="xl"
-          />
+          <Avatar src={props.image} radius="xl" />
           <Box sx={{ flex: 1 }}>
             <Text size="sm" weight={500}>
               {props.name}
