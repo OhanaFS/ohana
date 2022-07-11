@@ -1,4 +1,4 @@
-import AppBase from "./AppBase";
+import AppBase from './AppBase';
 import {
   ChonkyActions,
   ChonkyFileActionData,
@@ -8,7 +8,13 @@ import {
   FileHelper,
   FullFileBrowser,
 } from 'chonky';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import DemoFsMap from '../assets/demo_fs.json';
 
 // We define a custom interface for file data because we want to add some custom fields
@@ -23,7 +29,7 @@ interface CustomFileMap {
 
 // Helper method to attach our custom TypeScript types to the imported JSON file map.
 const prepareCustomFileMap = () => {
-  const baseFileMap = (DemoFsMap.fileMap as unknown) as CustomFileMap;
+  const baseFileMap = DemoFsMap.fileMap as unknown as CustomFileMap;
   const rootFolderId = DemoFsMap.rootFolderId;
   return { baseFileMap, rootFolderId };
 };
@@ -218,7 +224,11 @@ export const useFolderChain = (
 export const useFileActionHandler = (
   setCurrentFolderId: (folderId: string) => void,
   deleteFiles: (files: CustomFileData[]) => void,
-  moveFiles: (files: FileData[], source: FileData, destination: FileData) => void,
+  moveFiles: (
+    files: FileData[],
+    source: FileData,
+    destination: FileData
+  ) => void,
   createFolder: (folderName: string) => void
 ) => {
   return useCallback(
@@ -265,10 +275,15 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
     setCurrentFolderId,
     deleteFiles,
     moveFiles,
-    createFolder,
+    createFolder
   );
   const fileActions = useMemo(
-    () => [ChonkyActions.CreateFolder, ChonkyActions.DeleteFiles, ChonkyActions.UploadFiles, ChonkyActions.DownloadFiles],
+    () => [
+      ChonkyActions.CreateFolder,
+      ChonkyActions.DeleteFiles,
+      ChonkyActions.UploadFiles,
+      ChonkyActions.DownloadFiles,
+    ],
     []
   );
   const thumbnailGenerator = useCallback(
@@ -278,7 +293,12 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   );
 
   return (
-    <AppBase userType="user" name='Alex Simmons' username='@alex' image='https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80'>
+    <AppBase
+      userType="user"
+      name="Alex Simmons"
+      username="@alex"
+      image="https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80"
+    >
       <div style={{ height: '100%' }}>
         <FullFileBrowser
           files={files}

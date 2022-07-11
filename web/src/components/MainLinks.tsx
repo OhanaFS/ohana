@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from "react-router-dom";
+import { Link } from 'react-router-dom';
 import { ThemeIcon, UnstyledButton, Group, Text } from '@mantine/core';
 
 interface MainLinkProps {
@@ -10,20 +10,26 @@ interface MainLinkProps {
 
 function MainLink({ icon, color, label }: MainLinkProps) {
   return (
-    <Link style={{
-      textDecoration: 'none',
-    }} to={label.toLowerCase()}>
+    <Link
+      style={{
+        textDecoration: 'none',
+      }}
+      to={label.toLowerCase()}
+    >
       <UnstyledButton
         sx={(theme) => ({
           display: 'block',
           width: '100%',
           padding: theme.spacing.xs,
           borderRadius: theme.radius.sm,
-          color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
+          color:
+            theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
 
           '&:hover': {
             backgroundColor:
-              theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0],
+              theme.colorScheme === 'dark'
+                ? theme.colors.dark[6]
+                : theme.colors.gray[0],
           },
         })}
       >
@@ -41,9 +47,11 @@ function MainLink({ icon, color, label }: MainLinkProps) {
 
 type MainLinksProps = {
   links: MainLinkProps[];
-}
+};
 
 export function MainLinks(props: MainLinksProps) {
-  const links = props.links.map((link) => <MainLink {...link} key={link.label} />);
+  const links = props.links.map((link) => (
+    <MainLink {...link} key={link.label} />
+  ));
   return <div>{links}</div>;
 }
