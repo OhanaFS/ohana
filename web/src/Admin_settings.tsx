@@ -113,7 +113,7 @@ function Admin_settings() {
                     }}
                   >
                     {' '}
-                    <Text style={{}}> Allow Cluster health alerts </Text>
+                    <Text style={{}}> Allow Cluster health alerts aa </Text>
                   </td>
                   <td width="50%">
                     {' '}
