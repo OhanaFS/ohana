@@ -24,8 +24,10 @@ type FileVersion struct {
 	ModifiedTime          time.Time    `gorm:"not null; autoUpdateTime" json:"modified_time"`
 	VersioningMode        int8         `gorm:"not null" json:"versioning_mode"`
 	Checksum              string       `json:"checksum"`
-	FragCount             int          `json:"frag_count"`
-	ParityCount           int          `json:"parity_count"`
+	TotalShards           int          `json:"total_shards"`
+	DataShards            int          `json:"data_shards"`
+	ParityShards          int          `json:"parity_shards"`
+	KeyThreshold          int          `json:"key_threshold"`
 	EncryptionKey         string       `json:"-"`
 	EncryptionIv          string       `json:"-"`
 	PasswordProtected     bool         `json:"password_protected"`
@@ -39,8 +41,8 @@ type FileVersion struct {
 	PatchBaseVersion      int          `json:"-"`
 }
 
-// createFileVersionFromFile creates a FileVersion from a File
-func createFileVersionFromFile(tx *gorm.DB, file *File, user *User) error {
+// CreateFileVersionFromFile creates a FileVersion from a File
+func CreateFileVersionFromFile(tx *gorm.DB, file *File, user *User) error {
 
 	// Get the current parent folder and it's current version
 
@@ -66,8 +68,10 @@ func createFileVersionFromFile(tx *gorm.DB, file *File, user *User) error {
 		ModifiedTime:          file.ModifiedTime,
 		VersioningMode:        file.VersioningMode,
 		Checksum:              file.Checksum,
-		FragCount:             file.FragCount,
-		ParityCount:           file.ParityCount,
+		TotalShards:           file.TotalShards,
+		DataShards:            file.DataShards,
+		ParityShards:          file.ParityShards,
+		KeyThreshold:          file.KeyThreshold,
 		EncryptionKey:         file.EncryptionKey,
 		EncryptionIv:          file.EncryptionIv,
 		PasswordProtected:     file.PasswordProtected,
@@ -102,7 +106,7 @@ func getFileVersionFromFile(tx *gorm.DB, file *File, version int) (*FileVersion,
 }
 
 // GetFragments returns the fragments of a FileVersion
-func (fileVersion *FileVersion) GetFragments(tx *gorm.DB, user *User) ([]Fragment, error) {
+func (fv *FileVersion) GetFragments(tx *gorm.DB, user *User) ([]Fragment, error) {
 
 	// Check if user has permissions to the file
 
@@ -112,7 +116,7 @@ func (fileVersion *FileVersion) GetFragments(tx *gorm.DB, user *User) ([]Fragmen
 	// of deleted files as well. Or for now, we just take it that you can't see deleted files.
 
 	// Get original File and check permissions (can't get file without permissions)
-	file, err := GetFileById(tx, fileVersion.FileId, user)
+	file, err := GetFileById(tx, fv.FileId, user)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +128,7 @@ func (fileVersion *FileVersion) GetFragments(tx *gorm.DB, user *User) ([]Fragmen
 	}
 
 	var fragments []Fragment
-	err = tx.Model(&fragments).Where("file_id = ? AND version_no = ?", fileVersion.FileId, fileVersion.VersionNo).Find(&fragments).Error
+	err = tx.Model(&fragments).Where("file_version_file_id = ? AND file_version_data_id = ?", fv.FileId, fv.DataId).Find(&fragments).Error
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +136,7 @@ func (fileVersion *FileVersion) GetFragments(tx *gorm.DB, user *User) ([]Fragmen
 }
 
 // ListFiles list the files in a folder of a FileVersion
-func (fileVersion *FileVersion) ListFiles(tx *gorm.DB, user *User) ([]FileVersion, error) {
+func (fv *FileVersion) ListFiles(tx *gorm.DB, user *User) ([]FileVersion, error) {
 
 	// Check if user has permissions to the file
 
@@ -142,7 +146,7 @@ func (fileVersion *FileVersion) ListFiles(tx *gorm.DB, user *User) ([]FileVersio
 	// of deleted files as well. Or for now, we just take it that you can't see deleted files.
 
 	// Get original File and check permissions (can't get file without permissions)
-	file, err := GetFileById(tx, fileVersion.FileId, user)
+	file, err := GetFileById(tx, fv.FileId, user)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +158,7 @@ func (fileVersion *FileVersion) ListFiles(tx *gorm.DB, user *User) ([]FileVersio
 	}
 
 	var files []FileVersion
-	err = tx.Model(&files).Where("parent_folder_file_id = ? AND parent_folder_version_no = ?", fileVersion.FileId, fileVersion.VersionNo).Find(&files).Error
+	err = tx.Model(&files).Where("parent_folder_file_id = ? AND parent_folder_version_no = ?", fv.FileId, fv.VersionNo).Find(&files).Error
 	if err != nil {
 		return nil, err
 	}
@@ -191,8 +195,10 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 		ModifiedTime:          file.ModifiedTime,
 		VersioningMode:        file.VersioningMode,
 		Checksum:              file.Checksum,
-		FragCount:             file.FragCount,
-		ParityCount:           file.ParityCount,
+		TotalShards:           file.TotalShards,
+		DataShards:            file.DataShards,
+		ParityShards:          file.ParityShards,
+		KeyThreshold:          file.KeyThreshold,
 		EncryptionKey:         file.EncryptionKey,
 		PasswordProtected:     file.PasswordProtected,
 		//LinkFileFileId:        "GET LINKED FOLDER", // NOT READY
@@ -215,4 +221,55 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 	}
 
 	return nil
+}
+
+// GetDecryptionKey returns the Key and IV of a file given a password (or not)
+func (fv *FileVersion) GetDecryptionKey(tx *gorm.DB, user *User, password string) (string, string, error) {
+
+	// Check permissions for the original file
+	_, err := GetFileById(tx, fv.FileId, user)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Get FileKey, FileIv from PasswordProtect
+
+	var passwordProtect PasswordProtect
+	err = tx.Model(&PasswordProtect{}).Where("file_id = ?", fv.FileId).First(&passwordProtect).Error
+	if err != nil {
+		return "", "", err
+	}
+
+	// if password nil
+	if password == "" && !passwordProtect.PasswordActive {
+
+		// decrypt file key with PasswordProtect
+		fileKey, err := DecryptWithKeyIV(fv.EncryptionKey, passwordProtect.FileKey, passwordProtect.FileIv)
+		if err != nil {
+			return "", "", err
+		}
+		fileIv, err := DecryptWithKeyIV(fv.EncryptionIv, passwordProtect.FileKey, passwordProtect.FileIv)
+		if err != nil {
+			return "", "", err
+		}
+		return fileKey, fileIv, nil
+	} else if password == "" && passwordProtect.PasswordActive {
+		return "", "", ErrPasswordRequired
+	} else {
+		decryptedFileKey, decryptedFileIv, err := passwordProtect.DecryptWithPassword(password)
+		if err != nil {
+			return "", "", err
+		}
+		fileKey, err := DecryptWithKeyIV(fv.EncryptionKey, decryptedFileKey, decryptedFileIv)
+		if err != nil {
+			return "", "", err
+		}
+		fileIv, err := DecryptWithKeyIV(fv.EncryptionIv, decryptedFileKey, decryptedFileIv)
+		if err != nil {
+			return "", "", err
+		}
+		return fileKey, fileIv, nil
+
+	}
+
 }

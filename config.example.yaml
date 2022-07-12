@@ -13,3 +13,5 @@ authentication:
   client_id: ohana
   client_secret: family
   redirect_url: http://localhost:8000/auth/callback
+stitch:
+  shards_location: shards/

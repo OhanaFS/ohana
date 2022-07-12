@@ -4,9 +4,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/OhanaFS/ohana/config"
+	"github.com/OhanaFS/ohana/controller/middleware"
 	"github.com/OhanaFS/ohana/dbfs"
 	"github.com/OhanaFS/ohana/util"
+	"github.com/OhanaFS/ohana/util/ctxutil"
 	"github.com/OhanaFS/stitch"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -17,9 +21,9 @@ import (
 )
 
 type BackendController struct {
-	db      *gorm.DB
-	encoder *stitch.Encoder
-	logger  *zap.Logger
+	Db     *gorm.DB
+	Logger *zap.Logger
+	Path   string
 }
 
 // NewBackend takes in config, dbfs, loggers, and middleware and registers the backend
@@ -28,37 +32,258 @@ func NewBackend(
 	router *mux.Router,
 	logger *zap.Logger,
 	db *gorm.DB,
+	mw middleware.Middlewares,
+	config *config.Config,
 ) error {
 
 	bc := &BackendController{
-		db: db,
-		encoder: stitch.NewEncoder(&stitch.EncoderOptions{
-			DataShards:   2,
-			ParityShards: 1,
-			KeyThreshold: 2,
-		}),
-		logger: logger,
+		Db:     db,
+		Logger: logger,
+		Path:   config.Stitch.ShardsLocation,
 	}
 
+	// Register routes
 	r := router.NewRoute().Subrouter()
-	r.HandleFunc("/api/v1/file/{fileID}", bc.GetMetadataFile).Methods("GET")
-	r.HandleFunc("/api/v1/file/{fileID}", bc.UpdateMetadataFile).Methods("PUT")
+
+	// File
+	r.HandleFunc("/api/v1/file", bc.UploadFile).Methods("POST")
+	r.HandleFunc("/api/v1/file/{fileID}/update", bc.UpdateFile).Methods("POST")
+	r.HandleFunc("/api/v1/file/{fileID}/metadata", bc.GetMetadataFile).Methods("GET")
+	r.HandleFunc("/api/v1/file/{fileID}/metadata", bc.UpdateMetadataFile).Methods("PATCH")
 	r.HandleFunc("/api/v1/file/{fileID}/move", bc.MoveFile).Methods("POST")
 	r.HandleFunc("/api/v1/file/{fileID}/copy", bc.CopyFile).Methods("POST")
-	r.HandleFunc("/api/v1/file", bc.DownloadFile).Methods("GET")
-	r.HandleFunc("/api/v1/file", bc.DeleteFile).Methods("DELETE")
-	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.GetPermissionsFile).Methods("GET")
-	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.AddPermissionsFile).Methods("POST")
-	// Register routes
+	r.HandleFunc("/api/v1/file/{fileID}", bc.DownloadFile).Methods("GET")
+	r.HandleFunc("/api/v1/file/{fileID}", bc.DeleteFile).Methods("DELETE")
+	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.GetFolderPermissions).Methods("GET")
+	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.AddPermissionsFolder).Methods("POST")
+	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.UpdateFolderMetadata).Methods("PATCH")
+	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}/metadata", bc.GetFileVersionMetadata).Methods("GET")
+	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}", bc.DownloadFileVersion).Methods("GET")
+	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}", bc.DeleteFileVersion).Methods("DELETE")
+	r.HandleFunc("/api/v1/file/{fileID}/versions/", bc.GetFileVersionHistory).Methods("GET")
+
+	// Folder
+	r.HandleFunc("/api/v1/folder/{folderID}", bc.LsFolderID).Methods("GET")
+	r.HandleFunc("/api/v1/folder/{folderID}", bc.UpdateFolderMetadata).Methods("PATCH")
+	r.HandleFunc("/api/v1/folder/{folderID}", bc.DeleteFolder).Methods("DELETE")
+	r.HandleFunc("/api/v1/folder", bc.GetFolderIDFromPath).Methods("GET")
+	r.HandleFunc("/api/v1/folder", bc.CreateFolder).Methods("POST")
+	r.HandleFunc("/api/v1/folder/{folderID}/permissions", bc.GetPermissionsFile).Methods("GET")
+	r.HandleFunc("/api/v1/folder/{folderID}/permissions", bc.UpdateMetadataFile).Methods("PATCH")
+	r.HandleFunc("/api/v1/folder/{folderID}/permissions", bc.AddPermissionsFolder).Methods("POST")
+	r.HandleFunc("/api/v1/folder/{folderID}/move", bc.MoveFolder).Methods("POST")
+	r.HandleFunc("/api/v1/folder/{folderID}/details", bc.GetMetadataFile).Methods("GET")
+
+	r.Use(mw.UserAuth)
 
 	return nil
 }
 
-// GetMetadataFile returns the metadata for the requested file based on ID
-func (bc *BackendController) GetMetadataFile(w http.ResponseWriter, r *http.Request) {
+// UploadFile allows a user to upload a file to the system
+func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) {
 
-	// somehow get user idk
-	user, err := dbfs.GetUser(bc.db, "1")
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Get header parameters
+	folderId := r.Header.Get("folder_id")
+	fileName := r.Header.Get("file_name")
+
+	if folderId == "" {
+		util.HttpError(w, http.StatusBadRequest, "folder_id is required")
+		return
+	}
+	if fileName == "" {
+		util.HttpError(w, http.StatusBadRequest, "file_name is required")
+		return
+	}
+
+	// Check if the user has the permission to write to the folder
+	folder, err := dbfs.GetFileById(bc.Db, folderId, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	hasPermissions, err := user.HasPermission(bc.Db, folder, &dbfs.PermissionNeeded{Write: true})
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if !hasPermissions {
+		util.HttpError(w, http.StatusForbidden, "You do not have permission to write to this folder")
+		return
+	}
+
+	// Get encoder params and create new encoder
+	dataShards, parityShards, keyThreshold, err := dbfs.GetStitchParams(bc.Db, bc.Logger)
+	totalShards := dataShards + parityShards
+
+	encoder := stitch.NewEncoder(&stitch.EncoderOptions{
+		DataShards:   uint8(dataShards),
+		ParityShards: uint8(parityShards),
+		KeyThreshold: uint8(keyThreshold)},
+	)
+
+	// This is the fileKey and fileIV for the passwordProtect
+	fileKey, fileIv, err := dbfs.GenerateKeyIV()
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// This is the key and IV for the pipeline
+	dataKey, dataIv, err := dbfs.GenerateKeyIV()
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Stream file
+	file, header, err := r.FormFile("file")
+	defer file.Close()
+	fileSize := header.Size
+
+	// File, PasswordProtect entries for dbfs.
+	// TODO: Checksum
+	dbfsFile := dbfs.File{
+		FileId:             uuid.New().String(),
+		FileName:           fileName,
+		MIMEType:           "",
+		ParentFolderFileId: &folderId, // root folder for now
+		Size:               int(fileSize),
+		VersioningMode:     dbfs.VersioningOff,
+		Checksum:           "CHECKSUM",
+		TotalShards:        totalShards,
+		DataShards:         dataShards,
+		ParityShards:       parityShards,
+		KeyThreshold:       keyThreshold,
+		PasswordProtected:  false,
+		HandledServer:      "ThisServer",
+	}
+
+	passwordProtect := dbfs.PasswordProtect{
+		FileId:         dbfsFile.FileId,
+		FileKey:        fileKey,
+		FileIv:         fileIv,
+		PasswordActive: false,
+	}
+
+	err = bc.Db.Transaction(func(tx *gorm.DB) error {
+
+		err := dbfs.CreateInitialFile(tx, &dbfsFile, fileKey, fileIv, dataKey, dataIv, user)
+		if err != nil {
+			return err
+		}
+
+		err = tx.Create(&passwordProtect).Error
+		if err != nil {
+			return err
+		}
+
+		err = dbfs.CreatePermissions(tx, &dbfsFile)
+		if err != nil {
+			// By right, there should be no error possible? If any error happens, it's likely a system error.
+			// However, in the case there is an error, we will revert the transaction (thus deleting the file entry)
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Open the output files
+	shardWriters := make([]io.Writer, totalShards)
+	shardFiles := make([]*os.File, totalShards)
+	shardNames := make([]string, totalShards)
+	for i := 0; i < totalShards; i++ {
+		shardNames[i] = bc.Path + dbfsFile.DataId + ".shard" + strconv.Itoa(i)
+	}
+	for i := 0; i < totalShards; i++ {
+		shardFile, err := os.Create(shardNames[i])
+		if err != nil {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer shardFile.Close()
+		shardWriters[i] = shardFile
+		shardFiles[i] = shardFile
+	}
+
+	dataKeyBytes, err := hex.DecodeString(dataKey)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	dataIvBytes, err := hex.DecodeString(dataIv)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if err = encoder.Encode(file, shardWriters, dataKeyBytes, dataIvBytes); err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	for i := 0; i < totalShards; i++ {
+		if err = encoder.FinalizeHeader(shardFiles[i]); err != nil {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	for i := 1; i <= int(dbfsFile.TotalShards); i++ {
+		fragId := int(i)
+		fragmentPath := shardNames[i-1]
+		serverId := "Server" + strconv.Itoa(i)
+		fragChecksum := "CHECKSUM" + strconv.Itoa(i)
+
+		err = dbfs.CreateFragment(bc.Db, dbfsFile.FileId, dbfsFile.DataId, dbfsFile.VersionNo, fragId, serverId, fragmentPath, fragChecksum)
+		if err != nil {
+			err2 := dbfsFile.Delete(bc.Db, user)
+			if err2 != nil {
+				util.HttpError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			return
+			// If fails, delete File record and return error.
+		}
+	}
+
+	err = dbfs.FinishFile(bc.Db, &dbfsFile, user, 412)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+		// If fails, delete File record and return error.
+	}
+
+	err = dbfs.CreateFileVersionFromFile(bc.Db, &dbfsFile, user)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+		// If fails, delete File record and return error.
+	}
+
+	// success
+	util.HttpJson(w, http.StatusOK, dbfsFile)
+
+}
+
+// UpdateFile allows a user to upload a file to the system
+func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) {
+
+	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -68,7 +293,156 @@ func (bc *BackendController) GetMetadataFile(w http.ResponseWriter, r *http.Requ
 	vars := mux.Vars(r)
 	fileID := vars["fileID"]
 
-	file, err := dbfs.GetFileById(bc.db, fileID, user)
+	// password from header
+	password := r.Header.Get("password")
+
+	if fileID == "" {
+		util.HttpError(w, http.StatusBadRequest, "file_id is required")
+		return
+	}
+
+	// Check if the user has the permission to write to the file
+	dbfsFile, err := dbfs.GetFileById(bc.Db, fileID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	hasPermissions, err := user.HasPermission(bc.Db, dbfsFile, &dbfs.PermissionNeeded{Write: true})
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if !hasPermissions {
+		util.HttpError(w, http.StatusForbidden, "You do not have permission to write to this folder")
+		return
+	}
+
+	// Get encoder params and create new encoder
+	dataShards, parityShards, keyThreshold, err := dbfs.GetStitchParams(bc.Db, bc.Logger)
+	totalShards := dataShards + parityShards
+
+	encoder := stitch.NewEncoder(&stitch.EncoderOptions{
+		DataShards:   uint8(dataShards),
+		ParityShards: uint8(parityShards),
+		KeyThreshold: uint8(keyThreshold)},
+	)
+
+	// This is the key and IV for the pipeline
+	dataKey, dataIv, err := dbfs.GenerateKeyIV()
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Stream file
+	file, header, err := r.FormFile("file")
+	defer file.Close()
+	fileSize := header.Size
+
+	err = dbfsFile.UpdateFile(bc.Db, int(fileSize), int(fileSize), "TODO:CHECKSUM",
+		"", dataKey, dataIv, password, user)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Open the output files
+	shardWriters := make([]io.Writer, totalShards)
+	shardFiles := make([]*os.File, totalShards)
+	shardNames := make([]string, totalShards)
+	for i := 0; i < totalShards; i++ {
+		shardNames[i] = bc.Path + dbfsFile.DataId + ".shard" + strconv.Itoa(i)
+	}
+	for i := 0; i < totalShards; i++ {
+		shardFile, err := os.Create(shardNames[i])
+		if err != nil {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer shardFile.Close()
+		shardWriters[i] = shardFile
+		shardFiles[i] = shardFile
+	}
+
+	dataKeyBytes, err := hex.DecodeString(dataKey)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	dataIvBytes, err := hex.DecodeString(dataIv)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if err = encoder.Encode(file, shardWriters, dataKeyBytes, dataIvBytes); err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	for i := 0; i < totalShards; i++ {
+		if err = encoder.FinalizeHeader(shardFiles[i]); err != nil {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	for i := 1; i <= int(dbfsFile.TotalShards); i++ {
+		fragId := int(i)
+		fragmentPath := shardNames[i-1]
+		serverId := "Server" + strconv.Itoa(i)
+		fragChecksum := "CHECKSUM" + strconv.Itoa(i)
+
+		err = dbfsFile.UpdateFragment(bc.Db, fragId, fragmentPath, fragChecksum, serverId)
+		if err != nil {
+			err2 := dbfsFile.Delete(bc.Db, user)
+			if err2 != nil {
+				util.HttpError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			return
+			// If fails, delete File record and return error.
+		}
+	}
+
+	err = dbfsFile.FinishUpdateFile(bc.Db)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	err = dbfs.CreateFileVersionFromFile(bc.Db, dbfsFile, user)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+		// If fails, delete File record and return error.
+	}
+
+	// success
+	util.HttpJson(w, http.StatusOK, dbfsFile)
+
+}
+
+// GetMetadataFile returns the metadata for the requested file based on ID
+func (bc *BackendController) GetMetadataFile(w http.ResponseWriter, r *http.Request) {
+
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// fileID
+	vars := mux.Vars(r)
+	fileID := vars["fileID"]
+
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -82,7 +456,7 @@ func (bc *BackendController) GetMetadataFile(w http.ResponseWriter, r *http.Requ
 func (bc *BackendController) UpdateMetadataFile(w http.ResponseWriter, r *http.Request) {
 
 	// somehow get user idk
-	user, err := dbfs.GetUser(bc.db, "1")
+	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -100,7 +474,7 @@ func (bc *BackendController) UpdateMetadataFile(w http.ResponseWriter, r *http.R
 	vars := mux.Vars(r)
 	fileID := vars["fileID"]
 
-	file, err := dbfs.GetFileById(bc.db, fileID, user)
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
 	if errors.Is(err, dbfs.ErrFileNotFound) {
 		util.HttpError(w, http.StatusNotFound, err.Error())
 		return
@@ -110,7 +484,7 @@ func (bc *BackendController) UpdateMetadataFile(w http.ResponseWriter, r *http.R
 	}
 
 	// Update file
-	err = file.UpdateMetaData(bc.db, fmm, user)
+	err = file.UpdateMetaData(bc.Db, fmm, user)
 	if errors.Is(err, dbfs.ErrNoPermission) {
 		util.HttpError(w, http.StatusForbidden, err.Error())
 		return
@@ -128,7 +502,7 @@ func (bc *BackendController) UpdateMetadataFile(w http.ResponseWriter, r *http.R
 func (bc *BackendController) MoveFile(w http.ResponseWriter, r *http.Request) {
 
 	// somehow get user idk
-	user, err := dbfs.GetUser(bc.db, "1")
+	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -147,9 +521,9 @@ func (bc *BackendController) MoveFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Getting file and dest folder from db
+	// Getting file and dest folder from Db
 
-	file, err := dbfs.GetFileById(bc.db, fileID, user)
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
 	if errors.Is(err, dbfs.ErrFileNotFound) {
 		util.HttpError(w, http.StatusNotFound, err.Error())
 		return
@@ -158,7 +532,7 @@ func (bc *BackendController) MoveFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	destFolder, err := dbfs.GetFileByPath(bc.db, folderID, user)
+	destFolder, err := dbfs.GetFileById(bc.Db, folderID, user)
 	if errors.Is(err, dbfs.ErrFileNotFound) {
 		util.HttpError(w, http.StatusNotFound, err.Error())
 		return
@@ -168,7 +542,7 @@ func (bc *BackendController) MoveFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Move file (Permission check will be done by dbfs)
-	err = file.Move(bc.db, destFolder, user)
+	err = file.Move(bc.Db, destFolder, user)
 	if errors.Is(err, dbfs.ErrNoPermission) {
 		util.HttpError(w, http.StatusForbidden, err.Error())
 		return
@@ -186,7 +560,7 @@ func (bc *BackendController) MoveFile(w http.ResponseWriter, r *http.Request) {
 func (bc *BackendController) CopyFile(w http.ResponseWriter, r *http.Request) {
 
 	// somehow get user idk
-	user, err := dbfs.GetUser(bc.db, "1")
+	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -205,8 +579,8 @@ func (bc *BackendController) CopyFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Getting file and dest folder from db
-	file, err := dbfs.GetFileById(bc.db, fileID, user)
+	// Getting file and dest folder from Db
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
 	if errors.Is(err, dbfs.ErrFileNotFound) {
 		util.HttpError(w, http.StatusNotFound, "File not found")
 		return
@@ -215,7 +589,7 @@ func (bc *BackendController) CopyFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	destFolder, err := dbfs.GetFileById(bc.db, folderID, user)
+	destFolder, err := dbfs.GetFileById(bc.Db, folderID, user)
 	if errors.Is(err, dbfs.ErrFileNotFound) {
 		util.HttpError(w, http.StatusNotFound, "Destination folder not found")
 		return
@@ -225,7 +599,7 @@ func (bc *BackendController) CopyFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Copy file (Permission check will be done by dbfs)
-	err = file.Copy(bc.db, destFolder, user)
+	err = file.Copy(bc.Db, destFolder, user)
 	if errors.Is(err, dbfs.ErrNoPermission) {
 		util.HttpError(w, http.StatusForbidden, "No write permisison on destination folder")
 		return
@@ -243,7 +617,7 @@ func (bc *BackendController) CopyFile(w http.ResponseWriter, r *http.Request) {
 func (bc *BackendController) DownloadFile(w http.ResponseWriter, r *http.Request) {
 
 	// somehow get user idk
-	user, err := dbfs.GetUser(bc.db, "1")
+	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -259,8 +633,8 @@ func (bc *BackendController) DownloadFile(w http.ResponseWriter, r *http.Request
 
 	password := r.Header.Get("password")
 
-	// Getting file from db
-	file, err := dbfs.GetFileById(bc.db, fileID, user)
+	// Getting file from Db
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
 	if errors.Is(err, dbfs.ErrFileNotFound) {
 		util.HttpError(w, http.StatusNotFound, err.Error())
 		return
@@ -269,7 +643,7 @@ func (bc *BackendController) DownloadFile(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	shardsMeta, err := file.GetFileFragments(bc.db, user)
+	shardsMeta, err := file.GetFileFragments(bc.Db, user)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -282,7 +656,7 @@ func (bc *BackendController) DownloadFile(w http.ResponseWriter, r *http.Request
 	var shards []io.ReadSeeker
 	var shardFiles []*os.File
 	for _, shardMeta := range shardsMeta {
-		// TODO: Should pick up the inital part of the path from config file.
+		// TODO: Should pick up the inital part of the Path from config file.
 		shardFile, err := os.Open(shardMeta.FileFragmentPath)
 		if err != nil {
 			util.HttpError(w, http.StatusInternalServerError, err.Error())
@@ -292,7 +666,7 @@ func (bc *BackendController) DownloadFile(w http.ResponseWriter, r *http.Request
 		shardFiles = append(shardFiles, shardFile)
 	}
 
-	hexKey, hexIv, err := file.GetDecryptionKey(bc.db, user, password)
+	hexKey, hexIv, err := file.GetDecryptionKey(bc.Db, user, password)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -310,8 +684,16 @@ func (bc *BackendController) DownloadFile(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Create new encoder
+
+	encoder := stitch.NewEncoder(&stitch.EncoderOptions{
+		DataShards:   uint8(file.DataShards),
+		ParityShards: uint8(file.ParityShards),
+		KeyThreshold: uint8(file.KeyThreshold)},
+	)
+
 	// Decode file
-	reader, err := bc.encoder.NewReadSeeker(shards, key, iv)
+	reader, err := encoder.NewReadSeeker(shards, key, iv)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -336,11 +718,11 @@ func (bc *BackendController) DownloadFile(w http.ResponseWriter, r *http.Request
 
 }
 
-//DeleteFile deletes a file from the db
+//DeleteFile deletes a file from the Db
 func (bc *BackendController) DeleteFile(w http.ResponseWriter, r *http.Request) {
 
 	// somehow get user idk
-	user, err := dbfs.GetUser(bc.db, "1")
+	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -350,7 +732,7 @@ func (bc *BackendController) DeleteFile(w http.ResponseWriter, r *http.Request) 
 	vars := mux.Vars(r)
 	fileID := vars["fileID"]
 
-	file, err := dbfs.GetFileById(bc.db, fileID, user)
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
 	if errors.Is(err, dbfs.ErrFileNotFound) {
 		util.HttpError(w, http.StatusNotFound, err.Error())
 		return
@@ -360,7 +742,7 @@ func (bc *BackendController) DeleteFile(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Delete file
-	err = file.Delete(bc.db, user)
+	err = file.Delete(bc.Db, user)
 	if errors.Is(err, dbfs.ErrNoPermission) {
 		util.HttpError(w, http.StatusForbidden, "No write permisison on destination folder")
 		return
@@ -377,7 +759,7 @@ func (bc *BackendController) DeleteFile(w http.ResponseWriter, r *http.Request) 
 func (bc *BackendController) GetPermissionsFile(w http.ResponseWriter, r *http.Request) {
 
 	// somehow get user idk
-	user, err := dbfs.GetUser(bc.db, "1")
+	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -392,7 +774,7 @@ func (bc *BackendController) GetPermissionsFile(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	file, err := dbfs.GetFileById(bc.db, fileID, user)
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
 	if errors.Is(err, dbfs.ErrFileNotFound) {
 		util.HttpError(w, http.StatusNotFound, err.Error())
 		return
@@ -402,7 +784,7 @@ func (bc *BackendController) GetPermissionsFile(w http.ResponseWriter, r *http.R
 	}
 
 	// Get permissions
-	permissions, err := file.GetPermissions(bc.db, user)
+	permissions, err := file.GetPermissions(bc.Db, user)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -416,7 +798,7 @@ func (bc *BackendController) GetPermissionsFile(w http.ResponseWriter, r *http.R
 func (bc *BackendController) ModifyPermissionsFile(w http.ResponseWriter, r *http.Request) {
 
 	// somehow get user idk
-	user, err := dbfs.GetUser(bc.db, "1")
+	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -470,7 +852,7 @@ func (bc *BackendController) ModifyPermissionsFile(w http.ResponseWriter, r *htt
 	}
 
 	// get file
-	file, err := dbfs.GetFileById(bc.db, fileID, user)
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
 	if errors.Is(err, dbfs.ErrFileNotFound) {
 		util.HttpError(w, http.StatusNotFound, err.Error())
 		return
@@ -479,8 +861,14 @@ func (bc *BackendController) ModifyPermissionsFile(w http.ResponseWriter, r *htt
 		return
 	}
 
+	// Check if file is actually a file
+	if file.EntryType != dbfs.IsFile {
+		util.HttpError(w, http.StatusBadRequest, "File is not a folder")
+		return
+	}
+
 	// get old permission struct entry
-	oldPermission, err := file.GetPermissionById(bc.db, permissionIDInt, user)
+	oldPermission, err := file.GetPermissionById(bc.Db, permissionIDInt, user)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -508,7 +896,7 @@ func (bc *BackendController) ModifyPermissionsFile(w http.ResponseWriter, r *htt
 
 	// call update
 
-	err = file.UpdatePermission(bc.db, oldPermission, newPermission, user)
+	err = file.UpdatePermission(bc.Db, oldPermission, newPermission, user)
 
 	if errors.Is(err, dbfs.ErrNoPermission) {
 		util.HttpError(w, http.StatusForbidden, err.Error())
@@ -527,7 +915,7 @@ func (bc *BackendController) ModifyPermissionsFile(w http.ResponseWriter, r *htt
 func (bc *BackendController) AddPermissionsFile(w http.ResponseWriter, r *http.Request) {
 
 	// somehow get user idk
-	user, err := dbfs.GetUser(bc.db, "1")
+	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -543,8 +931,785 @@ func (bc *BackendController) AddPermissionsFile(w http.ResponseWriter, r *http.R
 	canExecute := r.Header.Get("can_execute")
 	canShare := r.Header.Get("can_share")
 	canAudit := r.Header.Get("can_audit")
-	// users := r.Header.Get("users")
-	// groups := r.Header.Get("groups")
+	usersString := r.Header.Get("users")
+	groupsString := r.Header.Get("groups")
+
+	// need to process 'em
+
+	// convert to bool
+	canReadBool, err := strconv.ParseBool(canRead)
+	if err != nil {
+		canReadBool = false
+	}
+	canWriteBool, err := strconv.ParseBool(canWrite)
+	if err != nil {
+		canWriteBool = false
+	}
+	canExecuteBool, err := strconv.ParseBool(canExecute)
+	if err != nil {
+		canExecuteBool = false
+	}
+	canShareBool, err := strconv.ParseBool(canShare)
+	if err != nil {
+		canShareBool = false
+	}
+	canAuditBool, err := strconv.ParseBool(canAudit)
+	if err != nil {
+		canAuditBool = false
+	}
+
+	var usersStringArray []string
+	var groupsStringArray []string
+	_ = json.Unmarshal([]byte(usersString), &usersStringArray)
+	_ = json.Unmarshal([]byte(groupsString), &groupsStringArray)
+
+	permissionNeeded := dbfs.PermissionNeeded{
+		Read:    canReadBool,
+		Write:   canWriteBool,
+		Execute: canExecuteBool,
+		Share:   canShareBool,
+		Audit:   canAuditBool,
+	}
+
+	userObjects := make([]dbfs.User, len(usersStringArray))
+	groupObjects := make([]dbfs.Group, len(groupsStringArray))
+
+	for i, userString := range usersStringArray {
+		tempUser, err := dbfs.GetUserById(bc.Db, userString)
+		if err != nil {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		userObjects[i] = *tempUser
+	}
+	for i, groupString := range groupsStringArray {
+		tempGroup, err := dbfs.GetGroupById(bc.Db, groupString)
+		if err != nil {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		groupObjects[i] = *tempGroup
+	}
+
+	if fileID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
+		return
+	}
+
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// add permissions
+	err = file.AddPermissionUsers(bc.Db, &permissionNeeded, user, userObjects...)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	err = file.AddPermissionGroups(bc.Db, &permissionNeeded, user, groupObjects...)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Success
+	util.HttpJson(w, http.StatusOK, nil)
+}
+
+//GetFileVersionMetadata gets the metadata of a file version
+func (bc *BackendController) GetFileVersionMetadata(w http.ResponseWriter, r *http.Request) {
+
+	// somehow get user idk
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// fileID and versionID
+	vars := mux.Vars(r)
+	fileID := vars["fileID"]
+	versionID := vars["versionID"]
+
+	// convert versionID into int
+	versionIDInt, err := strconv.Atoi(versionID)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if fileID == "" || versionID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
+		return
+	}
+
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// get version
+	version, err := file.GetOldVersion(bc.Db, user, versionIDInt)
+	if errors.Is(err, dbfs.ErrVersionNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	util.HttpJson(w, http.StatusOK, version)
+
+}
+
+//GetFileVersionHistory returns all the historical versions of a file
+func (bc *BackendController) GetFileVersionHistory(w http.ResponseWriter, r *http.Request) {
+
+	// somehow get user idk
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// fileID and versionID
+	vars := mux.Vars(r)
+	fileID := vars["fileID"]
+
+	if fileID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
+		return
+	}
+
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// get version
+	versions, err := file.GetAllVersions(bc.Db, user)
+	if errors.Is(err, dbfs.ErrVersionNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	util.HttpJson(w, http.StatusOK, versions)
+
+}
+
+//DownloadFileVersion downloads a file version
+func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.Request) {
+
+	// somehow get user idk
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// fileID and versionID
+	vars := mux.Vars(r)
+	fileID := vars["fileID"]
+	versionID := vars["versionID"]
+
+	// get password
+	password := r.Header.Get("password")
+
+	if fileID == "" || versionID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID or versionID provided")
+		return
+	}
+
+	// convert versionID into int
+	versionIDInt, err := strconv.Atoi(versionID)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if fileID == "" || versionID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
+		return
+	}
+
+	// get file
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// get version
+	version, err := file.GetOldVersion(bc.Db, user, versionIDInt)
+	if errors.Is(err, dbfs.ErrVersionNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	// get file
+	shardsMeta, err := version.GetFragments(bc.Db, user)
+	if err != nil {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	// TODO: Now assuming that all fragments are on the same server, else you need to query multiple
+	// servers for the file fragments
+
+	// Opening input files
+	var shards []io.ReadSeeker
+	var shardFiles []*os.File
+	for _, shardMeta := range shardsMeta {
+		shardFile, err := os.Open(shardMeta.FileFragmentPath)
+		if err != nil {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		shards = append(shards, shardFile)
+		shardFiles = append(shardFiles, shardFile)
+	}
+
+	hexKey, hexIv, err := version.GetDecryptionKey(bc.Db, user, password)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Getting key and iv
+	key, err := hex.DecodeString(hexKey)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	iv, err := hex.DecodeString(hexIv)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	encoder := stitch.NewEncoder(&stitch.EncoderOptions{
+		DataShards:   uint8(version.DataShards),
+		ParityShards: uint8(version.ParityShards),
+		KeyThreshold: uint8(version.KeyThreshold)},
+	)
+
+	// Decode file
+	reader, err := encoder.NewReadSeeker(shards, key, iv)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/octet-stream")
+
+	_, err = io.Copy(w, reader)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	for _, shardFile := range shardFiles {
+		err := shardFile.Close()
+		if err != nil {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+}
+
+// DeleteFileVersion deletes a file version
+func (bc *BackendController) DeleteFileVersion(w http.ResponseWriter, r *http.Request) {
+
+	// somehow get user idk
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// fileID and versionID
+	vars := mux.Vars(r)
+	fileID := vars["fileID"]
+	versionID := vars["versionID"]
+
+	// convert versionID into int
+	versionIDInt, err := strconv.Atoi(versionID)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if fileID == "" || versionID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
+		return
+	}
+
+	// get file
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// delete version
+	err = file.DeleteFileVersion(bc.Db, user, versionIDInt)
+	if errors.Is(err, dbfs.ErrVersionNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	util.HttpJson(w, http.StatusOK, nil)
+
+}
+
+// LsFolderID lists the contents of a folder based on the folderID
+func (bc *BackendController) LsFolderID(w http.ResponseWriter, r *http.Request) {
+	// somehow get user idk
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// folderID
+	vars := mux.Vars(r)
+	folderID := vars["folderID"]
+
+	if folderID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No folderID provided")
+		return
+	}
+
+	// get folder
+	folder, err := dbfs.GetFileById(bc.Db, folderID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// get folder contents
+	files, err := folder.ListContents(bc.Db, user)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// return contents
+	util.HttpJson(w, http.StatusOK, files)
+}
+
+// UpdateFolderMetadata updates the filename or the versioningMode of a folder
+func (bc *BackendController) UpdateFolderMetadata(w http.ResponseWriter, r *http.Request) {
+	// somehow get user idk
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// folderID
+	vars := mux.Vars(r)
+	folderID := vars["folderID"]
+
+	if folderID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No folderID provided")
+		return
+	}
+
+	// get headers
+	newName := r.Header.Get("new_name")
+	versioningMode := r.Header.Get("versioning_mode")
+
+	versioningModeBool := (versioningMode != "")
+
+	// get folder
+	folder, err := dbfs.GetFileById(bc.Db, folderID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	var versioningModeInt int8
+
+	if versioningModeBool {
+		tempVersioningModeInt, err := strconv.Atoi(versioningMode)
+		versioningModeInt = int8(tempVersioningModeInt)
+		if err != nil {
+			util.HttpError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+	} else {
+		versioningModeInt = folder.VersioningMode
+	}
+
+	// attempt to amend folder
+
+	fmm := dbfs.FileMetadataModification{
+		FileName:       newName,
+		VersioningMode: versioningModeInt,
+	}
+
+	err = folder.UpdateMetaData(bc.Db, fmm, user)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// return contents
+	util.HttpJson(w, http.StatusOK, nil)
+}
+
+// DeleteFolder deletes a folder
+func (bc *BackendController) DeleteFolder(w http.ResponseWriter, r *http.Request) {
+	// somehow get user idk
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// folderID
+	vars := mux.Vars(r)
+	folderID := vars["folderID"]
+
+	if folderID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No folderID provided")
+		return
+	}
+
+	// get folder
+	folder, err := dbfs.GetFileById(bc.Db, folderID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Check if folder is actually a folder
+	if folder.EntryType != dbfs.IsFolder {
+		util.HttpError(w, http.StatusBadRequest, "File is not a folder")
+		return
+	}
+
+	// attempt to delete folder
+	err = folder.Delete(bc.Db, user)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// return contents
+	util.HttpJson(w, http.StatusOK, nil)
+}
+
+// GetFolderIDFromPath list the contents of a folder based on the folderPath
+func (bc *BackendController) GetFolderIDFromPath(w http.ResponseWriter, r *http.Request) {
+
+	// somehow get user idk
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// folderPath from header
+	folderPath := r.Header.Get("folder_path")
+
+	if folderPath == "" {
+		util.HttpError(w, http.StatusBadRequest, "No folder_path provided")
+		return
+	}
+
+	// get folder
+	folder, err := dbfs.GetFileByPath(bc.Db, folderPath, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// return contents
+	util.HttpJson(w, http.StatusOK, folder)
+}
+
+// CreateFolder creates a folder given a folder_name, parent_folder_id or parent_folder_path
+func (bc *BackendController) CreateFolder(w http.ResponseWriter, r *http.Request) {
+	// somehow get user idk
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// get headers
+	folderName := r.Header.Get("folder_name")
+	parentFolderID := r.Header.Get("parent_folder_id")
+	parentFolderPath := r.Header.Get("parent_folder_path")
+
+	// check if folder_name is provided
+	if folderName == "" {
+		util.HttpError(w, http.StatusBadRequest, "Missing new folder name")
+		return
+	}
+
+	useID := true
+
+	if parentFolderID == "" && parentFolderPath == "" {
+		util.HttpError(w, http.StatusBadRequest, "Path or Folder ID not provided")
+		return
+	} else if parentFolderID == "" {
+		useID = false
+	}
+
+	// get parent folder
+
+	var parentFolder *dbfs.File
+
+	if useID {
+		parentFolder, err = dbfs.GetFileById(bc.Db, parentFolderID, user)
+		if errors.Is(err, dbfs.ErrFileNotFound) {
+			util.HttpError(w, http.StatusNotFound, err.Error())
+			return
+		}
+	} else {
+		parentFolder, err = dbfs.GetFileByPath(bc.Db, parentFolderPath, user)
+		if errors.Is(err, dbfs.ErrFileNotFound) {
+			util.HttpError(w, http.StatusNotFound, err.Error())
+			return
+		}
+	}
+
+	// Check that parent folder is actually a folder
+	if parentFolder.EntryType != dbfs.IsFolder {
+		util.HttpError(w, http.StatusBadRequest, "Parent folder is not a folder")
+		return
+	}
+
+	// attempt to create folder (permisison check here as well)
+	newFolder, err := parentFolder.CreateSubFolder(bc.Db, folderName, user)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// return new folder
+	util.HttpJson(w, http.StatusOK, newFolder)
+
+}
+
+// GetFolderPermissions returns the permissions of a folder
+func (bc *BackendController) GetFolderPermissions(w http.ResponseWriter, r *http.Request) {
+	// somehow get user idk
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// folderID
+	vars := mux.Vars(r)
+	folderID := vars["folderID"]
+
+	if folderID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No folderID provided")
+		return
+	}
+
+	// get folder
+	folder, err := dbfs.GetFileById(bc.Db, folderID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Check if folder is actually a folder
+	if folder.EntryType != dbfs.IsFolder {
+		util.HttpError(w, http.StatusBadRequest, "File is not a folder")
+		return
+	}
+
+	// attempt to get permissions
+	permissions, err := folder.GetPermissions(bc.Db, user)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// return permissions
+	util.HttpJson(w, http.StatusOK, permissions)
+}
+
+// ModifyPermissionsFolder modifies the permissions of a folder based on the id obtained from GetFolderPermissions
+func (bc *BackendController) ModifyPermissionsFolder(w http.ResponseWriter, r *http.Request) {
+
+	// somehow get user idk
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// fileID
+	vars := mux.Vars(r)
+	folderID := vars["folderID"]
+
+	// get other headers
+	permissionID := r.Header.Get("permission_id")
+	canRead := r.Header.Get("can_read")
+	canWrite := r.Header.Get("can_write")
+	canExecute := r.Header.Get("can_execute")
+	canShare := r.Header.Get("can_share")
+	canAudit := r.Header.Get("can_audit")
+
+	// if any empty return error
+	if folderID == "" || permissionID == "" || canRead == "" || canWrite == "" || canExecute == "" || canShare == "" || canAudit == "" {
+		util.HttpError(w, http.StatusBadRequest, "Missing params")
+		return
+	}
+
+	// convert permissionID to int
+	permissionIDInt, err := strconv.Atoi(permissionID)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "Invalid permissionID")
+		return
+	}
+
+	// convert to bool
+	canReadBool, err := strconv.ParseBool(canRead)
+	if err != nil {
+		canReadBool = false
+	}
+	canWriteBool, err := strconv.ParseBool(canWrite)
+	if err != nil {
+		canWriteBool = false
+	}
+	canExecuteBool, err := strconv.ParseBool(canExecute)
+	if err != nil {
+		canExecuteBool = false
+	}
+	canShareBool, err := strconv.ParseBool(canShare)
+	if err != nil {
+		canShareBool = false
+	}
+	canAuditBool, err := strconv.ParseBool(canAudit)
+	if err != nil {
+		canAuditBool = false
+	}
+
+	// get file
+	folder, err := dbfs.GetFileById(bc.Db, folderID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Check if folder is actually a folder
+	if folder.EntryType != dbfs.IsFolder {
+		util.HttpError(w, http.StatusBadRequest, "File is not a folder")
+		return
+	}
+
+	// get old permission struct entry
+	oldPermission, err := folder.GetPermissionById(bc.Db, permissionIDInt, user)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// create new permission struct
+	newPermission := &dbfs.Permission{
+		FileId:       oldPermission.FileId,
+		PermissionId: oldPermission.PermissionId,
+		User:         oldPermission.User,
+		UserId:       oldPermission.UserId,
+		Group:        oldPermission.Group,
+		GroupId:      oldPermission.GroupId,
+		CanRead:      canReadBool,
+		CanWrite:     canWriteBool,
+		CanExecute:   canExecuteBool,
+		CanShare:     canShareBool,
+		VersionNo:    oldPermission.VersionNo,
+		Audit:        canAuditBool,
+		CreatedAt:    oldPermission.CreatedAt,
+		UpdatedAt:    oldPermission.UpdatedAt,
+		DeletedAt:    oldPermission.DeletedAt,
+		Status:       oldPermission.Status,
+	}
+
+	// call update
+
+	err = folder.UpdatePermission(bc.Db, oldPermission, newPermission, user)
+
+	if errors.Is(err, dbfs.ErrNoPermission) {
+		util.HttpError(w, http.StatusForbidden, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Success
+	util.HttpJson(w, http.StatusOK, nil)
+}
+
+// AddPermissionsFolder ads permission to a folder
+func (bc *BackendController) AddPermissionsFolder(w http.ResponseWriter, r *http.Request) {
+
+	// somehow get user idk
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// folderID
+	vars := mux.Vars(r)
+	folderID := vars["folderID"]
+
+	// get other headers
+	canRead := r.Header.Get("can_read")
+	canWrite := r.Header.Get("can_write")
+	canExecute := r.Header.Get("can_execute")
+	canShare := r.Header.Get("can_share")
+	canAudit := r.Header.Get("can_audit")
+	usersString := r.Header.Get("users")
+	groupsString := r.Header.Get("groups")
 
 	// need to process 'em
 
@@ -578,17 +1743,37 @@ func (bc *BackendController) AddPermissionsFile(w http.ResponseWriter, r *http.R
 		Audit:   canAuditBool,
 	}
 
-	//TODO: convert to array. Need to write a function to handle this
+	var usersStringArray []string
+	var groupsStringArray []string
+	_ = json.Unmarshal([]byte(usersString), &usersStringArray)
+	_ = json.Unmarshal([]byte(groupsString), &groupsStringArray)
 
-	var userObjects []dbfs.User
-	var groupObjects []dbfs.Group
+	userObjects := make([]dbfs.User, len(usersStringArray))
+	groupObjects := make([]dbfs.Group, len(groupsStringArray))
 
-	if fileID == "" {
-		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
+	for i, userString := range usersStringArray {
+		tempUser, err := dbfs.GetUserById(bc.Db, userString)
+		if err != nil {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		userObjects[i] = *tempUser
+	}
+	for i, groupString := range groupsStringArray {
+		tempGroup, err := dbfs.GetGroupById(bc.Db, groupString)
+		if err != nil {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		groupObjects[i] = *tempGroup
+	}
+
+	if folderID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No folderID provided")
 		return
 	}
 
-	file, err := dbfs.GetFileById(bc.db, fileID, user)
+	folder, err := dbfs.GetFileById(bc.Db, folderID, user)
 	if errors.Is(err, dbfs.ErrFileNotFound) {
 		util.HttpError(w, http.StatusNotFound, err.Error())
 		return
@@ -597,13 +1782,19 @@ func (bc *BackendController) AddPermissionsFile(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	// Check if folder is actually a folder
+	if folder.EntryType != dbfs.IsFolder {
+		util.HttpError(w, http.StatusBadRequest, "File is not a folder")
+		return
+	}
+
 	// add permissions
-	err = file.AddPermissionUsers(bc.db, &permissionNeeded, user, userObjects...)
+	err = folder.AddPermissionUsers(bc.Db, &permissionNeeded, user, userObjects...)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	err = file.AddPermissionGroups(bc.db, &permissionNeeded, user, groupObjects...)
+	err = folder.AddPermissionGroups(bc.Db, &permissionNeeded, user, groupObjects...)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -613,34 +1804,31 @@ func (bc *BackendController) AddPermissionsFile(w http.ResponseWriter, r *http.R
 	util.HttpJson(w, http.StatusOK, nil)
 }
 
-//GetFileVersionMetadata gets the metadata of a file version
-func (bc *BackendController) GetFileVersionMetadata(w http.ResponseWriter, r *http.Request) {
+// MoveFolder moves a folder to a new location
+func (bc *BackendController) MoveFolder(w http.ResponseWriter, r *http.Request) {
 
 	// somehow get user idk
-	user, err := dbfs.GetUser(bc.db, "1")
+	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	// fileID and versionID
+	// folderID
 	vars := mux.Vars(r)
-	fileID := vars["fileID"]
-	versionID := vars["versionID"]
+	folderID := vars["folderID"]
 
-	// convert versionID into int
-	versionIDInt, err := strconv.Atoi(versionID)
-	if err != nil {
-		util.HttpError(w, http.StatusBadRequest, err.Error())
+	// get other headers
+	newFolderID := r.Header.Get("folder_id")
+
+	if folderID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No folder_id provided")
 		return
 	}
 
-	if fileID == "" || versionID == "" {
-		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
-		return
-	}
+	// Getting og folder and dest folder from Db
 
-	file, err := dbfs.GetFileById(bc.db, fileID, user)
+	oldFolder, err := dbfs.GetFileById(bc.Db, folderID, user)
 	if errors.Is(err, dbfs.ErrFileNotFound) {
 		util.HttpError(w, http.StatusNotFound, err.Error())
 		return
@@ -649,37 +1837,13 @@ func (bc *BackendController) GetFileVersionMetadata(w http.ResponseWriter, r *ht
 		return
 	}
 
-	// get version
-	version, err := file.GetOldVersion(bc.db, user, versionIDInt)
-	if errors.Is(err, dbfs.ErrVersionNotFound) {
-		util.HttpError(w, http.StatusNotFound, err.Error())
+	// Check that old folder is actually a folder
+	if oldFolder.EntryType != dbfs.IsFolder {
+		util.HttpError(w, http.StatusBadRequest, "File is not a folder")
 		return
 	}
 
-	util.HttpJson(w, http.StatusOK, version)
-
-}
-
-//GetFileVersionHistory returns all the historical versions of a file
-func (bc *BackendController) GetFileVersionHistory(w http.ResponseWriter, r *http.Request) {
-
-	// somehow get user idk
-	user, err := dbfs.GetUser(bc.db, "1")
-	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	// fileID and versionID
-	vars := mux.Vars(r)
-	fileID := vars["fileID"]
-
-	if fileID == "" {
-		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
-		return
-	}
-
-	file, err := dbfs.GetFileById(bc.db, fileID, user)
+	destFolder, err := dbfs.GetFileById(bc.Db, newFolderID, user)
 	if errors.Is(err, dbfs.ErrFileNotFound) {
 		util.HttpError(w, http.StatusNotFound, err.Error())
 		return
@@ -688,177 +1852,53 @@ func (bc *BackendController) GetFileVersionHistory(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// get version
-	versions, err := file.GetAllVersions(bc.db, user)
-	if errors.Is(err, dbfs.ErrVersionNotFound) {
-		util.HttpError(w, http.StatusNotFound, err.Error())
-		return
-	}
-
-	util.HttpJson(w, http.StatusOK, versions)
-
-}
-
-//DownloadFileVersion downloads a file version
-func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.Request) {
-
-	// somehow get user idk
-	user, err := dbfs.GetUser(bc.db, "1")
-	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	// fileID and versionID
-	vars := mux.Vars(r)
-	fileID := vars["fileID"]
-	versionID := vars["versionID"]
-
-	// get password
-	password := r.Header.Get("password")
-
-	// convert versionID into int
-	versionIDInt, err := strconv.Atoi(versionID)
-	if err != nil {
-		util.HttpError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	if fileID == "" || versionID == "" {
-		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
-		return
-	}
-
-	// get file
-	file, err := dbfs.GetFileById(bc.db, fileID, user)
-	if errors.Is(err, dbfs.ErrFileNotFound) {
-		util.HttpError(w, http.StatusNotFound, err.Error())
+	// Move file (Permission check will be done by dbfs)
+	err = oldFolder.Move(bc.Db, destFolder, user)
+	if errors.Is(err, dbfs.ErrNoPermission) {
+		util.HttpError(w, http.StatusForbidden, err.Error())
 		return
 	} else if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	// get version
-	version, err := file.GetOldVersion(bc.db, user, versionIDInt)
-	if errors.Is(err, dbfs.ErrVersionNotFound) {
-		util.HttpError(w, http.StatusNotFound, err.Error())
-		return
-	}
-
-	// get file
-	shardsMeta, err := version.GetFragments(bc.db, user)
-	if err != nil {
-		return
-	}
-
-	// TODO: Now assuming that all fragments are on the same server, else you need to query multiple
-	// servers for the file fragments
-
-	// Opening input files
-	var shards []io.ReadSeeker
-	var shardFiles []*os.File
-	for _, shardMeta := range shardsMeta {
-		// TODO: Should pick up the inital part of the path from config file.
-		shardFile, err := os.Open(shardMeta.FileFragmentPath)
-		if err != nil {
-			util.HttpError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		shards = append(shards, shardFile)
-		shardFiles = append(shardFiles, shardFile)
-	}
-
-	hexKey, hexIv, err := file.GetDecryptionKey(bc.db, user, password)
-	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	// Getting key and iv
-	key, err := hex.DecodeString(hexKey)
-	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	iv, err := hex.DecodeString(hexIv)
-	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	// Decode file
-	reader, err := bc.encoder.NewReadSeeker(shards, key, iv)
-	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/octet-stream")
-
-	_, err = io.Copy(w, reader)
-	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	for _, shardFile := range shardFiles {
-		err := shardFile.Close()
-		if err != nil {
-			util.HttpError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-	}
-}
-
-// DeleteFileVersion deletes a file version
-func (bc *BackendController) DeleteFileVersion(w http.ResponseWriter, r *http.Request) {
-
-	// somehow get user idk
-	user, err := dbfs.GetUser(bc.db, "1")
-	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	// fileID and versionID
-	vars := mux.Vars(r)
-	fileID := vars["fileID"]
-	versionID := vars["versionID"]
-
-	// convert versionID into int
-	versionIDInt, err := strconv.Atoi(versionID)
-	if err != nil {
-		util.HttpError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	if fileID == "" || versionID == "" {
-		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
-		return
-	}
-
-	// get file
-	file, err := dbfs.GetFileById(bc.db, fileID, user)
-	if errors.Is(err, dbfs.ErrFileNotFound) {
-		util.HttpError(w, http.StatusNotFound, err.Error())
-		return
-	} else if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	// delete version
-	err = file.DeleteFileVersion(bc.db, user, versionIDInt)
-	if errors.Is(err, dbfs.ErrVersionNotFound) {
-		util.HttpError(w, http.StatusNotFound, err.Error())
-		return
-	} else if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
+	// success
 	util.HttpJson(w, http.StatusOK, nil)
 
+}
+
+// TODO: CopyFolder NEED TO DO
+
+// GetFolderDetails returns details about a folder from folderID
+func (bc *BackendController) GetFolderDetails(w http.ResponseWriter, r *http.Request) {
+
+	// somehow get user idk
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// folderID
+	vars := mux.Vars(r)
+	folderID := vars["folderID"]
+
+	// get file
+	folder, err := dbfs.GetFileById(bc.Db, folderID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Check if folder is actually a folder
+	if folder.EntryType != dbfs.IsFolder {
+		util.HttpError(w, http.StatusBadRequest, "File is not a folder")
+		return
+	}
+
+	// success
+	util.HttpJson(w, http.StatusOK, folder)
 }

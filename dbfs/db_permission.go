@@ -48,9 +48,9 @@ type PermissionHistory struct {
 	Status       int8
 }
 
-// createPermissions takes in the parent file and copies it to the new File
+// CreatePermissions takes in the parent file and copies it to the new File
 // if additional permissions are passed in, it'll add onto it as well
-func createPermissions(tx *gorm.DB, newFile *File, additionalPermissions ...Permission) error {
+func CreatePermissions(tx *gorm.DB, newFile *File, additionalPermissions ...Permission) error {
 
 	var oldPermissionRecords []Permission
 
@@ -143,7 +143,8 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *Permission
 	err = tx.Transaction(func(tx *gorm.DB) error {
 		if !isFileOrEmptyFolder {
 			// recursively go down
-			ls, err2 := ListFilesByPath(tx, file.FileId, requestUser)
+
+			ls, err2 := file.ListContents(tx, requestUser)
 
 			if err2 != nil {
 				return err2
@@ -163,10 +164,12 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *Permission
 		for _, user := range users {
 			updated := false
 			for _, existingPermissions := range oldPermissionRecords {
-				if user.UserId == *existingPermissions.UserId {
-					updated = true
-					// Modify existing permission
-					// ONLY ALLOW MORE, NOT LESS
+				if existingPermissions.UserId != nil {
+					if user.UserId == *existingPermissions.UserId {
+						updated = true
+						// Modify existing permission
+						// ONLY ALLOW MORE, NOT LESS
+					}
 				}
 
 				if updated {
@@ -319,7 +322,7 @@ func upsertGroupsPermission(tx *gorm.DB, file *File, permissionNeeded *Permissio
 
 		if !isFileOrEmptyFolder {
 			// recursively go down
-			ls, err2 := ListFilesByPath(tx, file.FileId, requestUser)
+			ls, err2 := file.ListContents(tx, requestUser)
 
 			if err2 != nil {
 				return err2
@@ -339,10 +342,12 @@ func upsertGroupsPermission(tx *gorm.DB, file *File, permissionNeeded *Permissio
 		for _, group := range groups {
 			updated := false
 			for _, existingPermissions := range oldPermissionRecords {
-				if group.GroupId == *existingPermissions.GroupId {
-					updated = true
-					// Modify existing permission
-					// ONLY ALLOW MORE, NOT LESS
+				if existingPermissions.GroupId != nil {
+					if group.GroupId == *existingPermissions.GroupId {
+						updated = true
+						// Modify existing permission
+						// ONLY ALLOW MORE, NOT LESS
+					}
 				}
 
 				if updated {
@@ -599,7 +604,7 @@ func updatePermissionsVersions(tx *gorm.DB, file *File, user *User) error {
 		}
 
 		// Update FileVersion
-		err2 = createFileVersionFromFile(tx, file, user)
+		err2 = CreateFileVersionFromFile(tx, file, user)
 		if err2 != nil {
 			return err2
 		}
