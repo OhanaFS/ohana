@@ -67,8 +67,7 @@ export function AdminSettings() {
 
     setDisable((prevValue) => prevValue);
   }
-
-
+  
   return (
     <>
       <AppBase
@@ -77,27 +76,20 @@ export function AdminSettings() {
         username="@alex"
         image="https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80"
       >
-        <Center>
-          <Card
-            style={{
-              marginLeft: '0%',
-              height: '65vh',
-              border: '1px solid ',
-              marginTop: '3%',
-              width: '60%',
-              background:
-                theme.colorScheme === 'dark'
-                  ? theme.colors.dark[8]
-                  : theme.white[0],
-            }}
-            shadow="sm"
-            p="xl"
-          >
-            <Table striped verticalSpacing="md">
+        <div         
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'flex-start',
+          }}
+            
+            > 
+        <div className="settings">
+            <Table striped verticalSpacing="md"     >
               <caption
                 style={{ fontWeight: '600', fontSize: '22px', color: 'black' }}
               >
-                {' '}
+  
                 <span style={{ textAlign: 'center' }}>
                   Notification Settings
                 </span>
@@ -107,7 +99,7 @@ export function AdminSettings() {
               <tbody style={{}}>
                 <tr>
                   <td
-                    width="50%"
+                  
                     style={{
                       textAlign: 'left',
                       fontWeight: '400',
@@ -115,29 +107,29 @@ export function AdminSettings() {
                       color: 'black',
                     }}
                   >
-                    {' '}
+
                     <Text style={{}}> Allow Cluster health alerts </Text>
                   </td>
-                  <td width="50%">
-                    {' '}
-                    <Center style={{ marginLeft: '80%' }}>
-                      {' '}
+                  <td style={{ position:'relative'}}>
                       <Checkbox
                         size="md"
-                        style={{}}
+                        style={{     
+                          position: 'absolute',
+                          top:'18px',
+                          right: '16px'}}
                         checked={clusterAlerts}
                         onChange={(event) => [
                           setChecked(event.currentTarget.checked),
                           setDisable(event.currentTarget.checked),
                         ]}
                       />{' '}
-                    </Center>{' '}
+                   {' '}
                   </td>
                 </tr>
 
                 <tr>
                   <td
-                    width="50%"
+                   
                     style={{
                       textAlign: 'left',
                       fontWeight: '400',
@@ -148,27 +140,28 @@ export function AdminSettings() {
                     {' '}
                     <Text style={{}}> Allow server offline alerts </Text>
                   </td>
-                  <td width="50%">
-                    {' '}
-                    <Center style={{ marginLeft: '80%' }}>
-                      {' '}
+                  <td style={{ position:'relative'}}>
+             
                       <Checkbox
                         size="md"
                         id="1"
-                        style={{}}
+                        style={{     
+                          position: 'absolute',
+                          top:'18px',
+                          right: '16px'}}
                         checked={sActionAlerts}
                         onChange={(event) => [
                           setChecked1(event.currentTarget.checked),
                           setDisable(event.currentTarget.checked),
                         ]}
-                      />{' '}
-                    </Center>
+                      />
+                   
                   </td>
                 </tr>
 
                 <tr>
                   <td
-                    width="50%"
+                  
                     style={{
                       textAlign: 'left',
                       fontWeight: '400',
@@ -179,27 +172,28 @@ export function AdminSettings() {
                     {' '}
                     <Text style={{}}> Allow supicious action alerts </Text>{' '}
                   </td>
-                  <td width="50%">
-                    {' '}
-                    <Center style={{ marginLeft: '80%' }}>
-                      {' '}
+                  <td style={{ position:'relative'}}>
+               
                       <Checkbox
                         size="md"
                         id="1"
-                        style={{}}
+                        style={{     
+                          position: 'absolute',
+                          top:'18px',
+                          right: '16px'}}
                         checked={supiciousAlerts}
                         onChange={(event) => [
                           setChecked2(event.currentTarget.checked),
                           setDisable(event.currentTarget.checked),
                         ]}
                       />{' '}
-                    </Center>{' '}
+                
                   </td>
                 </tr>
 
                 <tr>
                   <td
-                    width="50%"
+                   
                     style={{
                       textAlign: 'left',
                       fontWeight: '400',
@@ -210,27 +204,28 @@ export function AdminSettings() {
                     {' '}
                     <span style={{}}> Allow server full alert </span>{' '}
                   </td>
-                  <td width="50%">
-                    {' '}
-                    <Center style={{ marginLeft: '80%' }}>
-                      {' '}
+                  <td style={{ position:'relative'}} >
+                  
                       <Checkbox
                         size="md"
                         id="1"
-                        style={{}}
+                        style={{     
+                          position: 'absolute',
+                          top:'18px',
+                          right: '16px'}}
                         checked={serverAlerts}
                         onChange={(event) => [
                           setChecked3(event.currentTarget.checked),
                           setDisable(event.currentTarget.checked),
                         ]}
                       />{' '}
-                    </Center>
+                  
                   </td>
                 </tr>
 
                 <tr>
                   <td
-                    width="50%"
+                  
                     style={{
                       textAlign: 'left',
                       fontWeight: '400',
@@ -241,21 +236,26 @@ export function AdminSettings() {
                     {' '}
                     <span style={{}}> Allow supicious file alerts </span>
                   </td>
-                  <td width="50%" style={{}}>
-                    <Center style={{ marginLeft: '80%' }}>
+                
+                  <td  style={{ position:'relative'}}>
+                   
                       {' '}
                       <Checkbox
                         size="md"
                         id="1"
-                        style={{}}
+                        style={{     
+                          position: 'absolute',
+                          top:'18px',
+                          right: '16px'}}
                         checked={sFileAlerts}
                         onChange={(event) => [
                           setChecked4(event.currentTarget.checked),
                           setDisable(event.currentTarget.checked),
                         ]}
                       />
-                    </Center>{' '}
+                  
                   </td>
+                 
                 </tr>
 
                 <tr>
@@ -317,11 +317,14 @@ export function AdminSettings() {
                 </tr>
               </tbody>
               <tfoot>
-                <td></td>
-                <td>
+             
+                <td colSpan={2} style={{ position:'relative'}}>
                   <Button
                     disabled={disable}
-                    style={{ marginTop: '2%', float: 'right' }}
+                    style={{     
+                      position: 'absolute',
+                      top:'18px',
+                      right: '16px'}}
                     variant="default"
                     color="dark"
                     size="md"
@@ -331,8 +334,8 @@ export function AdminSettings() {
                 </td>
               </tfoot>
             </Table>
-          </Card>
-        </Center>
+      </div>
+          </div>
       </AppBase>
     </>
   );
