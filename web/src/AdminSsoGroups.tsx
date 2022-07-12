@@ -14,7 +14,7 @@ export function AdminSsoGroups() {
     conso
   */
 
-  const SSOGroupList = ['Hr', 'asd'];
+  const SSOGroupList = ['Hr', 'asd', 'asd', 'asd'];
 
   return (
     <>

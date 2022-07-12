@@ -10,7 +10,6 @@ import { AdminConfiguration } from './AdminConfiguration';
 import { AdminCreateKey } from './AdminCreateKey';
 import { AdminCreateSsoKey } from './AdminCreateSsoKey';
 import { AdminKeyManagement } from './AdminKeyManagement';
-import { AdminMaintenanceLogs } from './AdminMaintenanceLogs';
 import { AdminMaintenanceResults } from './AdminMaintenanceResults';
 import { AdminMaintenanceSettings } from './AdminMaintenanceSettings';
 import { AdminNodes } from './AdminNodes';
@@ -19,6 +18,8 @@ import { AdminRunMaintenance } from './AdminRunMaintenance';
 import { AdminSettings } from './AdminSettings';
 import { AdminSsoGroups } from './AdminSsoGroups';
 import { AdminSsoGroupsInside } from './AdminSsoGroupsInside';
+import { AdminLogs } from './AdminLogs';
+import AdminMaintenanceLogs from './AdminMaintenanceLogs';
 
 export default function Demo() {
 

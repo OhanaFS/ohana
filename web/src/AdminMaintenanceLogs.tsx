@@ -1,4 +1,5 @@
 
+
 import { AdminLogs } from './AdminLogs';
 import AppBase from './components/AppBase';
 
@@ -716,10 +717,8 @@ export function AdminMaintenanceLogs() {
       >
         <AdminLogs
           consoleWidth={120}
-          consoleHeight={80}
+          consoleHeight={60}
           groupList={maintenanceLogss}
-          addObjectLabel="Group"
-          deleteObjectLabel="Group"
           tableHeader={[
             ['Maintenance Date'],
             ['Total Files'],
@@ -735,3 +734,5 @@ export function AdminMaintenanceLogs() {
     </>
   );
 }
+
+export default AdminMaintenanceLogs;

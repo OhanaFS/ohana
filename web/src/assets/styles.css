@@ -21,22 +21,57 @@
   text-align: left;
   width: 800px;
   background-color: white;
+}
+.maintenanceLogs{
+  border: 1px solid #ccc;
+  text-align: left;
+  width: 800px;
+  background-color: white;
+  padding-left:10px;
 
+}
+#maintenanceLogsTable td,th {
+  font-size: 12px;
+  font-weight: 400;
+  text-align: 'left';
+  color:black;
+}
+.ssoGroupsDetails{
+    border: 1px solid #ccc;
+    text-align: left;
+    width: 800px;
+    background-color: white;
+    padding-left:10px;
 }
 @media screen and (max-width: 450px) {
   .loginBox {
     width: 350px;
   }
 }
-
 .dashboardLogsCard {
   width: 750px;
   border: none;
   margin: 10px;
 }
-
+@media screen and (min-width: 450px) {
+  #maintenanceLogsTable td,th {
+    font-size: 20px;
+    font-weight: 400;
+    text-align: 'left';
+    color:black;
+    }
+}
 @media screen and (min-width: 1830px) {
   .dashboardLogsCard {
     width: 1520px;
   }
+  .maintenanceLogs{
+    width: 1200px;
+  }
+  #maintenanceLogsTable td,th {
+    font-size: 30px;
+    font-weight: 400;
+    text-align: 'left';
+    color:black;
+    }
 }

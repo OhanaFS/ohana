@@ -14,7 +14,7 @@ import AppBase from './components/AppBase';
 export function AdminConfiguration() {
   const theme = useMantineTheme();
   return (
-    <>
+  
       <AppBase
         userType="admin"
         name="Alex Simmons"
@@ -108,7 +108,7 @@ export function AdminConfiguration() {
           </Grid>
         </Center>
       </AppBase>
-    </>
+    
   );
 }
 

@@ -8,11 +8,12 @@ import {
   Checkbox,
   useMantineTheme,
 } from '@mantine/core';
+import { useState } from 'react';
 import AppBase from './components/AppBase';
 
 export function AdminSsoGroupsInside() {
-  const data = [['Tom'], ['Peter'], ['Raymond']];
-
+  const data = ['Tom', 'Peter', 'Raymond'];
+  let [CurrentUser, setValue] = useState(data);
   const ths = (
     <tr>
       <th
@@ -47,6 +48,25 @@ export function AdminSsoGroupsInside() {
     </tr>
   ));
 
+  function addUser() {
+
+    const userinput = prompt('Please enter user' );
+    setValue((prevValue) => data.concat('asd'));
+  }
+
+  const [checkedOne, setCheckedOne] = useState(['']);
+  function deleteUser() {
+    checkedOne.forEach((element) => {
+      setCheckedOne(checkedOne.filter((item) => item !== element));
+      setValue(data.filter((item) => item !== element));
+    });
+  }
+  function update(index: string) {
+    setCheckedOne((prevValue) => checkedOne.concat(index));
+  }
+  function remove(index: string) {
+    setCheckedOne(checkedOne.filter((item) => item !== index));
+  }
   const theme = useMantineTheme();
 
   return (
@@ -57,27 +77,16 @@ export function AdminSsoGroupsInside() {
         username="@alex"
         image="https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80"
       >
-        <Center style={{ marginRight: '' }}>
-          <Grid style={{ width: '50vh' }}>
-            <Grid.Col span={12}>
-              <Card
-                style={{
-                  marginLeft: '0%',
-                  height: '50vh',
-                  border: '1px solid ',
-                  marginTop: '3%',
-                  width: '160%',
-                  background:
-                    theme.colorScheme === 'dark'
-                      ? theme.colors.dark[8]
-                      : theme.white,
-                }}
-                shadow="sm"
-                p="xl"
-              >
-                <Card.Section
-                  style={{ textAlign: 'left', marginLeft: '0%' }}
-                ></Card.Section>
+      <div
+        style={{
+        display: 'flex',
+        justifyContent: 'center',
+        height: '80vh',
+      }}
+    >
+      <div className="ssoGroupsDetails">
+             
+         
 
                 <ScrollArea
                   style={{ height: '90%', width: '100%', marginTop: '1%' }}
@@ -102,35 +111,51 @@ export function AdminSsoGroupsInside() {
                     <tbody>{rows}</tbody>
                   </Table>
                 </ScrollArea>
-                <tr>
-                  <td width={'80%'}>
-                    {' '}
-                    <Button
-                      variant="default"
-                      color="dark"
-                      size="md"
-                      style={{ marginLeft: 'auto', marginTop: '3%' }}
-                    >
-                      Add User
-                    </Button>
-                  </td>
+              
+                <div style={{ position: 'relative' }}>
+          <td
+            style={{
+              position: 'absolute',
+              top: '5px',
+              left: '16px',
+            }}
+          >
+            {' '}
+            <Button
+              variant="default"
+              color="dark"
+              size="md"
+              style={{}}
+              onClick={() => addUser()}
+            >
+              Add User
+            </Button>
+          </td>
 
-                  <td>
-                    {' '}
-                    <Button
-                      variant="default"
-                      color="dark"
-                      size="md"
-                      style={{ marginLeft: 'auto', marginTop: '3%' }}
-                    >
-                      Delete User
-                    </Button>
-                  </td>
-                </tr>
-              </Card>
-            </Grid.Col>
-          </Grid>
-        </Center>
+          <td
+            style={{
+              position: 'absolute',
+              top: '5px',
+              right: '16px',
+            }}
+          >
+            {' '}
+            <Button
+              variant="default"
+              color="dark"
+              size="md"
+              style={{}}
+              onClick={() => deleteUser()}
+            >
+              Delete User
+            </Button>
+          </td>
+        </div>
+              
+           
+              </div>
+          </div>
+        
       </AppBase>
     </>
   );
