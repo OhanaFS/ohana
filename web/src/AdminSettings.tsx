@@ -23,35 +23,34 @@ export function AdminSettings() {
     { name: 'redundancy', setting: 'Low' },
   ];
 
-  const [checked0, setChecked] = useState(() => {
+  const [clusterAlerts, setChecked] = useState(() => {
     if (ConfigurationSettings[0].setting === 'true') {
       return true;
     }
-
     return false;
   });
-  const [checked1, setChecked1] = useState(() => {
+  const [sActionAlerts, setChecked1] = useState(() => {
     if (ConfigurationSettings[1].setting === 'true') {
       return true;
     }
 
     return false;
   });
-  const [checked2, setChecked2] = useState(() => {
+  const [supiciousAlerts, setChecked2] = useState(() => {
     if (ConfigurationSettings[2].setting === 'true') {
       return true;
     }
 
     return false;
   });
-  const [checked3, setChecked3] = useState(() => {
+  const [serverAlerts, setChecked3] = useState(() => {
     if (ConfigurationSettings[3].setting === 'true') {
       return true;
     }
 
     return false;
   });
-  const [checked4, setChecked4] = useState(() => {
+  const [sFileAlerts, setChecked4] = useState(() => {
     if (ConfigurationSettings[4].setting === 'true') {
       return true;
     }
@@ -63,6 +62,12 @@ export function AdminSettings() {
   let redundancy = ConfigurationSettings[6].setting;
 
   const [disable, setDisable] = useState(true);
+
+  function checkUser(){
+
+    setDisable((prevValue) => prevValue);
+  }
+
 
   return (
     <>
@@ -111,7 +116,7 @@ export function AdminSettings() {
                     }}
                   >
                     {' '}
-                    <Text style={{}}> Allow Cluster health alerts aa </Text>
+                    <Text style={{}}> Allow Cluster health alerts </Text>
                   </td>
                   <td width="50%">
                     {' '}
@@ -120,7 +125,7 @@ export function AdminSettings() {
                       <Checkbox
                         size="md"
                         style={{}}
-                        checked={checked0}
+                        checked={clusterAlerts}
                         onChange={(event) => [
                           setChecked(event.currentTarget.checked),
                           setDisable(event.currentTarget.checked),
@@ -151,7 +156,7 @@ export function AdminSettings() {
                         size="md"
                         id="1"
                         style={{}}
-                        checked={checked1}
+                        checked={sActionAlerts}
                         onChange={(event) => [
                           setChecked1(event.currentTarget.checked),
                           setDisable(event.currentTarget.checked),
@@ -182,7 +187,7 @@ export function AdminSettings() {
                         size="md"
                         id="1"
                         style={{}}
-                        checked={checked2}
+                        checked={supiciousAlerts}
                         onChange={(event) => [
                           setChecked2(event.currentTarget.checked),
                           setDisable(event.currentTarget.checked),
@@ -213,7 +218,7 @@ export function AdminSettings() {
                         size="md"
                         id="1"
                         style={{}}
-                        checked={checked3}
+                        checked={serverAlerts}
                         onChange={(event) => [
                           setChecked3(event.currentTarget.checked),
                           setDisable(event.currentTarget.checked),
@@ -243,7 +248,7 @@ export function AdminSettings() {
                         size="md"
                         id="1"
                         style={{}}
-                        checked={checked4}
+                        checked={sFileAlerts}
                         onChange={(event) => [
                           setChecked4(event.currentTarget.checked),
                           setDisable(event.currentTarget.checked),

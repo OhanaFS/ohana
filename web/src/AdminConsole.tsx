@@ -28,17 +28,16 @@ export function AdminConsole(props: ConsoleDetails) {
   const theme = useMantineTheme();
   let [CurrentSSOGroups, setValue] = useState(props.groupList);
   function add() {
-    setValue((prevValue) => CurrentSSOGroups.concat('asd'));
+
+    const userinput = prompt('Please enter ' +props.addObjectLabel)
+    setValue((prevValue) => CurrentSSOGroups.concat(userinput));
   }
 
   const [checkedOne, setCheckedOne] = useState(['']);
-
   function deleteGroup() {
     checkedOne.forEach((element) => {
       setCheckedOne(checkedOne.filter((item) => item !== element));
       setValue(CurrentSSOGroups.filter((item) => item !== element));
-
-      console.log(CurrentSSOGroups);
     });
   }
   function update(index: string) {
