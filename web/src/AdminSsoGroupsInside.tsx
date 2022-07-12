@@ -1,18 +1,19 @@
 import {
-  Grid,
   Table,
   Button,
-  Center,
   ScrollArea,
-  Card,
   Checkbox,
   useMantineTheme,
 } from '@mantine/core';
 import { useState } from 'react';
 import AppBase from './components/AppBase';
 
+
+
+
 export function AdminSsoGroupsInside() {
-  const data = ['Tom', 'Peter', 'Raymond'];
+  
+  const data: Array<any>= ['Tom', 'Peter', 'Raymond'];
   let [CurrentUser, setValue] = useState(data);
   const ths = (
     <tr>
@@ -29,10 +30,10 @@ export function AdminSsoGroupsInside() {
       </th>
     </tr>
   );
-  const rows = data.map((items) => (
+  const rows = CurrentUser.map((items) => (
     <tr>
       <td
-        width="80%"
+        
         style={{
           textAlign: 'left',
           fontWeight: '400',
@@ -51,8 +52,11 @@ export function AdminSsoGroupsInside() {
   function addUser() {
 
     const userinput = prompt('Please enter user' );
-    setValue((prevValue) => data.concat('asd'));
+    setValue((prevValue) => CurrentUser.concat(userinput));
+    
   }
+
+  
 
   const [checkedOne, setCheckedOne] = useState(['']);
   function deleteUser() {
@@ -61,9 +65,7 @@ export function AdminSsoGroupsInside() {
       setValue(data.filter((item) => item !== element));
     });
   }
-  function update(index: string) {
-    setCheckedOne((prevValue) => checkedOne.concat(index));
-  }
+
   function remove(index: string) {
     setCheckedOne(checkedOne.filter((item) => item !== index));
   }
