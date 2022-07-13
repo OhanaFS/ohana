@@ -85,7 +85,7 @@ export function AdminSettings() {
         <div className="settings">
           <Table striped verticalSpacing="md"     >
             <caption
-              style={{ fontWeight: '600', fontSize: '22px', color: 'black' }}
+              style={{ fontWeight: '600', fontSize: '22px', color: 'black', margin: '15px' }}
             >
               <span style={{ textAlign: 'center' }}>
                 Notification Settings
