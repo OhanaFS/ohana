@@ -8,9 +8,6 @@ import {
 import { useState } from 'react';
 import AppBase from './components/AppBase';
 
-
-
-
 export function AdminSsoGroupsInside() {
   
   const data: Array<any>= ['Tom', 'Peter', 'Raymond'];

@@ -1,15 +1,11 @@
 import {
   Button,
   Checkbox,
-  Text,
-  Center,
-  Card,
   Table,
   useMantineTheme,
 } from '@mantine/core';
 
 import { useState } from 'react';
-
 import {  Link } from 'react-router-dom';
 import AppBase from './components/AppBase';
 

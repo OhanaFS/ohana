@@ -1,10 +1,7 @@
 import {
   useMantineTheme,
-  Text,
   Checkbox,
   Button,
-  Center,
-  Card,
   Table,
   ActionIcon,
 } from '@mantine/core';

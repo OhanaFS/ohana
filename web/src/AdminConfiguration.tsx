@@ -1,12 +1,9 @@
 import {
-  Grid,
   Button,
   useMantineTheme,
   Textarea,
   Checkbox,
   Table,
-  Center,
-  Card,
 } from '@mantine/core';
 
 import AppBase from './components/AppBase';

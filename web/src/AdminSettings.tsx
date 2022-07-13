@@ -2,9 +2,7 @@ import {
   Checkbox,
   Button,
   Text,
-  Center,
   Table,
-  Card,
   useMantineTheme,
 } from '@mantine/core';
 import { useState } from 'react';

@@ -4,11 +4,10 @@ import {
   Text,
   Card,
   useMantineTheme,
-  Image,
   Center,
 } from '@mantine/core';
 import { Link } from 'react-router-dom';
-import { ResponsiveContainer, PieChart, Pie, Legend, Tooltip } from 'recharts';
+import { ResponsiveContainer, PieChart, Pie} from 'recharts';
 import { Cell } from 'tabler-icons-react';
 import AppBase from './components/AppBase';
 
