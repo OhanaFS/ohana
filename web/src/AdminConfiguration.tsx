@@ -21,31 +21,24 @@ export function AdminConfiguration() {
         username="@alex"
         image="https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80"
       >
-        <Center style={{}}>
-          <Grid style={{ width: '60vh' }}>
-            <Card
-              style={{
-                marginLeft: '0%',
-                height: '45vh',
-                border: '1px solid ',
-                marginTop: '8%',
-                width: '160%',
-                background:
-                  theme.colorScheme === 'dark'
-                    ? theme.colors.dark[8]
-                    : theme.white,
-              }}
-              shadow="sm"
-              p="xl"
-            >
+    <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'flex-start',
+           
+          }}
+
+        >
+          <div className="rotateKey">
               <Table captionSide="top" verticalSpacing="md">
                 <caption
                   style={{
-                    textAlign: 'left',
+                    textAlign: 'center',
                     fontWeight: 600,
                     fontSize: '24px',
                     color: 'black',
-                    marginLeft: '1%',
+                   
                   }}
                 >
                   Rotate Key
@@ -60,7 +53,6 @@ export function AdminConfiguration() {
                         color: 'black',
                         border: 'none',
                       }}
-                      width="100%"
                     >
                       {' '}
                       Specify the file/directory location and the system will
@@ -80,6 +72,7 @@ export function AdminConfiguration() {
                   <tr>
                     <td
                       style={{
+                        border: 'none',
                         display: 'flex',
                         textAlign: 'left',
                         fontWeight: 400,
@@ -88,25 +81,33 @@ export function AdminConfiguration() {
                       }}
                     >
                       Master Key :{' '}
-                      <Checkbox style={{ marginLeft: '2%' }}> </Checkbox>
+                      <Checkbox style={{ marginLeft: '10px' }}> </Checkbox>
                     </td>
                   </tr>
-                </tbody>
-              </Table>
+              
 
-              <div style={{ display: 'flex' }}>
+                <tr style={{ position: 'relative' }}>
+               
                 <Button
                   variant="default"
                   color="dark"
                   size="md"
-                  style={{ marginLeft: 'auto', marginTop: '3%' }}
+                  style={{
+                    position: 'absolute',
+                    top: '18px',
+                    right: '16px'
+                  }}
                 >
                   Rotate Key
                 </Button>
-              </div>
-            </Card>
-          </Grid>
-        </Center>
+                
+                </tr>
+                </tbody>
+              </Table>
+
+     
+                </div>
+        </div>
       </AppBase>
     
   );

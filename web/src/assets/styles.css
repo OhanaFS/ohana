@@ -28,7 +28,14 @@
   width: 800px;
   background-color: white;
   padding-left:10px;
-
+}
+.rotateKey{
+  border: 1px solid #ccc;
+  text-align: left;
+  width: 800px;
+  background-color: white;
+  padding-left:10px;
+  height: 400px;
 }
 #maintenanceLogsTable td,th {
   font-size: 12px;
@@ -43,6 +50,26 @@
     background-color: white;
     padding-left:10px;
 }
+.maintenanceSettings{
+  border: 1px solid #ccc;
+  text-align: left;
+  width: 800px;
+  background-color: white;
+  padding-left:10px;
+  height: 530px;
+}
+#maintenanceSettings caption{
+    font-weight: 600;
+    font-size: 24px;
+    color: black;
+    text-align: center;
+}
+#maintenanceSettings td,th {
+  font-size: 16px;
+  font-weight: 400;
+  text-align: 'left';
+  color:black;
+}
 @media screen and (max-width: 450px) {
   .loginBox {
     width: 350px;
@@ -55,10 +82,24 @@
 }
 @media screen and (min-width: 450px) {
   #maintenanceLogsTable td,th {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 400;
     text-align: 'left';
     color:black;
+    }
+}
+@media screen and (max-width: 500px) {
+  #maintenanceSettings td,th {
+    font-size: 12px;
+    font-weight: 400;
+    text-align: 'left';
+    color:black;
+    }
+  #maintenanceSettings caption{
+    font-size: 18px;
+  } 
+  .maintenanceSettings{
+      height: 500px;
     }
 }
 @media screen and (min-width: 1830px) {
@@ -69,7 +110,7 @@
     width: 1200px;
   }
   #maintenanceLogsTable td,th {
-    font-size: 30px;
+    font-size: 22px;
     font-weight: 400;
     text-align: 'left';
     color:black;

@@ -6,6 +6,7 @@ import {
   Center,
   Card,
   Table,
+  ActionIcon,
 } from '@mantine/core';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
@@ -81,63 +82,43 @@ export function AdminRunMaintenance() {
         username="@alex"
         image="https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80"
        >
-        <Center>
-          <Card
-            style={{
-              marginLeft: '0%',
-              height: '65vh',
-              border: '1px solid ',
-              marginTop: '3%',
-              width: '60%',
-              background:
-                theme.colorScheme === 'dark'
-                  ? theme.colors.dark[8]
-                  : theme.white[0],
-            }}
-            shadow="sm"
-            p="xl"
-          >
-            <Table striped verticalSpacing="md">
-              <caption
-                style={{
-                  fontWeight: '600',
-                  fontSize: '22px',
-                  color: 'black',
-                  textAlign: 'left',
-                  marginLeft: '1%',
-                }}
-              >
-                {' '}
-                <span>Run Scheduled Maintenance</span>
-                <span style={{ float: 'right' }}>
-                  {' '}
-                  <Button
-                    variant="default"
-                    color="dark" 
-                    size="md"
-                    component={Link}
-                    to="/maintenancesettings"
-                    leftIcon={<Settings />}
-                  >
-                    {' '}
-                    Settings
-                  </Button>
+     
+     <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'flex-start',
+           
+          }}
+
+        >
+          <div className="maintenanceSettings">
+          
+            <Table striped verticalSpacing="xs" id='maintenanceSettings' >
+              <caption  >
+                {' '} <div style={{marginTop:'10px'}}>   Run Maintenance
+              
+                <span style={{marginTop:'2px', float: 'right' }}>
+              
+                <ActionIcon component={Link} to="/maintenancesettings">
+             <Settings></Settings>
+               </ActionIcon>
+  
                 </span>
+                </div>
               </caption>
 
               <thead></thead>
               <tbody style={{}}>
                 <tr>
                   <td>
-                    {' '}
-                    <Text style={{}}>
-                      {' '}
+
                       Crawl the list of files to remove permissions from expired
-                      users{' '}
-                    </Text>
+                      users
+            
                   </td>
                   <td>
-                    {' '}
+        
                     <Checkbox
                       size="md"
                       checked={checked0}
@@ -150,11 +131,11 @@ export function AdminRunMaintenance() {
 
                 <tr>
                   <td>
-                    {' '}
-                    <Text style={{}}> Purging orphaned files and shards </Text>
+               
+                  Purging orphaned files and shards 
                   </td>
                   <td>
-                    {' '}
+             
                     <Checkbox
                       size="md"
                       id="1"
@@ -168,8 +149,7 @@ export function AdminRunMaintenance() {
 
                 <tr>
                   <td>
-                    {' '}
-                    <Text style={{}}> Purge a user and their files </Text>{' '}
+                   Purge a user and their files 
                   </td>
                   <td>
                     {' '}
@@ -187,16 +167,16 @@ export function AdminRunMaintenance() {
                 <tr>
                   <td>
                     {' '}
-                    <Text style={{}}>
+                  
                       {' '}
                       Crawl all of the files to make sure it has full replicas
-                    </Text>{' '}
+                  
                   </td>
                   <td>
                     {' '}
                     <Checkbox
                       size="md"
-                      id="1"
+                      id="2"
                       checked={checked3}
                       onChange={(event) =>
                         setChecked3(event.currentTarget.checked)
@@ -208,17 +188,17 @@ export function AdminRunMaintenance() {
                 <tr>
                   <td>
                     {' '}
-                    <Text style={{}}>
+                
                       {' '}
                       Quick File Check (Only checks current versions of files to
                       see if it’s fine and is not corrupted){' '}
-                    </Text>
+                 
                   </td>
                   <td>
                     {' '}
                     <Checkbox
                       size="md"
-                      id="1"
+                      id="3"
                       checked={checked4}
                       onChange={(event) =>
                         setChecked4(event.currentTarget.checked)
@@ -230,17 +210,17 @@ export function AdminRunMaintenance() {
                 <tr>
                   <td>
                     {' '}
-                    <Text style={{}}>
+               
                       {' '}
                       Full File Check (Checks all fragments to ensure that it’s
                       not corrupted){' '}
-                    </Text>{' '}
+                  
                   </td>
                   <td>
                     {' '}
                     <Checkbox
                       size="md"
-                      id="1"
+                      id="4"
                       checked={checked5}
                       onChange={(event) =>
                         setChecked5(event.currentTarget.checked)
@@ -252,13 +232,13 @@ export function AdminRunMaintenance() {
                 <tr>
                   <td>
                     {' '}
-                    <Text style={{}}> DB integrity Check </Text>{' '}
+                    DB integrity Check 
                   </td>
                   <td>
                     {' '}
                     <Checkbox
                       size="md"
-                      id="1"
+                      id="5"
                       checked={checked6}
                       onChange={(event) =>
                         setChecked6(event.currentTarget.checked)
@@ -272,10 +252,14 @@ export function AdminRunMaintenance() {
                   <td> </td>
                 </tr>
               </tbody>
-
-              <td>
+              <div style={{ position: 'relative' }}>
+              <td  >
                 <Button
-                  style={{ float: 'right' }}
+                    style={{
+                      position: 'absolute',
+                      top: '0px',
+                      right: '0px'
+                    }}
                   variant="default"
                   color="dark"
                   size="md"
@@ -285,9 +269,10 @@ export function AdminRunMaintenance() {
                   Run Maintenance
                 </Button>
               </td>
+              </div>
             </Table>
-          </Card>
-        </Center>
+       </div>
+       </div>
       </AppBase>
     </>
   );
