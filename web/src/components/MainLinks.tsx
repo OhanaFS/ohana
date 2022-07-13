@@ -14,7 +14,7 @@ function MainLink({ icon, color, label }: MainLinkProps) {
       style={{
         textDecoration: 'none',
       }}
-      to={"/"+label.toLowerCase()}
+      to={"/" + label.toLowerCase().replace(/ /g, '_')}
     >
       <UnstyledButton
         sx={(theme) => ({

@@ -60,7 +60,7 @@ export default function Demo() {
           element={<AdminSsoGroupsInside />}
         />
         <Route
-          path="/key%20management"
+          path="/key_management"
           element={<AdminKeyManagement />}
         />
         <Route
@@ -100,7 +100,7 @@ export default function Demo() {
           element={<AdminSettings />}
         />
         <Route
-          path="/rotate%20key"
+          path="/rotate_key"
           element={<AdminConfiguration />}
         />
         <Route
