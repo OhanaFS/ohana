@@ -5,7 +5,7 @@ import AppBase from './components/AppBase'; //switched to responsive base
 import { VFSBrowser } from './components/userFiles';
 
 import { AdminDashboard } from './AdminDashboard';
-import {LoginPage} from './LoginPage';
+import { LoginPage } from './LoginPage';
 import { AdminConfiguration } from './AdminConfiguration';
 import { AdminCreateKey } from './AdminCreateKey';
 import { AdminCreateSsoKey } from './AdminCreateSsoKey';
@@ -23,7 +23,7 @@ import AdminMaintenanceLogs from './AdminMaintenanceLogs';
 
 export default function Demo() {
 
-  
+
   return (
     <Router>
       <Helmet>
@@ -31,7 +31,7 @@ export default function Demo() {
       </Helmet>
       <Routes>
         <Route
-          path="/files"
+          path="/blank"
           element={
             <AppBase
               userType="user"
@@ -43,26 +43,26 @@ export default function Demo() {
             </AppBase>
           }
         />
-        <Route 
-          path="/home" 
-          element={<VFSBrowser />} 
-          />
-        <Route 
-          path="/" 
-          element={<LoginPage />} 
-          />
-        <Route 
+        <Route
+          path="/home"
+          element={<VFSBrowser />}
+        />
+        <Route
+          path="/"
+          element={<LoginPage />}
+        />
+        <Route
           path="/createssokey"
-          element={<AdminCreateSsoKey/>} 
-          />
-        <Route 
-          path="/insidessogroup" 
-          element={<AdminSsoGroupsInside />} 
-          />
-        <Route 
-          path="/key%20management" 
-          element={<AdminKeyManagement />} 
-          />
+          element={<AdminCreateSsoKey />}
+        />
+        <Route
+          path="/insidessogroup"
+          element={<AdminSsoGroupsInside />}
+        />
+        <Route
+          path="/key%20management"
+          element={<AdminKeyManagement />}
+        />
         <Route
           path="/maintenanceresults"
           element={<AdminMaintenanceResults />}
@@ -71,41 +71,41 @@ export default function Demo() {
           path='/performmaintenance'
           element={<AdminPerformMaintenance />}
         />
-        <Route 
-          path="/maintenancesettings" 
-          element={<AdminMaintenanceSettings />} 
-          />
-        <Route 
-          path="/runmaintenance" 
-          element={<AdminRunMaintenance />} 
-          />
-        <Route 
+        <Route
+          path="/maintenancesettings"
+          element={<AdminMaintenanceSettings />}
+        />
+        <Route
+          path="/runmaintenance"
+          element={<AdminRunMaintenance />}
+        />
+        <Route
           path='dashboard'
-          element={<AdminDashboard />} 
-          />
-        <Route 
-          path="/sso" 
-          element={<AdminSsoGroups />} 
-          />
-        <Route 
-          path="/nodes" 
-          element={<AdminNodes />} 
-          />
-        <Route 
-          path="/maintenance" 
-          element={<AdminMaintenanceLogs />} 
-          />
-        <Route 
-          path="/settings" 
-          element={<AdminSettings />} 
-          />
-        <Route 
-          path="/rotate%20key" 
-          element={<AdminConfiguration />} 
-          />
-        <Route 
-        path="/createkey" 
-        element={<AdminCreateKey />} 
+          element={<AdminDashboard />}
+        />
+        <Route
+          path="/sso"
+          element={<AdminSsoGroups />}
+        />
+        <Route
+          path="/nodes"
+          element={<AdminNodes />}
+        />
+        <Route
+          path="/maintenance"
+          element={<AdminMaintenanceLogs />}
+        />
+        <Route
+          path="/settings"
+          element={<AdminSettings />}
+        />
+        <Route
+          path="/rotate%20key"
+          element={<AdminConfiguration />}
+        />
+        <Route
+          path="/createkey"
+          element={<AdminCreateKey />}
         />
       </Routes>
     </Router>
