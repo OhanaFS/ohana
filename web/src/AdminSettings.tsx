@@ -94,36 +94,25 @@ export function AdminSettings() {
 
             <thead></thead>
             <tbody style={{}}>
-              <tr>
-                <td
-
-                  style={{
-                    textAlign: 'left',
-                    fontWeight: '400',
-                    fontSize: '18px',
-                    color: 'black',
-                  }}
-                >
+           
 
                   <Text style={{}}> Allow Cluster health alerts </Text>
-                </td>
-                <td style={{ position: 'relative' }}>
+             
+            
                   <Checkbox
                     size="md"
                     style={{
-                      position: 'absolute',
-                      top: '18px',
-                      right: '16px'
+                    
                     }}
                     checked={clusterAlerts}
                     onChange={(event) => [
                       setChecked(event.currentTarget.checked),
                       setDisable(event.currentTarget.checked),
                     ]}
-                  />{' '}
-                  {' '}
-                </td>
-              </tr>
+                  />
+                  
+          
+           
 
               <tr>
                 <td
@@ -138,15 +127,13 @@ export function AdminSettings() {
                   {' '}
                   <Text style={{}}> Allow server offline alerts </Text>
                 </td>
-                <td style={{ position: 'relative' }}>
+                <td style={{  }}>
 
                   <Checkbox
                     size="md"
                     id="1"
                     style={{
-                      position: 'absolute',
-                      top: '18px',
-                      right: '16px'
+                    
                     }}
                     checked={sActionAlerts}
                     onChange={(event) => [
@@ -171,15 +158,13 @@ export function AdminSettings() {
                   {' '}
                   <Text style={{}}> Allow supicious action alerts </Text>{' '}
                 </td>
-                <td style={{ position: 'relative' }}>
+                <td style={{ }}>
 
                   <Checkbox
                     size="md"
                     id="1"
                     style={{
-                      position: 'absolute',
-                      top: '18px',
-                      right: '16px'
+                     
                     }}
                     checked={supiciousAlerts}
                     onChange={(event) => [
@@ -204,15 +189,13 @@ export function AdminSettings() {
                   {' '}
                   <span style={{}}> Allow server full alert </span>{' '}
                 </td>
-                <td style={{ position: 'relative' }} >
+                <td style={{ }} >
 
                   <Checkbox
                     size="md"
                     id="1"
                     style={{
-                      position: 'absolute',
-                      top: '18px',
-                      right: '16px'
+                   
                     }}
                     checked={serverAlerts}
                     onChange={(event) => [
@@ -238,16 +221,14 @@ export function AdminSettings() {
                   <span style={{}}> Allow supicious file alerts </span>
                 </td>
 
-                <td style={{ position: 'relative' }}>
+                <td style={{  }}>
 
                   {' '}
                   <Checkbox
                     size="md"
                     id="1"
                     style={{
-                      position: 'absolute',
-                      top: '18px',
-                      right: '16px'
+                     
                     }}
                     checked={sFileAlerts}
                     onChange={(event) => [
@@ -278,7 +259,7 @@ export function AdminSettings() {
                 <td>
                   {' '}
                   <Button
-                    style={{ float: 'right' }}
+                    style={{  }}
                     variant="default"
                     color="dark"
                     size="md"
@@ -320,13 +301,11 @@ export function AdminSettings() {
             </tbody>
             <tfoot>
 
-              <td colSpan={2} style={{ position: 'relative' }}>
+              <td colSpan={2} style={{  }}>
                 <Button
                   disabled={disable}
                   style={{
-                    position: 'absolute',
-                    top: '18px',
-                    right: '16px',
+                
                   }}
                   variant="default"
                   color="dark"

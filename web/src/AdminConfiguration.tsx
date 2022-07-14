@@ -26,6 +26,7 @@ export function AdminConfiguration() {
       }}>
         <div style={{
           display: 'flex',
+          border: '1px solid #ccc',
           flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'flex-start',

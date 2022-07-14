@@ -101,9 +101,7 @@ export function AdminMaintenanceSettings() {
           
             <Table striped verticalSpacing="xs" id='maintenanceSettings' >
               <caption  >
-                {' '} <div style={{marginTop:'10px'}}>    Maintenance Settings
-              
-            
+                {' '} <div style={{marginTop:'10px'}}>    Maintenance Settings     
                 </div>
               </caption>
 
@@ -111,10 +109,8 @@ export function AdminMaintenanceSettings() {
               <tbody style={{}}>
                 <tr>
                   <td>
-
                       Crawl the list of files to remove permissions from expired
-                      users
-            
+                      users   
                   </td>
                   <td>
         
@@ -246,18 +242,17 @@ export function AdminMaintenanceSettings() {
                   </td>
                 </tr>
 
-                <tr>
-                  <td> </td>
-                  <td> </td>
-                </tr>
               </tbody>
-              <div style={{ position: 'relative' }}>
-              <td  >
+              <div  style={{
+       display: 'flex',
+      flexDirection:'column',
+         
+      
+      }} >
+
                 <Button
                     style={{
-                      position: 'absolute',
-                      top: '0px',
-                      right: '0px'
+                      alignSelf:"flex-end",marginTop:'20px'
                     }}
                   variant="default"
                   color="dark"
@@ -267,7 +262,7 @@ export function AdminMaintenanceSettings() {
                 >
                   Save Settings
                 </Button>
-              </td>
+           
               </div>
             </Table>
        </div>

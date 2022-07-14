@@ -69,15 +69,13 @@ export function AdminLogs(props: LogsDetails) {
         <div
       style={{
         display: 'flex',
-
         justifyContent: 'center',
         height: '85vh',
-      
 
       }}
     >
       <div className="maintenanceLogs">
-        <ScrollArea style={{ height: '80%', width: '100%', marginTop: '1%' }}>
+        <ScrollArea style={{ height: '85%', width: '90%', marginTop: '10px',marginLeft:'20px' }}>
           <Table id='maintenanceLogsTable' 
             captionSide="top"
               striped
@@ -101,32 +99,24 @@ export function AdminLogs(props: LogsDetails) {
           </Table>
         </ScrollArea>
 
-        <div style={{ position: 'relative' }}>
-      
+        <div  style={{
+       display: 'flex',
+      flexDirection:'column',
 
-          <td
-            style={{
-              position: 'absolute',
-              top: '5px',
-              right: '16px',
-            }}
-          >
-            {' '}
+      
+      }} >
             <Button
                   variant="default"
                   color="dark"
                   size="md"
                   style={{
-                    position: 'absolute',
-                    top: '18px',
-                    right: '10px'
+                    alignSelf:"flex-end",marginRight:"15px",marginTop:'10px'
                   }}
                   component={Link}
                   to="/runmaintenance"
                 >
                   Perform Maintenance
-                </Button>
-          </td>
+                </Button>=
         </div>
       </div>
     </div>

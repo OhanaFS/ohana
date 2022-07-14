@@ -95,7 +95,7 @@ export function AdminRunMaintenance() {
               <caption  >
                 {' '} <div style={{marginTop:'10px'}}>   Run Maintenance
               
-                <span style={{marginTop:'2px', float: 'right' }}>
+                <span style={{marginTop:'2px',marginRight:'10px', float: 'right' }}>
               
                 <ActionIcon component={Link} to="/maintenancesettings">
              <Settings></Settings>
@@ -249,13 +249,14 @@ export function AdminRunMaintenance() {
                   <td> </td>
                 </tr>
               </tbody>
-              <div style={{ position: 'relative' }}>
-              <td  >
+              <div  style={{
+       display: 'flex',
+      flexDirection:'column',
+      }} >
+
                 <Button
                     style={{
-                      position: 'absolute',
-                      top: '0px',
-                      right: '0px'
+                      alignSelf:"flex-end",marginTop:'20px'
                     }}
                   variant="default"
                   color="dark"
@@ -263,9 +264,9 @@ export function AdminRunMaintenance() {
                   component={Link}
                   to="/performmaintenance"
                 >
-                  Run Maintenance
+                  Save Settings
                 </Button>
-              </td>
+           
               </div>
             </Table>
        </div>

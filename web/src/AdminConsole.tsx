@@ -101,11 +101,11 @@ export function AdminConsole(props: ConsoleDetails) {
     <div
       style={{
         display: 'flex',
-
-        justifyContent: 'center',
         height: '80vh',
+        justifyContent: 'center',
+        
       }}
-    >
+    > 
       <div className="console">
         <ScrollArea style={{ height: '90%', width: '100%', marginTop: '1%' }}>
           <Table captionSide="top" verticalSpacing="sm" style={{}}>
@@ -126,45 +126,35 @@ export function AdminConsole(props: ConsoleDetails) {
           </Table>
         </ScrollArea>
 
-        <div style={{ position: 'relative' }}>
-          <td
-            style={{
-              position: 'absolute',
-              top: '5px',
-              left: '16px',
-            }}
-          >
-            {' '}
+   
+       <div  style={{
+       display: 'flex',
+      flexDirection:'row',
+      justifyContent: 'space-between',
+      
+      }} >
+     
             <Button
               variant="default"
               color="dark"
               size="md"
-              style={{}}
               onClick={() => add()}
+              style={{ marginLeft:'15px' }}
             >
               Add {props.addObjectLabel}
             </Button>
-          </td>
-
-          <td
-            style={{
-              position: 'absolute',
-              top: '5px',
-              right: '16px',
-            }}
-          >
-            {' '}
+          
             <Button
               variant="default"
               color="dark"
               size="md"
-              style={{}}
+              style={{ marginRight:'15px' }}
               onClick={() => deleteGroup()}
             >
               Delete {props.deleteObjectLabel}
             </Button>
-          </td>
-        </div>
+            </div>
+          
       </div>
     </div>
   );
