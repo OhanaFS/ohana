@@ -114,7 +114,7 @@ export function AdminLogs(props: LogsDetails) {
                   to="/runmaintenance"
                 >
                   Perform Maintenance
-                </Button>=
+                </Button>
         </div>
       </div>
     </div>

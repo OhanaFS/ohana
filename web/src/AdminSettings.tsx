@@ -91,7 +91,7 @@ export function AdminSettings() {
                 Notification Settings
               </span>
             </caption>
-
+            
             <thead></thead>
             <tbody style={{}}>
               <tr style={{}}>
@@ -102,8 +102,6 @@ export function AdminSettings() {
                   justifyContent: 'space-between'
                 }}>
                   <Text id="settingText" > Allow Cluster health alerts </Text>
-
-
                   <Checkbox
                     size="md"
                     style={{
@@ -115,8 +113,6 @@ export function AdminSettings() {
                       setDisable(event.currentTarget.checked),
                     ]}
                   />
-
-
                 </div>
               </tr>
               <tr>
@@ -128,9 +124,6 @@ export function AdminSettings() {
                 }}>
 
                   <Text id="settingText"> Allow server offline alerts </Text>
-
-
-
                   <Checkbox
                     size="md"
                     id="1"
@@ -143,7 +136,6 @@ export function AdminSettings() {
                       setDisable(event.currentTarget.checked),
                     ]}
                   />
-
                 </div>
               </tr>
               <tr>
@@ -154,8 +146,6 @@ export function AdminSettings() {
                   justifyContent: 'space-between'
                 }}>
                   <Text id="settingText"> Allow supicious action alerts </Text>{' '}
-
-
                   <Checkbox
                     size="md"
                     id="1"
@@ -168,7 +158,6 @@ export function AdminSettings() {
                       setDisable(event.currentTarget.checked),
                     ]}
                   />{' '}
-
                 </div>
               </tr>
               <tr>
@@ -180,12 +169,6 @@ export function AdminSettings() {
                 }}>
 
                   <Text id="settingText"> Allow server full alert </Text>
-
-
-
-
-
-
                   <Checkbox
                     size="md"
                     id="1"
@@ -208,16 +191,7 @@ export function AdminSettings() {
                   flexDirection: 'row',
                   justifyContent: 'space-between'
                 }}>
-
-
                   <Text id="settingText"> Allow supicious file alerts </Text>{' '}
-
-
-
-
-
-
-
                   <Checkbox
                     size="md"
                     id="1"
@@ -230,7 +204,6 @@ export function AdminSettings() {
                       setDisable(event.currentTarget.checked),
                     ]}
                   />
-
                 </div>
               </tr>
               <tr>
@@ -242,12 +215,10 @@ export function AdminSettings() {
                 }}>
                     <span>
                   <Text id="settingText">   Backup encryption key</Text>{' '}
-
                   <Text weight={700} style={{marginLeft:'10px'}}>
                     Current Location:{currentLocation}{' '}
                   </Text>{' '}
                   </span>
-
                   {' '}
                   <Button
                     style={{  marginRight: '10px',marginTop:'20px'}}
@@ -258,7 +229,6 @@ export function AdminSettings() {
                     {' '}
                     Backup
                   </Button>
-
                 </div>
               </tr>
               <tr>
@@ -268,8 +238,6 @@ export function AdminSettings() {
                   flexDirection: 'row',
                   justifyContent: 'space-between'
                 }}>
-
-
                   {' '}
                   <span style={{marginTop:'10px'}}>
                   <Text id="settingText">     Change the redundancy level of the files</Text>{' '}
@@ -277,7 +245,6 @@ export function AdminSettings() {
                     Current redundancy level:{redundancy}{' '}
                   </Text>{' '}
                   </span>
-
                   {' '}
                   <Button
                     style={{   marginRight: '10px',marginTop:'20px' }}
@@ -288,12 +255,10 @@ export function AdminSettings() {
                     {' '}
                     Change
                   </Button>
-
                 </div>
               </tr>
             </tbody>
             <tfoot>
-
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
