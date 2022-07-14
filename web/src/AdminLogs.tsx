@@ -102,8 +102,6 @@ export function AdminLogs(props: LogsDetails) {
         <div  style={{
        display: 'flex',
       flexDirection:'column',
-
-      
       }} >
             <Button
                   variant="default"

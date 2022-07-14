@@ -83,7 +83,7 @@ export function AdminSettings() {
 
       >
         <div className="settings">
-          <Table striped verticalSpacing="md"     >
+          <Table striped      >
             <caption
               style={{ fontWeight: '600', fontSize: '22px', color: 'black', margin: '15px' }}
             >
@@ -94,15 +94,20 @@ export function AdminSettings() {
 
             <thead></thead>
             <tbody style={{}}>
-           
+              <tr style={{}}>
+                <div  style={{
+                  height: '50px',
+                  display: 'flex',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between'
+                }}>
+                  <Text id="settingText" > Allow Cluster health alerts </Text>
 
-                  <Text style={{}}> Allow Cluster health alerts </Text>
-             
-            
+
                   <Checkbox
                     size="md"
                     style={{
-                    
+                      marginRight: '50px',
                     }}
                     checked={clusterAlerts}
                     onChange={(event) => [
@@ -110,30 +115,27 @@ export function AdminSettings() {
                       setDisable(event.currentTarget.checked),
                     ]}
                   />
-                  
-          
-           
 
+
+                </div>
+              </tr>
               <tr>
-                <td
+                <div style={{
+                  display: 'flex',
+                  height: '50px',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between'
+                }}>
 
-                  style={{
-                    textAlign: 'left',
-                    fontWeight: '400',
-                    fontSize: '18px',
-                    color: 'black',
-                  }}
-                >
-                  {' '}
-                  <Text style={{}}> Allow server offline alerts </Text>
-                </td>
-                <td style={{  }}>
+                  <Text id="settingText"> Allow server offline alerts </Text>
+
+
 
                   <Checkbox
                     size="md"
                     id="1"
                     style={{
-                    
+                      marginRight: '50px',
                     }}
                     checked={sActionAlerts}
                     onChange={(event) => [
@@ -142,29 +144,23 @@ export function AdminSettings() {
                     ]}
                   />
 
-                </td>
+                </div>
               </tr>
-
               <tr>
-                <td
+                <div style={{
+                  display: 'flex',
+                  height: '50px',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between'
+                }}>
+                  <Text id="settingText"> Allow supicious action alerts </Text>{' '}
 
-                  style={{
-                    textAlign: 'left',
-                    fontWeight: '400',
-                    fontSize: '18px',
-                    color: 'black',
-                  }}
-                >
-                  {' '}
-                  <Text style={{}}> Allow supicious action alerts </Text>{' '}
-                </td>
-                <td style={{ }}>
 
                   <Checkbox
                     size="md"
                     id="1"
                     style={{
-                     
+                      marginRight: '50px',
                     }}
                     checked={supiciousAlerts}
                     onChange={(event) => [
@@ -173,29 +169,28 @@ export function AdminSettings() {
                     ]}
                   />{' '}
 
-                </td>
+                </div>
               </tr>
-
               <tr>
-                <td
+                <div style={{
+                  display: 'flex',
+                  height: '50px',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between'
+                }}>
 
-                  style={{
-                    textAlign: 'left',
-                    fontWeight: '400',
-                    fontSize: '18px',
-                    color: 'black',
-                  }}
-                >
-                  {' '}
-                  <span style={{}}> Allow server full alert </span>{' '}
-                </td>
-                <td style={{ }} >
+                  <Text id="settingText"> Allow server full alert </Text>
+
+
+
+
+
 
                   <Checkbox
                     size="md"
                     id="1"
                     style={{
-                   
+                      marginRight: '50px',
                     }}
                     checked={serverAlerts}
                     onChange={(event) => [
@@ -204,31 +199,30 @@ export function AdminSettings() {
                     ]}
                   />{' '}
 
-                </td>
+                </div>
               </tr>
-
               <tr>
-                <td
+                <div style={{
+                  display: 'flex',
+                  height: '50px',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between'
+                }}>
 
-                  style={{
-                    textAlign: 'left',
-                    fontWeight: '400',
-                    fontSize: '18px',
-                    color: 'black',
-                  }}
-                >
-                  {' '}
-                  <span style={{}}> Allow supicious file alerts </span>
-                </td>
 
-                <td style={{  }}>
+                  <Text id="settingText"> Allow supicious file alerts </Text>{' '}
 
-                  {' '}
+
+
+
+
+
+
                   <Checkbox
                     size="md"
                     id="1"
                     style={{
-                     
+                      marginRight: '50px',
                     }}
                     checked={sFileAlerts}
                     onChange={(event) => [
@@ -237,29 +231,26 @@ export function AdminSettings() {
                     ]}
                   />
 
-                </td>
-
+                </div>
               </tr>
-
               <tr>
-                <td
-                  style={{
-                    textAlign: 'left',
-                    fontWeight: '400',
-                    fontSize: '18px',
-                    color: 'black',
-                  }}
-                >
-                  {' '}
-                  Backup encryption key{' '}
-                  <Text weight={700}>
+                <div style={{
+                  display: 'flex',
+                  height: '50px',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between'
+                }}>
+                    <span>
+                  <Text id="settingText">   Backup encryption key</Text>{' '}
+
+                  <Text weight={700} style={{marginLeft:'10px'}}>
                     Current Location:{currentLocation}{' '}
                   </Text>{' '}
-                </td>
-                <td>
+                  </span>
+
                   {' '}
                   <Button
-                    style={{  }}
+                    style={{  marginRight: '10px',marginTop:'20px'}}
                     variant="default"
                     color="dark"
                     size="md"
@@ -267,28 +258,29 @@ export function AdminSettings() {
                     {' '}
                     Backup
                   </Button>
-                </td>
-              </tr>
 
+                </div>
+              </tr>
               <tr>
-                <td
-                  style={{
-                    textAlign: 'left',
-                    fontWeight: '400',
-                    fontSize: '18px',
-                    color: 'black',
-                  }}
-                >
+                <div style={{
+                  display: 'flex',
+                  height: '50px',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between'
+                }}>
+
+
                   {' '}
-                  Change the redundancy level of the files{' '}
-                  <Text weight={700}>
+                  <span style={{marginTop:'10px'}}>
+                  <Text id="settingText">     Change the redundancy level of the files</Text>{' '}
+                  <Text weight={700} style={{marginLeft:'10px'}}>
                     Current redundancy level:{redundancy}{' '}
                   </Text>{' '}
-                </td>
-                <td>
+                  </span>
+
                   {' '}
                   <Button
-                    style={{ float: 'right' }}
+                    style={{   marginRight: '10px',marginTop:'20px' }}
                     variant="default"
                     color="dark"
                     size="md"
@@ -296,16 +288,23 @@ export function AdminSettings() {
                     {' '}
                     Change
                   </Button>
-                </td>
+
+                </div>
               </tr>
             </tbody>
             <tfoot>
 
-              <td colSpan={2} style={{  }}>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+              }}>
                 <Button
                   disabled={disable}
                   style={{
-                
+                      alignSelf:'flex-end',
+                      marginTop:'30px',
+                      marginRight:'5px'
+                      
                   }}
                   variant="default"
                   color="dark"
@@ -313,8 +312,8 @@ export function AdminSettings() {
                 >
                   Save Pending Changes
                 </Button>
-                <div style={{ marginBottom: '80px' }} />
-              </td>
+           
+              </div>
             </tfoot>
           </Table>
         </div>
