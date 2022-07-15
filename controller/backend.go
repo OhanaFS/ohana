@@ -258,7 +258,6 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 
 			util.HttpError(w, http.StatusInternalServerError, err.Error())
 			return
-			// If fails, delete File record and return error.
 		}
 	}
 
@@ -267,16 +266,13 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 
 	err = dbfs.FinishFile(bc.Db, &dbfsFile, user, 412, checksum)
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		err2 := dbfsFile.Delete(bc.Db, user)
+		errorText := "Error finishing file: " + err.Error()
+		if err2 != nil {
+			errorText += " Error deleting file: " + err2.Error()
+		}
+		util.HttpError(w, http.StatusInternalServerError, errorText)
 		return
-		// If fails, delete File record and return error.
-	}
-
-	err = dbfs.CreateFileVersionFromFile(bc.Db, &dbfsFile, user)
-	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
-		return
-		// If fails, delete File record and return error.
 	}
 
 	// success
@@ -405,7 +401,7 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 
 		err = dbfsFile.UpdateFragment(bc.Db, fragId, fragmentPath, fragChecksum, serverId)
 		if err != nil {
-			err2 := dbfsFile.Delete(bc.Db, user)
+			err2 := dbfsFile.RevertFileToVersion(bc.Db, dbfsFile.VersionNo-1, user)
 			if err2 != nil {
 				util.HttpError(w, http.StatusInternalServerError, err.Error())
 				return
@@ -413,7 +409,6 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 
 			util.HttpError(w, http.StatusInternalServerError, err.Error())
 			return
-			// If fails, delete File record and return error.
 		}
 	}
 
@@ -422,15 +417,13 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 
 	err = dbfsFile.FinishUpdateFile(bc.Db, checksum)
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		errString := err.Error()
+		err2 := dbfsFile.RevertFileToVersion(bc.Db, dbfsFile.VersionNo-1, user)
+		if err2 != nil {
+			errString += " " + err2.Error()
+		}
+		util.HttpError(w, http.StatusInternalServerError, errString)
 		return
-	}
-
-	err = dbfs.CreateFileVersionFromFile(bc.Db, dbfsFile, user)
-	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
-		return
-		// If fails, delete File record and return error.
 	}
 
 	// success

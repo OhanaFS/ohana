@@ -12,7 +12,7 @@ var (
 
 type Permission struct {
 	FileId       string         `gorm:"primaryKey" json:"file_id"`
-	PermissionId int            `gorm:"primaryKey;autoIncrement" json:"permission_id"`
+	PermissionId int            `gorm:"primaryKey; autoIncrement" json:"permission_id"`
 	User         User           `gorm:"foreignKey:UserId" json:"-"`
 	UserId       *string        `json:"user_id"`
 	Group        Group          `gorm:"foreignKey:GroupId" json:"-"`
@@ -274,21 +274,21 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *Permission
 
 				}
 
-			}
-			// Append permission
-			newPermission := Permission{
-				FileId:     file.FileId,
-				UserId:     &user.UserId,
-				CanRead:    permissionNeeded.Read,
-				CanWrite:   permissionNeeded.Write,
-				CanExecute: permissionNeeded.Execute,
-				CanShare:   permissionNeeded.Share,
-				Audit:      permissionNeeded.Audit,
-				VersionNo:  file.VersionNo,
-				Status:     1,
-			}
+				// Append permission
+				newPermission := Permission{
+					FileId:     file.FileId,
+					UserId:     &user.UserId,
+					CanRead:    permissionNeeded.Read,
+					CanWrite:   permissionNeeded.Write,
+					CanExecute: permissionNeeded.Execute,
+					CanShare:   permissionNeeded.Share,
+					Audit:      permissionNeeded.Audit,
+					VersionNo:  file.VersionNo,
+					Status:     1,
+				}
 
-			oldPermissionRecords = append(oldPermissionRecords, newPermission)
+				oldPermissionRecords = append(oldPermissionRecords, newPermission)
+			}
 
 		}
 

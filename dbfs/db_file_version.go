@@ -273,3 +273,54 @@ func (fv *FileVersion) GetDecryptionKey(tx *gorm.DB, user *User, password string
 	}
 
 }
+
+func (f *File) RevertFileToVersion(tx *gorm.DB, versionNo int, user *User) error {
+
+	// Check permissions for the original file
+	perm, err := user.HasPermission(tx, f, &PermissionNeeded{Write: true})
+	if err != nil || !perm {
+		return err
+	}
+
+	// Getting old version
+
+	var oldVersion FileVersion
+
+	err = tx.Model(&FileVersion{}).Where("file_id = ? AND version_no = ?", f.FileId, versionNo).First(&oldVersion).Error
+	if err != nil {
+		return err
+	}
+
+	// Setting it as the new version
+	f.FileName = oldVersion.FileName
+	f.MIMEType = oldVersion.MIMEType
+	// f.ParentFolderFileID will not be updated.
+	f.VersionNo = f.VersionNo + 1
+	f.DataId = oldVersion.DataId
+	f.DataIdVersion = f.DataIdVersion + 1
+	f.Size = oldVersion.Size
+	f.ActualSize = oldVersion.ActualSize
+	// no need to update CreatedTime
+	f.ModifiedUserUserId = &user.UserId
+	f.ModifiedTime = time.Now()
+	f.Checksum = oldVersion.Checksum
+	f.TotalShards = oldVersion.TotalShards
+	f.DataShards = oldVersion.DataShards
+	f.ParityShards = oldVersion.ParityShards
+	f.KeyThreshold = oldVersion.KeyThreshold
+	f.EncryptionKey = oldVersion.EncryptionKey
+	f.EncryptionIv = oldVersion.EncryptionIv
+	f.LastChecked = oldVersion.LastChecked
+	f.Status = oldVersion.Status
+
+	// Save
+	err = tx.Save(f).Error
+	if err != nil {
+		return err
+	}
+	// Update the file
+	err = CreateFileVersionFromFile(tx, f, user)
+
+	return err
+
+}
