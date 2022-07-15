@@ -391,9 +391,8 @@ func EXAMPLECreateFile(tx *gorm.DB, user *User, filename string, parentFolderId 
 		fragId := int(i)
 		fragmentPath := uuid.New().String()
 		serverId := "Server" + strconv.Itoa(i)
-		fragChecksum := "CHECKSUM" + strconv.Itoa(i)
 
-		err = CreateFragment(tx, file.FileId, file.DataId, file.VersionNo, fragId, serverId, fragmentPath, fragChecksum)
+		err = CreateFragment(tx, file.FileId, file.DataId, file.VersionNo, fragId, serverId, fragmentPath)
 		if err != nil {
 			// Not sure how to handle this multiple error situation that is possible.
 			// Don't necesarrily want to put it in a transaction because I'm worried it'll be too long?
@@ -528,10 +527,10 @@ func CreateInitialFile(tx *gorm.DB, file *File, fileKey, fileIv, dataKey, dataIV
 }
 
 // CreateFragment is called whenever the fragment has been written to disk
-func CreateFragment(tx *gorm.DB, fileId string, dataId string, versionNo int, fragId int, serverId string, fragmentPath string, checksum string) error {
+func CreateFragment(tx *gorm.DB, fileId string, dataId string, versionNo int, fragId int, serverId string, fragmentPath string) error {
 
 	// Validating inputs
-	if fileId == "" || dataId == "" || versionNo < 0 || fragId <= 0 || serverId == "" || fragmentPath == "" || checksum == "" {
+	if fileId == "" || dataId == "" || versionNo < 0 || fragId <= 0 || serverId == "" || fragmentPath == "" {
 		return ErrInvalidAction
 	}
 
@@ -542,7 +541,6 @@ func CreateFragment(tx *gorm.DB, fileId string, dataId string, versionNo int, fr
 		FragId:               fragId,
 		ServerId:             serverId,
 		FileFragmentPath:     fragmentPath,
-		Checksum:             checksum,
 		LastChecked:          time.Now(),
 		Status:               FragmentStatusGood,
 	}
@@ -873,7 +871,6 @@ func (f *File) UpdateMetaData(tx *gorm.DB, modificationsRequested FileMetadataMo
 	}
 
 	if modificationsRequested.PasswordModification {
-		// TODO: Check for password if valid
 
 	} else {
 		if modificationsRequested.FileName != "" {
@@ -1104,7 +1101,7 @@ func (f *File) Copy(tx *gorm.DB, newParent *File, user *User) error {
 		FileId:             uuid.New().String(),
 		FileName:           f.FileName,
 		MIMEType:           f.MIMEType,
-		EntryType:          IsFile,
+		EntryType:          f.EntryType,
 		ParentFolderFileId: &newParent.FileId,
 		VersionNo:          0,
 		DataId:             f.DataId,
@@ -1165,6 +1162,30 @@ func (f *File) Copy(tx *gorm.DB, newParent *File, user *User) error {
 		return err2
 
 	})
+
+	if err != nil {
+		return err
+	}
+
+	// Recursive call if folder
+	fileOrFolder, err := f.IsFileOrEmptyFolder(tx, user)
+	if err != nil {
+		return err
+	}
+
+	// Recursively go through and copy all items visible to user
+	if !fileOrFolder {
+		ls, err := f.ListContents(tx, user)
+		if err != nil {
+			return err
+		}
+		for _, item := range ls {
+			err = item.Copy(tx, &newFile, user)
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	return err
 
@@ -1329,7 +1350,7 @@ func (f *File) UpdatePermission(tx *gorm.DB, oldPermission *Permission, newPermi
 	// User or Group
 
 	if oldPermission.UserId != nil {
-		newUser, err := GetUser(tx, *newPermission.UserId)
+		newUser, err := GetUserById(tx, *newPermission.UserId)
 		if err != nil {
 			return err
 		}
@@ -1357,13 +1378,13 @@ func (f *File) GetPermissions(tx *gorm.DB, user *User) ([]Permission, error) {
 
 	var permissions []Permission
 
-	err = tx.Where("file_id = ?", f.FileId).Find(&permissions).Error
+	err = tx.Where("file_id = ?", f.FileId).Preload("User").Preload("Group").Find(&permissions).Error
 
 	return permissions, err
 }
 
-// GetPermisison returns a single permission for a file based on the permissionId
-func (f *File) GetPermissionById(tx *gorm.DB, permissionId int, user *User) (*Permission, error) {
+// GetPermissionById returns a single permission for a file based on the permissionId
+func (f *File) GetPermissionById(tx *gorm.DB, permissionId string, user *User) (*Permission, error) {
 	// Check if user has read permission (if not 404)
 	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
 	if err != nil {
@@ -1463,7 +1484,7 @@ func (f *File) UpdateFile(tx *gorm.DB, newSize int, newActualSize int,
 	return err
 }
 
-// UpdateFragments. Called on each fragment to be created.
+// UpdateFragment Called on each fragment to be created.
 func (f *File) UpdateFragment(tx *gorm.DB, fragmentId int, fileFragmentPath string, checksum string, serverId string) error {
 	frag := Fragment{
 		FileVersionFileId:        f.FileId,
@@ -1473,7 +1494,6 @@ func (f *File) UpdateFragment(tx *gorm.DB, fragmentId int, fileFragmentPath stri
 		FragId:                   fragmentId,
 		ServerId:                 serverId,
 		FileFragmentPath:         fileFragmentPath,
-		Checksum:                 checksum,
 		LastChecked:              time.Now(),
 		TotalShards:              f.TotalShards,
 		Status:                   FragmentStatusGood,
@@ -1485,7 +1505,7 @@ func (f *File) UpdateFragment(tx *gorm.DB, fragmentId int, fileFragmentPath stri
 
 // FinishUpdateFile
 // Once all fragments are updated, the file is marked as finished.
-// Updating Status to FileStatusGood, and LastChecked to now.
+// Updates Status to FileStatusGood, and LastChecked to now.
 func (f *File) FinishUpdateFile(tx *gorm.DB, checksum string) error {
 
 	err := tx.Transaction(func(tx *gorm.DB) error {
@@ -1531,7 +1551,6 @@ func (f *File) FinishUpdateFile(tx *gorm.DB, checksum string) error {
 
 }
 
-// EXAMPLEUpdateFile
 func EXAMPLEUpdateFile(tx *gorm.DB, file *File, password string, user *User) error {
 
 	// Key and IV from pipeline

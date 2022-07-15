@@ -2,6 +2,7 @@ package dbfs
 
 import (
 	"errors"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"time"
 )
@@ -11,11 +12,11 @@ var (
 )
 
 type Permission struct {
-	FileId       string         `gorm:"primaryKey" json:"file_id"`
-	PermissionId int            `gorm:"primaryKey; autoIncrement" json:"permission_id"`
-	User         User           `gorm:"foreignKey:UserId" json:"-"`
+	FileId       string         `gorm:"primaryKey; not_null" json:"file_id"`
+	PermissionId string         `gorm:"primaryKey;" json:"permission_id"`
+	User         User           `gorm:"foreignKey:UserId; references:UserId"`
 	UserId       *string        `json:"user_id"`
-	Group        Group          `gorm:"foreignKey:GroupId" json:"-"`
+	Group        Group          `gorm:"foreignKey:GroupId; references:GroupId"`
 	GroupId      *string        `json:"group_id"`
 	CanRead      bool           `json:"can_read"`
 	CanWrite     bool           `json:"can_write"`
@@ -32,7 +33,7 @@ type Permission struct {
 type PermissionHistory struct {
 	FileId       string `gorm:"primaryKey"`
 	VersionNo    int    `gorm:"primaryKey"`
-	PermissionId int    `gorm:"primaryKey;autoIncrement"`
+	PermissionId string `gorm:"primaryKey"`
 	User         User   `gorm:"foreignKey:UserId"`
 	UserId       *string
 	Group        Group `gorm:"foreignKey:GroupId"`
@@ -108,18 +109,19 @@ func CreatePermissions(tx *gorm.DB, newFile *File, additionalPermissions ...Perm
 	for _, permission := range oldPermissionRecords {
 
 		newRecord := Permission{
-			FileId:     newFile.FileId,
-			UserId:     permission.UserId,
-			GroupId:    permission.GroupId,
-			CanRead:    permission.CanRead,
-			CanWrite:   permission.CanWrite,
-			CanExecute: permission.CanExecute,
-			CanShare:   permission.CanShare,
-			Audit:      permission.Audit,
-			VersionNo:  newFile.VersionNo,
-			CreatedAt:  newFile.CreatedTime,
-			UpdatedAt:  newFile.CreatedTime,
-			Status:     1,
+			FileId:       newFile.FileId,
+			PermissionId: uuid.New().String(),
+			UserId:       permission.UserId,
+			GroupId:      permission.GroupId,
+			CanRead:      permission.CanRead,
+			CanWrite:     permission.CanWrite,
+			CanExecute:   permission.CanExecute,
+			CanShare:     permission.CanShare,
+			Audit:        permission.Audit,
+			VersionNo:    newFile.VersionNo,
+			CreatedAt:    newFile.CreatedTime,
+			UpdatedAt:    newFile.CreatedTime,
+			Status:       1,
 		}
 
 		if err := tx.Create(&newRecord).Error; err != nil {
@@ -163,12 +165,10 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *Permission
 
 		for _, user := range users {
 			updated := false
-			for _, existingPermissions := range oldPermissionRecords {
+			for i, existingPermissions := range oldPermissionRecords {
 				if existingPermissions.UserId != nil {
 					if user.UserId == *existingPermissions.UserId {
 						updated = true
-						// Modify existing permission
-						// ONLY ALLOW MORE, NOT LESS
 					}
 				}
 
@@ -182,91 +182,101 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *Permission
 
 					// CanRead
 					if !existingPermissions.CanRead && permissionNeeded.Read {
-						existingPermissions.CanRead = true
+						oldPermissionRecords[i].CanRead = true
 					} else if existingPermissions.CanRead && !permissionNeeded.Read {
 						// Check if parent has permission
 						hasPermission, err := user.HasPermission(tx, &parentFile, &PermissionNeeded{Read: true})
 
 						if err != nil {
-							return err
+							if !errors.Is(err, ErrFileNotFound) {
+								return err
+							}
 						}
 
 						if hasPermission {
 							return ErrPermissionsAreNarrowerThanParent
 						} else {
-							existingPermissions.CanRead = false
+							oldPermissionRecords[i].CanRead = false
 						}
 					}
 
 					// CanWrite
 					if !existingPermissions.CanWrite && permissionNeeded.Write {
-						existingPermissions.CanWrite = true
+						oldPermissionRecords[i].CanWrite = true
 					} else if existingPermissions.CanWrite && !permissionNeeded.Write {
 						// Check if parent has permission
 						hasPermission, err := user.HasPermission(tx, &parentFile, &PermissionNeeded{Write: true})
 
 						if err != nil {
-							return err
+							if !errors.Is(err, ErrFileNotFound) {
+								return err
+							}
 						}
 
 						if hasPermission {
 							return ErrPermissionsAreNarrowerThanParent
 						} else {
-							existingPermissions.CanWrite = false
+							oldPermissionRecords[i].CanWrite = false
 						}
 					}
 
 					// CanExecute
 					if !existingPermissions.CanExecute && permissionNeeded.Execute {
-						existingPermissions.CanExecute = true
+						oldPermissionRecords[i].CanExecute = true
 					} else if existingPermissions.CanExecute && !permissionNeeded.Execute {
 						// Check if parent has permission
 						hasPermission, err := user.HasPermission(tx, &parentFile, &PermissionNeeded{Execute: true})
 
 						if err != nil {
-							return err
+							if !errors.Is(err, ErrFileNotFound) {
+								return err
+							}
 						}
 
 						if hasPermission {
 							return ErrPermissionsAreNarrowerThanParent
 						} else {
-							existingPermissions.CanExecute = false
+							oldPermissionRecords[i].CanExecute = false
 						}
 					}
 
 					// CanShare
 					if !existingPermissions.CanShare && permissionNeeded.Share {
-						existingPermissions.CanShare = true
+						oldPermissionRecords[i].CanShare = true
 					} else if existingPermissions.CanShare && !permissionNeeded.Share {
 						// Check if parent has permission
 						hasPermission, err := user.HasPermission(tx, &parentFile, &PermissionNeeded{Share: true})
 
 						if err != nil {
-							return err
+							if !errors.Is(err, ErrFileNotFound) {
+								return err
+							}
 						}
 
 						if hasPermission {
 							return ErrPermissionsAreNarrowerThanParent
 						} else {
-							existingPermissions.CanShare = false
+							oldPermissionRecords[i].CanShare = false
 						}
 					}
 
 					// Audit
 					if !existingPermissions.Audit && permissionNeeded.Audit {
-						existingPermissions.Audit = true
+						oldPermissionRecords[i].Audit = true
 					} else if existingPermissions.Audit && !permissionNeeded.Audit {
 						// Check if parent has permission
 						hasPermission, err := user.HasPermission(tx, &parentFile, &PermissionNeeded{Audit: true})
 
 						if err != nil {
-							return err
+							if !errors.Is(err, ErrFileNotFound) {
+								return err
+							}
 						}
 
 						if hasPermission {
 							return ErrPermissionsAreNarrowerThanParent
 						} else {
-							existingPermissions.Audit = false
+							oldPermissionRecords[i].Audit = false
 						}
 					}
 
@@ -274,17 +284,21 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *Permission
 
 				}
 
+			}
+
+			if !updated {
 				// Append permission
 				newPermission := Permission{
-					FileId:     file.FileId,
-					UserId:     &user.UserId,
-					CanRead:    permissionNeeded.Read,
-					CanWrite:   permissionNeeded.Write,
-					CanExecute: permissionNeeded.Execute,
-					CanShare:   permissionNeeded.Share,
-					Audit:      permissionNeeded.Audit,
-					VersionNo:  file.VersionNo,
-					Status:     1,
+					FileId:       file.FileId,
+					PermissionId: uuid.New().String(),
+					UserId:       &user.UserId,
+					CanRead:      permissionNeeded.Read,
+					CanWrite:     permissionNeeded.Write,
+					CanExecute:   permissionNeeded.Execute,
+					CanShare:     permissionNeeded.Share,
+					Audit:        permissionNeeded.Audit,
+					VersionNo:    file.VersionNo,
+					Status:       1,
 				}
 
 				oldPermissionRecords = append(oldPermissionRecords, newPermission)
@@ -293,12 +307,18 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *Permission
 		}
 
 		// Save all new permissions
-		for _, permission := range oldPermissionRecords {
-			permission.VersionNo = file.VersionNo
-			permission.UpdatedAt = file.ModifiedTime
-			if err := tx.Save(&permission).Error; err != nil {
-				return err
+		err := tx.Transaction(func(tx2 *gorm.DB) error {
+			for _, permission := range oldPermissionRecords {
+				permission.VersionNo = file.VersionNo
+				permission.UpdatedAt = file.ModifiedTime
+				if err := tx2.Save(&permission).Error; err != nil {
+					return err
+				}
 			}
+			return nil
+		})
+		if err != nil {
+			return err
 		}
 
 		return updatePermissionsVersions(tx, file, requestUser)
@@ -341,7 +361,7 @@ func upsertGroupsPermission(tx *gorm.DB, file *File, permissionNeeded *Permissio
 
 		for _, group := range groups {
 			updated := false
-			for _, existingPermissions := range oldPermissionRecords {
+			for i, existingPermissions := range oldPermissionRecords {
 				if existingPermissions.GroupId != nil {
 					if group.GroupId == *existingPermissions.GroupId {
 						updated = true
@@ -351,7 +371,6 @@ func upsertGroupsPermission(tx *gorm.DB, file *File, permissionNeeded *Permissio
 				}
 
 				if updated {
-
 					// Getting parent file/folder
 					var parentFile File
 					tx.Where("file_id = ?", file.ParentFolderFileId).First(&parentFile)
@@ -360,108 +379,120 @@ func upsertGroupsPermission(tx *gorm.DB, file *File, permissionNeeded *Permissio
 
 					// CanRead
 					if !existingPermissions.CanRead && permissionNeeded.Read {
-						existingPermissions.CanRead = true
+						oldPermissionRecords[i].CanRead = true
 					} else if existingPermissions.CanRead && !permissionNeeded.Read {
 						// Check if parent has permission
 						hasPermission, err2 := group.HasPermission(tx, &parentFile, &PermissionNeeded{Read: true})
 
 						if err2 != nil {
-							return err2
+							if !errors.Is(err2, ErrFileNotFound) {
+								return err
+							}
 						}
 
 						if hasPermission {
 							return ErrPermissionsAreNarrowerThanParent
 						} else {
-							existingPermissions.CanRead = false
+							oldPermissionRecords[i].CanRead = false
 						}
 					}
 
 					// CanWrite
 					if !existingPermissions.CanWrite && permissionNeeded.Write {
-						existingPermissions.CanWrite = true
+						oldPermissionRecords[i].CanWrite = true
 					} else if existingPermissions.CanWrite && !permissionNeeded.Write {
 						// Check if parent has permission
 						hasPermission, err2 := group.HasPermission(tx, &parentFile, &PermissionNeeded{Write: true})
 
 						if err2 != nil {
-							return err2
+							if !errors.Is(err2, ErrFileNotFound) {
+								return err
+							}
 						}
 
 						if hasPermission {
 							return ErrPermissionsAreNarrowerThanParent
 						} else {
-							existingPermissions.CanWrite = false
+							oldPermissionRecords[i].CanWrite = false
 						}
 					}
 
 					// CanExecute
 					if !existingPermissions.CanExecute && permissionNeeded.Execute {
-						existingPermissions.CanExecute = true
+						oldPermissionRecords[i].CanExecute = true
 					} else if existingPermissions.CanExecute && !permissionNeeded.Execute {
 						// Check if parent has permission
 						hasPermission, err2 := group.HasPermission(tx, &parentFile, &PermissionNeeded{Execute: true})
 
 						if err2 != nil {
-							return err2
+							if !errors.Is(err2, ErrFileNotFound) {
+								return err
+							}
 						}
 
 						if hasPermission {
 							return ErrPermissionsAreNarrowerThanParent
 						} else {
-							existingPermissions.CanExecute = false
+							oldPermissionRecords[i].CanExecute = false
 						}
 					}
 
 					// CanShare
 					if !existingPermissions.CanShare && permissionNeeded.Share {
-						existingPermissions.CanShare = true
+						oldPermissionRecords[i].CanShare = true
 					} else if existingPermissions.CanShare && !permissionNeeded.Share {
 						// Check if parent has permission
 						hasPermission, err2 := group.HasPermission(tx, &parentFile, &PermissionNeeded{Share: true})
 
 						if err2 != nil {
-							return err2
+							if !errors.Is(err2, ErrFileNotFound) {
+								return err
+							}
 						}
 
 						if hasPermission {
 							return ErrPermissionsAreNarrowerThanParent
 						} else {
-							existingPermissions.CanShare = false
+							oldPermissionRecords[i].CanShare = false
 						}
 					}
 
 					// Audit
 					if !existingPermissions.Audit && permissionNeeded.Audit {
-						existingPermissions.Audit = true
+						oldPermissionRecords[i].Audit = true
 					} else if existingPermissions.Audit && !permissionNeeded.Audit {
 						// Check if parent has permission
 						hasPermission, err2 := group.HasPermission(tx, &parentFile, &PermissionNeeded{Audit: true})
 
 						if err2 != nil {
-							return err2
+							if !errors.Is(err2, ErrFileNotFound) {
+								return err
+							}
 						}
 
 						if hasPermission {
 							return ErrPermissionsAreNarrowerThanParent
 						} else {
-							existingPermissions.Audit = false
+							oldPermissionRecords[i].Audit = false
 						}
 					}
+
 					break
 				}
 			}
 			if !updated {
 				// Append permission
 				newPermission := Permission{
-					FileId:     file.FileId,
-					GroupId:    &group.GroupId,
-					CanRead:    permissionNeeded.Read,
-					CanWrite:   permissionNeeded.Write,
-					CanExecute: permissionNeeded.Execute,
-					CanShare:   permissionNeeded.Share,
-					Audit:      permissionNeeded.Audit,
-					VersionNo:  file.VersionNo,
-					Status:     1,
+					FileId:       file.FileId,
+					PermissionId: uuid.New().String(),
+					GroupId:      &group.GroupId,
+					CanRead:      permissionNeeded.Read,
+					CanWrite:     permissionNeeded.Write,
+					CanExecute:   permissionNeeded.Execute,
+					CanShare:     permissionNeeded.Share,
+					Audit:        permissionNeeded.Audit,
+					VersionNo:    file.VersionNo,
+					Status:       1,
 				}
 
 				oldPermissionRecords = append(oldPermissionRecords, newPermission)
@@ -470,12 +501,18 @@ func upsertGroupsPermission(tx *gorm.DB, file *File, permissionNeeded *Permissio
 		}
 
 		// Save all new permissions
-		for _, permission := range oldPermissionRecords {
-			permission.VersionNo = file.VersionNo
-			permission.UpdatedAt = file.ModifiedTime
-			if err2 := tx.Save(&permission).Error; err2 != nil {
-				return err2
+		err := tx.Transaction(func(tx2 *gorm.DB) error {
+			for _, permission := range oldPermissionRecords {
+				permission.VersionNo = file.VersionNo
+				permission.UpdatedAt = file.ModifiedTime
+				if err := tx2.Save(&permission).Error; err != nil {
+					return err
+				}
 			}
+			return nil
+		})
+		if err != nil {
+			return err
 		}
 
 		return updatePermissionsVersions(tx, file, requestUser)
@@ -625,18 +662,19 @@ func updatePermissionsVersions(tx *gorm.DB, file *File, user *User) error {
 
 		for _, permission := range permissions {
 			err2 = tx.Save(&PermissionHistory{
-				FileId:     permission.FileId,
-				VersionNo:  permission.VersionNo,
-				GroupId:    permission.GroupId,
-				UserId:     permission.UserId,
-				CanRead:    permission.CanRead,
-				CanWrite:   permission.CanWrite,
-				CanExecute: permission.CanExecute,
-				CanShare:   permission.CanShare,
-				Audit:      permission.Audit,
-				Status:     permission.Status,
-				CreatedAt:  permission.CreatedAt,
-				UpdatedAt:  permission.UpdatedAt,
+				FileId:       permission.FileId,
+				PermissionId: permission.PermissionId,
+				VersionNo:    permission.VersionNo,
+				GroupId:      permission.GroupId,
+				UserId:       permission.UserId,
+				CanRead:      permission.CanRead,
+				CanWrite:     permission.CanWrite,
+				CanExecute:   permission.CanExecute,
+				CanShare:     permission.CanShare,
+				Audit:        permission.Audit,
+				Status:       permission.Status,
+				CreatedAt:    permission.CreatedAt,
+				UpdatedAt:    permission.UpdatedAt,
 			}).Error
 			if err2 != nil {
 				return err2
@@ -675,8 +713,8 @@ func (user *User) HasPermission(tx *gorm.DB, file *File, needed *PermissionNeede
 
 	hasPermission := false
 
-	noSharePermissions := PermissionNeeded{}
 	// Sharing permissions are separate from non-sharing permissions
+	noSharePermissions := PermissionNeeded{}
 	var sharePermissions []PermissionNeeded
 
 	var permission Permission

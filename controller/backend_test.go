@@ -166,7 +166,7 @@ func TestBackendController(t *testing.T) {
 			"fileID": newFileID,
 		})
 		w = httptest.NewRecorder()
-		bc.DownloadFile(w, req)
+		bc.DownloadFileVersion(w, req)
 		assert.Equal(http.StatusOK, w.Code)
 
 		fmt.Println(w.Body.String())
@@ -217,6 +217,82 @@ func TestBackendController(t *testing.T) {
 		body = w.Body.String()
 		err = json.Unmarshal([]byte(body), &files2)
 		assert.Equal(1, len(files2))
+	})
+
+	t.Run("Copy Folder", func(t *testing.T) {
+
+		// Create copyFolder at root directory
+		req = httptest.NewRequest("POST", "/api/v1/folder", nil).WithContext(
+			ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req.Header.Set("folder_name", "copyFolder")
+		req.Header.Set("parent_folder_id", "00000000-0000-0000-0000-000000000000")
+		w = httptest.NewRecorder()
+		bc.CreateFolder(w, req)
+		assert.Equal(http.StatusOK, w.Code)
+
+		// Convert body to json
+		body = w.Body.String()
+		copyFolder := &dbfs.File{}
+		err = json.Unmarshal([]byte(body), copyFolder)
+		assert.NoError(err)
+		assert.Equal("00000000-0000-0000-0000-000000000000", *copyFolder.ParentFolderFileId)
+		assert.Equal("copyFolder", copyFolder.FileName)
+
+		// Copy folder into it
+
+		req = httptest.NewRequest("POST", "/api/v1/folder/"+copyFolder.FileId+"/copy", nil).WithContext(
+			ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req = mux.SetURLVars(req, map[string]string{
+			"folderID": newFolderID,
+		})
+		req.Header.Add("folder_id", copyFolder.FileId)
+		bc.CopyFile(w, req)
+		assert.Equal(http.StatusOK, w.Code)
+
+		// ls and check again
+		req = httptest.NewRequest("GET", "/api/v1/folder/"+copyFolder.FileId, nil).WithContext(
+			ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req = mux.SetURLVars(req, map[string]string{
+			"folderID": copyFolder.FileId,
+		})
+		w = httptest.NewRecorder()
+		bc.LsFolderID(w, req)
+		assert.Equal(http.StatusOK, w.Code)
+		err = json.Unmarshal([]byte(w.Body.String()), &files2)
+		assert.NoError(err)
+		assert.Equal(1, len(files2))
+
+		// ls inner
+		req = httptest.NewRequest("GET", "/api/v1/folder/"+files2[0].FileId, nil).WithContext(
+			ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req = mux.SetURLVars(req, map[string]string{
+			"folderID": files2[0].FileId,
+		})
+		w = httptest.NewRecorder()
+		bc.LsFolderID(w, req)
+		assert.Equal(http.StatusOK, w.Code)
+		err = json.Unmarshal([]byte(w.Body.String()), &files2)
+		assert.NoError(err)
+		assert.Equal(1, len(files2))
+
+		// Delete folder
+
+		req = httptest.NewRequest("DELETE", "/api/v1/folder/"+copyFolder.FileId, nil).WithContext(
+			ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req = mux.SetURLVars(req, map[string]string{
+			"folderID": copyFolder.FileId,
+		})
+
+		w = httptest.NewRecorder()
+		bc.DeleteFolder(w, req)
+
+		assert.Equal(http.StatusOK, w.Code)
+
 	})
 
 	t.Run("Modify File Metadata (rename, delta)", func(t *testing.T) {
@@ -415,7 +491,7 @@ func TestBackendController(t *testing.T) {
 			"fileID": newFileID,
 		})
 		w = httptest.NewRecorder()
-		bc.DownloadFile(w, req)
+		bc.DownloadFileVersion(w, req)
 		assert.Equal(http.StatusOK, w.Code)
 
 		fmt.Println(w.Body.String())
@@ -459,7 +535,7 @@ func TestBackendController(t *testing.T) {
 		err = json.Unmarshal([]byte(w.Body.String()), &fileVersion)
 		assert.NoError(err)
 		assert.Equal(fileVersion.VersioningMode, dbfs.VersioningOff)
-		fmt.Println(w.Body.String())
+		//fmt.Println(w.Body.String())
 
 		// Trying to download the old version of the file
 
@@ -555,8 +631,6 @@ func TestBackendController(t *testing.T) {
 	})
 
 	// Create Group and add to it
-
-	// TODO: BROKEN LIST OF PERMISSIONS
 	t.Run("Group Check", func(t *testing.T) {
 
 		user2, err := dbfs.CreateNewUser(bc.Db, "testuser2", "testuser2", dbfs.AccountTypeEndUser,
@@ -624,13 +698,12 @@ func TestBackendController(t *testing.T) {
 		w = httptest.NewRecorder()
 		bc.GetFolderPermissions(w, req)
 		assert.Equal(http.StatusOK, w.Code)
-		fmt.Println(w.Body.String())
+		//fmt.Println(w.Body.String())
 
 		var incomingPermissions []dbfs.Permission
 		err = json.Unmarshal(w.Body.Bytes(), &incomingPermissions)
 		assert.NoError(err)
-
-		// TODO: The amount of items being returned right now is not right. Need to fix, but for now it works.
+		assert.Equal(3, len(incomingPermissions)) // Should be superuser, user1, and group1
 
 		req = httptest.NewRequest("GET", "/api/v1/file/"+newFileID+"/permissions/", nil).WithContext(
 			ctxutil.WithUser(context.Background(), user))
@@ -677,10 +750,62 @@ func TestBackendController(t *testing.T) {
 
 		err = json.Unmarshal(w.Body.Bytes(), &incomingPermissions)
 		assert.NoError(err)
-		// TODO: Again, length is wrong, likely when addiing permissions, it's doing some weird recursive thing.
-		// Will look into it
+		assert.Equal(3, len(incomingPermissions))
 
-		// TODO: Modify Permissions not working... ID isn't auto incrementing
+		// Remove can_share from user1
+		// Finding the permission ID is
+
+		var permissionID string
+
+		for _, permission := range incomingPermissions {
+			if permission.UserId != nil {
+				if *permission.UserId == user1.UserId {
+					permissionID = permission.PermissionId
+				}
+			}
+		}
+
+		req = httptest.NewRequest("PUT", "/api/v1/file/"+newFileID+"/permissions/"+permissionID, nil).WithContext(
+			ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req = mux.SetURLVars(req, map[string]string{
+			"fileID": newFileID,
+		})
+		req.Header.Add("permission_id", permissionID)
+		req.Header.Add("can_read", "true")
+		req.Header.Add("can_write", "true")
+		req.Header.Add("can_execute", "false")
+		req.Header.Add("can_share", "false")
+		req.Header.Add("can_audit", "false")
+
+		w = httptest.NewRecorder()
+		bc.ModifyPermissionsFile(w, req)
+		assert.Equal(http.StatusOK, w.Code)
+
+		// Getting Permissions File again
+
+		req = httptest.NewRequest("GET", "/api/v1/file/"+newFileID+"/permissions/", nil).WithContext(
+			ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req = mux.SetURLVars(req, map[string]string{
+			"fileID": newFileID,
+		})
+		w = httptest.NewRecorder()
+		bc.GetPermissionsFile(w, req)
+		assert.Equal(http.StatusOK, w.Code)
+
+		err = json.Unmarshal(w.Body.Bytes(), &incomingPermissions)
+		assert.NoError(err)
+		assert.Equal(3, len(incomingPermissions))
+
+		for _, permission := range incomingPermissions {
+			if permission.UserId != nil {
+				if *permission.UserId == user1.UserId {
+					assert.Equal(false, permission.CanShare)
+				}
+			}
+			fmt.Println(permission)
+		}
 
 	})
 

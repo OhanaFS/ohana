@@ -8,12 +8,12 @@ import (
 )
 
 type Group struct {
-	GroupId       string `gorm:"primaryKey"`
-	GroupName     string `gorm:"not null"`
-	Activated     bool   `gorm:"not null"`
-	MappedGroupId string
-	Users         []*User `gorm:"many2many:user_groups;"`
-	Roles         []*Role `gorm:"many2many:group_roles;"`
+	GroupId       string  `gorm:"primaryKey" json:"group_id"`
+	GroupName     string  `gorm:"not null" json:"group_name"`
+	Activated     bool    `gorm:"not null" json:"-"`
+	MappedGroupId string  `json:"-"`
+	Users         []*User `gorm:"many2many:user_groups;" json:"-"`
+	Roles         []*Role `gorm:"many2many:group_roles;" json:"-"`
 }
 
 type GroupInterface interface {
