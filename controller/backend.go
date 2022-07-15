@@ -122,7 +122,8 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Get encoder params and create new encoder
-	dataShards, parityShards, keyThreshold, err := dbfs.GetStitchParams(bc.Db, bc.Logger)
+	stitchParams, err := dbfs.GetStitchParams(bc.Db, bc.Logger)
+	dataShards, parityShards, keyThreshold := stitchParams.DataShards, stitchParams.ParityShards, stitchParams.KeyThreshold
 	totalShards := dataShards + parityShards
 
 	encoder := stitch.NewEncoder(&stitch.EncoderOptions{
@@ -151,7 +152,6 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 	fileSize := header.Size
 
 	// File, PasswordProtect entries for dbfs.
-	// TODO: Checksum
 	dbfsFile := dbfs.File{
 		FileId:             uuid.New().String(),
 		FileName:           fileName,
@@ -159,7 +159,6 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 		ParentFolderFileId: &folderId, // root folder for now
 		Size:               int(fileSize),
 		VersioningMode:     dbfs.VersioningOff,
-		Checksum:           "CHECKSUM",
 		TotalShards:        totalShards,
 		DataShards:         dataShards,
 		ParityShards:       parityShards,
@@ -229,7 +228,9 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err = encoder.Encode(file, shardWriters, dataKeyBytes, dataIvBytes); err != nil {
+	result, err := encoder.Encode(file, shardWriters, dataKeyBytes, dataIvBytes)
+
+	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -261,7 +262,10 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	err = dbfs.FinishFile(bc.Db, &dbfsFile, user, 412)
+	// checksum
+	checksum := hex.EncodeToString(result.FileHash)
+
+	err = dbfs.FinishFile(bc.Db, &dbfsFile, user, 412, checksum)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -322,7 +326,8 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Get encoder params and create new encoder
-	dataShards, parityShards, keyThreshold, err := dbfs.GetStitchParams(bc.Db, bc.Logger)
+	stitchParams, err := dbfs.GetStitchParams(bc.Db, bc.Logger)
+	dataShards, parityShards, keyThreshold := stitchParams.DataShards, stitchParams.ParityShards, stitchParams.KeyThreshold
 	totalShards := dataShards + parityShards
 
 	encoder := stitch.NewEncoder(&stitch.EncoderOptions{
@@ -379,7 +384,8 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err = encoder.Encode(file, shardWriters, dataKeyBytes, dataIvBytes); err != nil {
+	result, err := encoder.Encode(file, shardWriters, dataKeyBytes, dataIvBytes)
+	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -411,7 +417,10 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	err = dbfsFile.FinishUpdateFile(bc.Db)
+	// checksum
+	checksum := hex.EncodeToString(result.FileHash)
+
+	err = dbfsFile.FinishUpdateFile(bc.Db, checksum)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -700,7 +709,7 @@ func (bc *BackendController) DownloadFile(w http.ResponseWriter, r *http.Request
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Type", file.MIMEType)
 
 	_, err = io.Copy(w, reader)
 	if err != nil {
@@ -1214,7 +1223,7 @@ func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Type", file.MIMEType)
 
 	_, err = io.Copy(w, reader)
 	if err != nil {

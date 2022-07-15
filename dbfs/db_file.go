@@ -410,7 +410,7 @@ func EXAMPLECreateFile(tx *gorm.DB, user *User, filename string, parentFolderId 
 
 	// Now we can update it to indicate that it has been saved successfully.
 
-	err = FinishFile(tx, &file, user, 412)
+	err = FinishFile(tx, &file, user, 412, "checksum")
 	if err != nil {
 		// If fails, delete File record and return error.
 	}
@@ -440,7 +440,7 @@ func CreateInitialFile(tx *gorm.DB, file *File, fileKey, fileIv, dataKey, dataIV
 		If file.ParityShards is not set (or lower than 0), use defaults
 	*/
 
-	if file.FileName == "" || file.Size == 0 || *file.ParentFolderFileId == "" || file.Checksum == "" || fileKey == "" || fileIv == "" || dataKey == "" || dataIV == "" {
+	if file.FileName == "" || file.Size == 0 || *file.ParentFolderFileId == "" || fileKey == "" || fileIv == "" || dataKey == "" || dataIV == "" {
 		return ErrInvalidFile
 	}
 
@@ -555,7 +555,7 @@ func CreateFragment(tx *gorm.DB, fileId string, dataId string, versionNo int, fr
 }
 
 // FinishFile is called whenever a file has been all written (all fragments written)
-func FinishFile(tx *gorm.DB, file *File, user *User, actualSize int) error {
+func FinishFile(tx *gorm.DB, file *File, user *User, actualSize int, checksum string) error {
 
 	// Some checks
 	if file.Status != FileStatusWriting {
@@ -567,6 +567,7 @@ func FinishFile(tx *gorm.DB, file *File, user *User, actualSize int) error {
 
 	// Update the file to be finished
 	file.Status = FileStatusGood
+	file.Checksum = checksum
 	file.ActualSize = actualSize
 	file.ModifiedUserUserId = &user.UserId
 	file.ModifiedTime = time.Now()
@@ -1485,11 +1486,12 @@ func (f *File) UpdateFragment(tx *gorm.DB, fragmentId int, fileFragmentPath stri
 // FinishUpdateFile
 // Once all fragments are updated, the file is marked as finished.
 // Updating Status to FileStatusGood, and LastChecked to now.
-func (f *File) FinishUpdateFile(tx *gorm.DB) error {
+func (f *File) FinishUpdateFile(tx *gorm.DB, checksum string) error {
 
 	err := tx.Transaction(func(tx *gorm.DB) error {
 		f.Status = FileStatusGood
 		f.LastChecked = time.Now()
+		f.Checksum = checksum
 
 		err2 := tx.Save(f).Error
 		if err2 != nil {
@@ -1552,7 +1554,7 @@ func EXAMPLEUpdateFile(tx *gorm.DB, file *File, password string, user *User) err
 	}
 
 	// Once all fragments are uploaded, the file is marked as finished.
-	return file.FinishUpdateFile(tx)
+	return file.FinishUpdateFile(tx, "")
 
 }
 

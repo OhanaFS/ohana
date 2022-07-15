@@ -21,15 +21,21 @@ type Role struct {
 	Groups      []*Group `gorm:"many2many:group_roles;"`
 }
 
-type StitchParams struct {
+type KeyValueDBPair struct {
 	Key         string `gorm:"primaryKey"`
 	ValueInt    int
 	ValueString string
 }
 
-func GetStitchParams(tx *gorm.DB, log *zap.Logger) (int, int, int, error) {
+type StitchParams struct {
+	DataShards   int
+	ParityShards int
+	KeyThreshold int
+}
 
-	var dataShards, parityShards, keyThreshold StitchParams
+func GetStitchParams(tx *gorm.DB, log *zap.Logger) (*StitchParams, error) {
+
+	var dataShards, parityShards, keyThreshold KeyValueDBPair
 	var dataShardsInt, parityShardsInt, keyThresholdInt int
 
 	// Get dataShards
@@ -38,7 +44,7 @@ func GetStitchParams(tx *gorm.DB, log *zap.Logger) (int, int, int, error) {
 		dataShardsInt = 2
 		log.Error("dataShards not found, using default value", zap.Int("dataShards", dataShardsInt))
 	} else if err != nil {
-		return 0, 0, 0, err
+		return nil, err
 	} else {
 		dataShardsInt = dataShards.ValueInt
 	}
@@ -49,7 +55,7 @@ func GetStitchParams(tx *gorm.DB, log *zap.Logger) (int, int, int, error) {
 		parityShardsInt = 1
 		log.Error("parityShards not found, using default value", zap.Int("parityShards", parityShardsInt))
 	} else if err != nil {
-		return 0, 0, 0, err
+		return nil, err
 	} else {
 		parityShardsInt = parityShards.ValueInt
 	}
@@ -60,11 +66,15 @@ func GetStitchParams(tx *gorm.DB, log *zap.Logger) (int, int, int, error) {
 		keyThresholdInt = 2
 		log.Error("keyThreshold not found, using default value", zap.Int("keyThreshold", keyThresholdInt))
 	} else if err != nil {
-		return 0, 0, 0, err
+		return nil, err
 	} else {
 		keyThresholdInt = keyThreshold.ValueInt
 	}
 
-	return dataShardsInt, parityShardsInt, keyThresholdInt, nil
+	return &StitchParams{
+		DataShards:   dataShardsInt,
+		ParityShards: parityShardsInt,
+		KeyThreshold: keyThresholdInt,
+	}, nil
 
 }

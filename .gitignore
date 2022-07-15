@@ -25,3 +25,4 @@ go.work
 *.shard0
 *.shard1
 *.shard2
+*.DS_Store
