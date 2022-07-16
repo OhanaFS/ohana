@@ -5,10 +5,14 @@ import {
   Checkbox,
   useMantineTheme,
   ScrollArea,
+  Modal,
+  Group,
+  Textarea,
 } from '@mantine/core';
 
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { group } from 'console';
 
 export interface ConsoleDetails {
   groupList: Array<any>;
@@ -27,24 +31,32 @@ export function AdminConsole(props: ConsoleDetails) {
 
   const theme = useMantineTheme();
   let [CurrentSSOGroups, setValue] = useState(props.groupList);
+  const [Group, addGroup] = useState('');
   function add() {
-    const userinput = prompt('Please enter ' +props.addObjectLabel)
-    const validateInput = false;
-    setValue((prevValue) => CurrentSSOGroups.concat(userinput));
+    setValue((prevValue) => CurrentSSOGroups.concat(Group));
+    setOpened(false);
   }
+  const [openedModel, setOpened] = useState(false);
+  const inputRef = useRef(null);
+  const [checkboxList, setCheckedOne] = useState(['']);
+  const title = "Add "+ props.addObjectLabel;
+  const textField ="Name of the " +props.addObjectLabel;
 
-  const [checkedOne, setCheckedOne] = useState(['']);
   function deleteGroup() {
-    checkedOne.forEach((element) => {
-      setCheckedOne(checkedOne.filter((item) => item !== element));
-      setValue(CurrentSSOGroups.filter((item) => item !== element));
+    checkboxList.forEach((element) => {
+      setCheckedOne(checkboxList.filter((item) => item !== element));
+      setValue(CurrentSSOGroups.filter((item) => item !== element))
     });
   }
+
+  // if the user check the checkbox, it will add the item
   function update(index: string) {
-    setCheckedOne((prevValue) => checkedOne.concat(index));
+    setCheckedOne((prevValue) => checkboxList.concat(index));
   }
+
+    // if the user uncheck the checkbox, it will remove the item
   function remove(index: string) {
-    setCheckedOne(checkedOne.filter((item) => item !== index));
+    setCheckedOne(checkboxList.filter((item) => item !== index));
   }
 
   const ths = (
@@ -84,8 +96,10 @@ export function AdminConsole(props: ConsoleDetails) {
      
         <Checkbox
           style={{marginRight:'10px'}}
-          onChange={(event) =>
-            event.currentTarget.checked ? update(items) : remove(items)
+          onChange={(event) =>    
+            [   
+              event.currentTarget.checked ? update(items) : remove(items),
+            ]
           }
         ></Checkbox>
       </td>
@@ -97,11 +111,50 @@ export function AdminConsole(props: ConsoleDetails) {
       style={{
         display: 'flex',
         height: '80vh',
-        justifyContent: 'center',
-        
+        justifyContent: 'center',    
       }}
     > 
+  
       <div className="console">
+
+
+      <Modal
+      centered 
+        opened={openedModel}
+        onClose={() => setOpened(false)} 
+      >
+        {
+          <>
+          <div style ={{    
+            display: 'flex',
+        height: '25vh',
+        flexDirection:'column',
+        }}>
+            <Textarea
+            placeholder={textField}
+            label= {title}
+            size="md"
+            name="password"
+            id="password"
+            required
+            onChange={(event) => {addGroup(event.target.value)}}
+           
+          />  
+            <Button
+              variant="default"
+              color="dark"
+              size="md"
+              onClick={() => add()}
+              style={{ marginLeft:'15px', alignSelf:'flex-end',marginTop:'20px' }}
+            >
+              submit 
+            </Button>
+            </div>
+          </>
+          
+        }
+      </Modal>
+
         <ScrollArea style={{ height: '90%', width: '100%', marginTop: '1%' }}>
           <Table captionSide="top" verticalSpacing="sm" style={{}}>
             <caption
@@ -133,7 +186,7 @@ export function AdminConsole(props: ConsoleDetails) {
               variant="default"
               color="dark"
               size="md"
-              onClick={() => add()}
+              onClick={() => setOpened(true)}
               style={{ marginLeft:'15px' }}
             >
               Add {props.addObjectLabel}
@@ -148,6 +201,7 @@ export function AdminConsole(props: ConsoleDetails) {
             >
               Delete {props.deleteObjectLabel}
             </Button>
+            
             </div>
           
       </div>
