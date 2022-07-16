@@ -26,9 +26,7 @@ export function AdminLogs(props: LogsDetails) {
   let [logs, setValue] = useState(props.groupList);
 
   const ths = props.tableHeader.map((items) => (
-    <th 
-     
-    >
+    <th style={{fontWeight:'600'}}  >
       {items}
     </th>
   ));
@@ -87,8 +85,8 @@ export function AdminLogs(props: LogsDetails) {
                 textAlign: 'center',
                 fontWeight: '600',
                 fontSize: '24px',
-                color: 'black',
-                marginTop: '2%',
+                color: 'black'
+               
               }}
             >
               {props.caption}{' '}

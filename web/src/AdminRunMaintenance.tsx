@@ -264,7 +264,7 @@ export function AdminRunMaintenance() {
                   component={Link}
                   to="/performmaintenance"
                 >
-                  Save Settings
+               Perform Maintenance
                 </Button>
            
               </div>

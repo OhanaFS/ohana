@@ -46,7 +46,7 @@ export function AdminConfiguration() {
           }}>
             Rotate Key
           </caption>
-          <Textarea
+          <Textarea 
             label="Specify the file/directory location and the system will
             auto rotate the key"
             radius="md"

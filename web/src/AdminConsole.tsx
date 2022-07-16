@@ -28,8 +28,8 @@ export function AdminConsole(props: ConsoleDetails) {
   const theme = useMantineTheme();
   let [CurrentSSOGroups, setValue] = useState(props.groupList);
   function add() {
-
     const userinput = prompt('Please enter ' +props.addObjectLabel)
+    const validateInput = false;
     setValue((prevValue) => CurrentSSOGroups.concat(userinput));
   }
 
@@ -51,7 +51,6 @@ export function AdminConsole(props: ConsoleDetails) {
     <tr>
       <th
         style={{
-          width: '80%',
           textAlign: 'left',
           fontWeight: '700',
           fontSize: '16px',
@@ -63,21 +62,17 @@ export function AdminConsole(props: ConsoleDetails) {
     </tr>
   );
   const rows = CurrentSSOGroups.map((items, index) => (
-    <tr>
-      <td
-        width="80%"
-        style={{
-          textAlign: 'left',
-          fontWeight: '400',
-          fontSize: '16px',
-          color: 'black',
-        }}
-      >
+    <tr style={{
+    
+    }}>
+    <td style={{
+      display:'flex',
+      justifyContent:'space-between',
+    }}>
         <Text
           color="dark"
           style={{
-            marginBottom: '20%',
-            height: '50px',
+            marginLeft:'10px',
             pointerEvents: props.pointerEvents ? 'auto' : 'none',
           }}
           component={Link}
@@ -86,9 +81,9 @@ export function AdminConsole(props: ConsoleDetails) {
         >
           {items}
         </Text>
-      </td>
-      <td>
+     
         <Checkbox
+          style={{marginRight:'10px'}}
           onChange={(event) =>
             event.currentTarget.checked ? update(items) : remove(items)
           }
