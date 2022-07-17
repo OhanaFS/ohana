@@ -42,6 +42,8 @@ func NewBackend(
 		Path:   config.Stitch.ShardsLocation,
 	}
 
+	bc.InitialiseShardsFolder()
+	
 	// Register routes
 	r := router.NewRoute().Subrouter()
 
@@ -78,6 +80,15 @@ func NewBackend(
 	r.Use(mw.UserAuth)
 
 	return nil
+}
+
+func (bc *BackendController) InitialiseShardsFolder() {
+	if _, err := os.Stat(bc.Path); os.IsNotExist(err) {
+		err := os.MkdirAll(bc.Path, 0755)
+		if err != nil {
+			panic("ERROR. CANNOT CREATE SHARDS FOLDER.")
+		}
+	}
 }
 
 // UploadFile allows a user to upload a file to the system

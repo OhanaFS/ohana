@@ -44,6 +44,8 @@ func TestBackendController(t *testing.T) {
 		Path:   configFile.Stitch.ShardsLocation,
 	}
 
+	bc.InitialiseShardsFolder()
+
 	// Getting Superuser to use with testing
 	user, err := dbfs.GetUser(db, "superuser")
 	if err != nil {
