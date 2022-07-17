@@ -93,13 +93,15 @@ export function AdminSettings() {
             </caption>
             
             <thead></thead>
-            <tbody style={{}}>
+            <tbody>
+             
               <tr style={{}}>
                 <div  style={{
                   height: '50px',
                   display: 'flex',
                   flexDirection: 'row',
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
+                  marginLeft:'10px',
                 }}>
                   <Text id="settingText" > Allow Cluster health alerts </Text>
                   <Checkbox
@@ -120,7 +122,8 @@ export function AdminSettings() {
                   display: 'flex',
                   height: '50px',
                   flexDirection: 'row',
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
+                  marginLeft:'10px',
                 }}>
 
                   <Text id="settingText"> Allow server offline alerts </Text>
@@ -143,7 +146,8 @@ export function AdminSettings() {
                   display: 'flex',
                   height: '50px',
                   flexDirection: 'row',
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
+                  marginLeft:'10px',
                 }}>
                   <Text id="settingText"> Allow supicious action alerts </Text>{' '}
                   <Checkbox
@@ -165,7 +169,8 @@ export function AdminSettings() {
                   display: 'flex',
                   height: '50px',
                   flexDirection: 'row',
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
+                  marginLeft:'10px',
                 }}>
 
                   <Text id="settingText"> Allow server full alert </Text>
@@ -189,7 +194,8 @@ export function AdminSettings() {
                   display: 'flex',
                   height: '50px',
                   flexDirection: 'row',
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
+                  marginLeft:'10px',
                 }}>
                   <Text id="settingText"> Allow supicious file alerts </Text>{' '}
                   <Checkbox
@@ -211,7 +217,8 @@ export function AdminSettings() {
                   display: 'flex',
                   height: '50px',
                   flexDirection: 'row',
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
+                  marginLeft:'10px',
                 }}>
                     <span>
                   <Text id="settingText">   Backup encryption key</Text>{' '}
@@ -236,7 +243,8 @@ export function AdminSettings() {
                   display: 'flex',
                   height: '50px',
                   flexDirection: 'row',
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
+                  marginLeft:'10px',
                 }}>
                   {' '}
                   <span style={{marginTop:'10px'}}>
@@ -257,6 +265,7 @@ export function AdminSettings() {
                   </Button>
                 </div>
               </tr>
+          
             </tbody>
             <tfoot>
               <div style={{

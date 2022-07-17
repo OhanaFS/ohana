@@ -7,8 +7,6 @@ import { VFSBrowser } from './components/userFiles';
 import { AdminDashboard } from './AdminDashboard';
 import { LoginPage } from './LoginPage';
 import { AdminConfiguration } from './AdminConfiguration';
-import { AdminCreateKey } from './AdminCreateKey';
-import { AdminCreateSsoKey } from './AdminCreateSsoKey';
 import { AdminKeyManagement } from './AdminKeyManagement';
 import { AdminMaintenanceResults } from './AdminMaintenanceResults';
 import { AdminMaintenanceSettings } from './AdminMaintenanceSettings';
@@ -18,7 +16,6 @@ import { AdminRunMaintenance } from './AdminRunMaintenance';
 import { AdminSettings } from './AdminSettings';
 import { AdminSsoGroups } from './AdminSsoGroups';
 import { AdminSsoGroupsInside } from './AdminSsoGroupsInside';
-import { AdminLogs } from './AdminLogs';
 import AdminMaintenanceLogs from './AdminMaintenanceLogs';
 
 export default function Demo() {
@@ -50,10 +47,6 @@ export default function Demo() {
         <Route
           path="/"
           element={<LoginPage />}
-        />
-        <Route
-          path="/createssokey"
-          element={<AdminCreateSsoKey />}
         />
         <Route
           path="/insidessogroup"
@@ -103,10 +96,7 @@ export default function Demo() {
           path="/rotate_key"
           element={<AdminConfiguration />}
         />
-        <Route
-          path="/createkey"
-          element={<AdminCreateKey />}
-        />
+
       </Routes>
     </Router>
   );

@@ -1,10 +1,8 @@
 import {
-  useMantineTheme,
   Button,
   ScrollArea,
   Table,
 } from '@mantine/core';
-import { useScrollIntoView } from '@mantine/hooks';
 import { BrowserRouter as Router, Link } from 'react-router-dom';
 import { useState } from 'react';
 import './assets/styles.css';
@@ -20,11 +18,8 @@ export interface LogsDetails {
 }
 
 export function AdminLogs(props: LogsDetails) {
-  const theme = useMantineTheme();
-  const { scrollableRef } = useScrollIntoView();
 
   let [logs, setValue] = useState(props.groupList);
-
   const ths = props.tableHeader.map((items) => (
     <th style={{fontWeight:'600'}}  >
       {items}

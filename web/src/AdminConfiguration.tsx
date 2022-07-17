@@ -1,6 +1,5 @@
 import {
   Button,
-  useMantineTheme,
   Textarea,
   Checkbox,
   Text,

@@ -2,17 +2,13 @@ import {
   Table,
   Button,
   Text,
-  Checkbox,
-  useMantineTheme,
   ScrollArea,
   Modal,
-  Group,
   Textarea,
 } from '@mantine/core';
 
 import { Link } from 'react-router-dom';
-import { useRef, useState } from 'react';
-import { group } from 'console';
+import {  useState } from 'react';
 
 export interface ConsoleDetails {
   groupList: Array<any>;
@@ -52,7 +48,9 @@ export function AdminConsole(props: ConsoleDetails) {
           color: 'black',
         }}
       >
+        <div style={{marginLeft:'10px'}}>
         {props.tableHeader}
+        </div>
       </th>
     </tr>
   );
@@ -97,7 +95,6 @@ export function AdminConsole(props: ConsoleDetails) {
         justifyContent: 'center',    
       }}
     > 
-   
       <div className="console">
       <Modal
          centered 
@@ -124,7 +121,11 @@ export function AdminConsole(props: ConsoleDetails) {
               color="dark"
               size="md"
               onClick={() => add()}
-              style={{ marginLeft:'15px', alignSelf:'flex-end',marginTop:'20px' }}
+              style={{ 
+                marginLeft:'15px', 
+                alignSelf:'flex-end',
+                marginTop:'20px' 
+              }}
             >
               Submit 
             </Button>
@@ -132,7 +133,11 @@ export function AdminConsole(props: ConsoleDetails) {
         }
       </Modal>
 
-        <ScrollArea style={{ height: '90%', width: '100%', marginTop: '1%' }}>
+        <ScrollArea style={{ 
+          height: '90%', 
+          width: '100%', 
+          marginTop: '1%' 
+          }}>
           <Table captionSide="top" verticalSpacing="sm" style={{}}>
             <caption
               style={{
@@ -140,13 +145,12 @@ export function AdminConsole(props: ConsoleDetails) {
                 fontWeight: '600',
                 fontSize: '24px',
                 color: 'black',
-                marginTop: '2%',
+                marginTop: '5px',
               }}
             >
               {props.caption}{' '}
             </caption>
-            <thead>{ths}</thead>
-
+            <thead style={{}}>{ths}</thead>
             <tbody>{rows}</tbody>
           </Table>
         </ScrollArea>
