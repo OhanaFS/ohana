@@ -4,17 +4,7 @@ import { AdminConsole } from './AdminConsole';
 import AppBase from './components/AppBase';
 
 export function AdminSsoGroups() {
-  /*
-    groupList: Array<string>;
-    addObjectLabel:string;
-    deleteObjectLabel:string;
-    tableHeader: string;
-    caption: string;
-    pointerEvents : boolean; 
-    conso
-  */
-
-  const SSOGroupList = ['Hr', 'Finance'];
+  const SSOGroupList = ['Hr', 'Finance','IT','Management'];
 
   return (
     <>

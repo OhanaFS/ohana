@@ -30,35 +30,20 @@ export function AdminConsole(props: ConsoleDetails) {
   // take from database.
 
   const theme = useMantineTheme();
-  let [CurrentSSOGroups, setValue] = useState(props.groupList);
+  const [CurrentSSOGroups, setValue] = useState(props.groupList);
   const [Group, addGroup] = useState('');
   function add() {
     setValue((prevValue) => CurrentSSOGroups.concat(Group));
     setOpened(false);
   }
-  const [openedModel, setOpened] = useState(false);
-  const inputRef = useRef(null);
-  const [checkboxList, setCheckedOne] = useState(['']);
+  const [openedAddUserModel, setOpened] = useState(false);
   const title = "Add "+ props.addObjectLabel;
   const textField ="Name of the " +props.addObjectLabel;
 
-  function deleteGroup() {
-    checkboxList.forEach((element) => {
-      setCheckedOne(checkboxList.filter((item) => item !== element));
-      setValue(CurrentSSOGroups.filter((item) => item !== element))
-    });
-  }
-
-  // if the user check the checkbox, it will add the item
-  function update(index: string) {
-    setCheckedOne((prevValue) => checkboxList.concat(index));
-  }
-
-    // if the user uncheck the checkbox, it will remove the item
-  function remove(index: string) {
-    setCheckedOne(checkboxList.filter((item) => item !== index));
-  }
-
+const deleteGroup = (index:any) => {
+  setValue(CurrentSSOGroups.filter((v, i) => i !== index));
+}
+  
   const ths = (
     <tr>
       <th
@@ -74,7 +59,7 @@ export function AdminConsole(props: ConsoleDetails) {
     </tr>
   );
   const rows = CurrentSSOGroups.map((items, index) => (
-    <tr style={{
+    <tr key={index} style={{
     
     }}>
     <td style={{
@@ -94,14 +79,18 @@ export function AdminConsole(props: ConsoleDetails) {
           {items}
         </Text>
      
-        <Checkbox
-          style={{marginRight:'10px'}}
-          onChange={(event) =>    
-            [   
-              event.currentTarget.checked ? update(items) : remove(items),
-            ]
-          }
-        ></Checkbox>
+      
+        <Button
+              variant="default"
+              color="dark"
+              size="md"
+              style={{ marginRight:'15px' }}
+              onClick={() => [         
+               deleteGroup(index)            
+              ]}
+            >
+              Delete 
+            </Button>
       </td>
     </tr>
   ));
@@ -114,13 +103,11 @@ export function AdminConsole(props: ConsoleDetails) {
         justifyContent: 'center',    
       }}
     > 
-  
+   
       <div className="console">
-
-
       <Modal
       centered 
-        opened={openedModel}
+        opened={openedAddUserModel}
         onClose={() => setOpened(false)} 
       >
         {
@@ -192,15 +179,7 @@ export function AdminConsole(props: ConsoleDetails) {
               Add {props.addObjectLabel}
             </Button>
           
-            <Button
-              variant="default"
-              color="dark"
-              size="md"
-              style={{ marginRight:'15px' }}
-              onClick={() => deleteGroup()}
-            >
-              Delete {props.deleteObjectLabel}
-            </Button>
+        
             
             </div>
           

@@ -6,6 +6,7 @@ import {
   useMantineTheme,
 } from '@mantine/core';
 import { useState } from 'react';
+import { AdminConsole } from './AdminConsole';
 import AppBase from './components/AppBase';
 
 export function AdminSsoGroupsInside() {
@@ -76,86 +77,26 @@ export function AdminSsoGroupsInside() {
         username="@alex"
         image="https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80"
       >
-      <div
-        style={{
-        display: 'flex',
-        justifyContent: 'center',
-        height: '80vh',
-      }}
-    >
-      <div className="ssoGroupsDetails">
+    
              
          
 
-                <ScrollArea
-                  style={{ height: '90%', width: '100%', marginTop: '1%' }}
-                >
-                  <Table
-                    captionSide="top"
-                    striped
-                    highlightOnHover
-                    verticalSpacing="sm"
-                  >
-                    <caption
-                      style={{
-                        textAlign: 'center',
-                        fontWeight: '600',
-                        fontSize: '24px',
-                        color: 'black',
-                      }}
-                    >
-                      User Management Console
-                    </caption>
-                    <thead>{ths}</thead>
-                    <tbody>{rows}</tbody>
-                  </Table>
-                </ScrollArea>
-              
-                <div style={{ position: 'relative' }}>
-          <td
-            style={{
-              position: 'absolute',
-              top: '5px',
-              left: '16px',
-            }}
-          >
-            {' '}
-            <Button
-              variant="default"
-              color="dark"
-              size="md"
-              style={{}}
-              onClick={() => addUser()}
-            >
-              Add User
-            </Button>
-          </td>
-
-          <td
-            style={{
-              position: 'absolute',
-              top: '5px',
-              right: '16px',
-            }}
-          >
-            {' '}
-            <Button
-              variant="default"
-              color="dark"
-              size="md"
-              style={{}}
-              onClick={() => deleteUser()}
-            >
-              Delete User
-            </Button>
-          </td>
-        </div>
-              
-           
-              </div>
-          </div>
-        
+    
+        <AdminConsole
+          consoleWidth={80}
+          consoleHeight={60}
+          groupList={data}
+          addObjectLabel="User"
+          deleteObjectLabel="User"
+          tableHeader={['List of Users inside this group']}
+          tableBody={[]}
+          caption="User Management Console"
+          pointerEvents={false}
+        ></AdminConsole>
+       
       </AppBase>
+
+      
     </>
   );
 }
