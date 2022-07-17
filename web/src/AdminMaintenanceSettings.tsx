@@ -182,15 +182,10 @@ export function AdminMaintenanceSettings() {
 
                 <tr>
                   <td>
-                    {' '}
-                
-                      {' '}
                       Quick File Check (Only checks current versions of files to
                       see if it’s fine and is not corrupted){' '}
-                 
                   </td>
                   <td>
-                    {' '}
                     <Checkbox
                       size="md"
                       id="3"
@@ -198,21 +193,16 @@ export function AdminMaintenanceSettings() {
                       onChange={(event) =>
                         setChecked4(event.currentTarget.checked)
                       }
-                    />{' '}
+                    />
                   </td>
                 </tr>
 
                 <tr>
                   <td>
-                    {' '}
-               
-                      {' '}
                       Full File Check (Checks all fragments to ensure that it’s
-                      not corrupted){' '}
-                  
+                      not corrupted)
                   </td>
                   <td>
-                    {' '}
                     <Checkbox
                       size="md"
                       id="4"
@@ -226,11 +216,9 @@ export function AdminMaintenanceSettings() {
 
                 <tr>
                   <td>
-                    {' '}
                     DB integrity Check 
                   </td>
                   <td>
-                    {' '}
                     <Checkbox
                       size="md"
                       id="5"
@@ -243,26 +231,23 @@ export function AdminMaintenanceSettings() {
                 </tr>
 
               </tbody>
-              <div  style={{
-       display: 'flex',
-      flexDirection:'column',
-         
-      
-      }} >
+              <div style={{
+                    display: 'flex',
+                    flexDirection:'column',
+               }}>
 
-                <Button
-                    style={{
-                      alignSelf:"flex-end",marginTop:'20px'
-                    }}
-                  variant="default"
-                  color="dark"
-                  size="md"
-                  component={Link}
-                  to="/runmaintenance"
-                >
+                <Button style={{
+                          alignSelf:"flex-end",
+                          marginTop:'20px'
+                           }}
+                        variant="default"
+                        color="dark"
+                        size="md"
+                        component={Link}
+                        to="/runmaintenance"
+                 >
                   Save Settings
-                </Button>
-           
+                  </Button>
               </div>
             </Table>
        </div>

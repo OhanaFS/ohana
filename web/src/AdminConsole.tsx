@@ -27,21 +27,19 @@ export interface ConsoleDetails {
 }
 
 export function AdminConsole(props: ConsoleDetails) {
-  // take from database.
 
-  const theme = useMantineTheme();
   const [CurrentSSOGroups, setValue] = useState(props.groupList);
   const [Group, addGroup] = useState('');
-  function add() {
-    setValue((prevValue) => CurrentSSOGroups.concat(Group));
+  function add() {  
+    setValue(CurrentSSOGroups.concat(Group));
     setOpened(false);
   }
   const [openedAddUserModel, setOpened] = useState(false);
   const title = "Add "+ props.addObjectLabel;
   const textField ="Name of the " +props.addObjectLabel;
 
-const deleteGroup = (index:any) => {
-  setValue(CurrentSSOGroups.filter((v, i) => i !== index));
+  const deleteGroup = (index:any) => {
+    setValue(CurrentSSOGroups.filter((v, i) => i !== index));
 }
   
   const ths = (
@@ -59,13 +57,11 @@ const deleteGroup = (index:any) => {
     </tr>
   );
   const rows = CurrentSSOGroups.map((items, index) => (
-    <tr key={index} style={{
-    
-    }}>
-    <td style={{
-      display:'flex',
-      justifyContent:'space-between',
-    }}>
+    <tr key={index}>
+     <td style={{
+        display:'flex',
+        justifyContent:'space-between',
+      }}>
         <Text
           color="dark"
           style={{
@@ -78,8 +74,6 @@ const deleteGroup = (index:any) => {
         >
           {items}
         </Text>
-     
-      
         <Button
               variant="default"
               color="dark"
@@ -106,17 +100,16 @@ const deleteGroup = (index:any) => {
    
       <div className="console">
       <Modal
-      centered 
-        opened={openedAddUserModel}
-        onClose={() => setOpened(false)} 
+         centered 
+         opened={openedAddUserModel}
+         onClose={() => setOpened(false)} 
       >
-        {
-          <>
-          <div style ={{    
-            display: 'flex',
-        height: '25vh',
-        flexDirection:'column',
-        }}>
+        {         
+      <div style ={{    
+             display: 'flex',
+             height: '25vh',
+             flexDirection:'column',
+            }}>
             <Textarea
             placeholder={textField}
             label= {title}
@@ -124,9 +117,8 @@ const deleteGroup = (index:any) => {
             name="password"
             id="password"
             required
-            onChange={(event) => {addGroup(event.target.value)}}
-           
-          />  
+            onChange={(event) => {addGroup(event.target.value)}}    
+            />  
             <Button
               variant="default"
               color="dark"
@@ -134,11 +126,9 @@ const deleteGroup = (index:any) => {
               onClick={() => add()}
               style={{ marginLeft:'15px', alignSelf:'flex-end',marginTop:'20px' }}
             >
-              submit 
+              Submit 
             </Button>
             </div>
-          </>
-          
         }
       </Modal>
 
@@ -162,13 +152,11 @@ const deleteGroup = (index:any) => {
         </ScrollArea>
 
    
-       <div  style={{
-       display: 'flex',
-      flexDirection:'row',
-      justifyContent: 'space-between',
-      
+       <div style={{
+             display: 'flex',
+             flexDirection:'row',
+            justifyContent: 'space-between',
       }} >
-     
             <Button
               variant="default"
               color="dark"
@@ -177,12 +165,8 @@ const deleteGroup = (index:any) => {
               style={{ marginLeft:'15px' }}
             >
               Add {props.addObjectLabel}
-            </Button>
-          
-        
-            
-            </div>
-          
+            </Button>   
+            </div>       
       </div>
     </div>
   );

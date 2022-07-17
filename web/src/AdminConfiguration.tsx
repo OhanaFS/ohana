@@ -9,9 +9,8 @@ import {
 import AppBase from './components/AppBase';
 
 export function AdminConfiguration() {
-  const theme = useMantineTheme();
-  return (
 
+  return (
     <AppBase
       userType="admin"
       name="Alex Simmons"
