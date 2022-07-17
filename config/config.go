@@ -18,6 +18,7 @@ type Config struct {
 	Database       DatabaseConfig `yaml:"database"`
 	Authentication AuthConfig     `yaml:"authentication"`
 	Redis          RedisConfig    `yaml:"redis"`
+	Stitch         StitchConfig   `yaml:"stitch"`
 	SPA            SPAConfig      `yaml:"-"`
 }
 
@@ -57,6 +58,12 @@ type SPAConfig struct {
 	IndexPath            string
 	UseDevelopmentServer bool
 	DevelopmentServerURL string
+}
+
+// StitchConfig is the configuration for the Stitch router.
+// It contains the path of where the shards are located on the server
+type StitchConfig struct {
+	ShardsLocation string `yaml:"shards_location"`
 }
 
 // LoadConfig tries to load the configuration from the file specified in the

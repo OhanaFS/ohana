@@ -6,41 +6,43 @@ import (
 )
 
 type FileVersion struct {
-	FileId                string `gorm:"primaryKey"`
-	VersionNo             int    `gorm:"primaryKey"`
-	FileName              string `gorm:"not null"`
-	MIMEType              string
-	EntryType             int8         `gorm:"not null"`
-	ParentFolder          *FileVersion `gorm:"foreignKey:ParentFolderFileId,ParentFolderVersionNo"`
-	ParentFolderFileId    *string
-	ParentFolderVersionNo *int
-	DataId                string
-	DataIdVersion         int
-	Size                  int       `gorm:"not null"`
-	ActualSize            int       `gorm:"not null"`
-	CreatedTime           time.Time `gorm:"not null"`
-	ModifiedUser          User      `gorm:"foreignKey:ModifiedUserUserId"`
-	ModifiedUserUserId    *string
-	ModifiedTime          time.Time `gorm:"not null; autoUpdateTime"`
-	VersioningMode        int8      `gorm:"not null"`
-	Checksum              string
-	FragCount             int
-	ParityCount           int
-	EncryptionKey         string
-	EncryptionIv          string
-	PasswordProtected     bool
-	LinkFile              *FileVersion `gorm:"foreignKey:LinkFileFileId,LinkFileVersionNo"`
-	LinkFileFileId        *string
-	LinkFileVersionNo     *int
-	LastChecked           time.Time
-	Status                int8   `gorm:"not null"`
-	HandledServer         string `gorm:"not null"`
-	Patch                 bool
-	PatchBaseVersion      int
+	FileId                string       `gorm:"primaryKey" json:"file_id"`
+	VersionNo             int          `gorm:"primaryKey" json:"version_no"`
+	FileName              string       `gorm:"not null" json:"file_name"`
+	MIMEType              string       `json:"mime_type"`
+	EntryType             int8         `gorm:"not null" json:"entry_type"`
+	ParentFolder          *FileVersion `gorm:"foreignKey:ParentFolderFileId,ParentFolderVersionNo" json:"'-'"`
+	ParentFolderFileId    *string      `json:"parent_folder_id"`
+	ParentFolderVersionNo *int         `json:"-"`
+	DataId                string       `json:"-"`
+	DataIdVersion         int          `json:"data_version_no"`
+	Size                  int          `gorm:"not null" json:"size"`
+	ActualSize            int          `gorm:"not null" json:"actual_size"`
+	CreatedTime           time.Time    `gorm:"not null" json:"created_time"`
+	ModifiedUser          User         `gorm:"foreignKey:ModifiedUserUserId" json:"-"`
+	ModifiedUserUserId    *string      `json:"modified_user_user_id"`
+	ModifiedTime          time.Time    `gorm:"not null; autoUpdateTime" json:"modified_time"`
+	VersioningMode        int8         `gorm:"not null" json:"versioning_mode"`
+	Checksum              string       `json:"checksum"`
+	TotalShards           int          `json:"total_shards"`
+	DataShards            int          `json:"data_shards"`
+	ParityShards          int          `json:"parity_shards"`
+	KeyThreshold          int          `json:"key_threshold"`
+	EncryptionKey         string       `json:"-"`
+	EncryptionIv          string       `json:"-"`
+	PasswordProtected     bool         `json:"password_protected"`
+	LinkFile              *FileVersion `gorm:"foreignKey:LinkFileFileId,LinkFileVersionNo" json:"-"`
+	LinkFileFileId        *string      `json:"link_file_id"`
+	LinkFileVersionNo     *int         `json:"-"`
+	LastChecked           time.Time    `json:"last_checked"`
+	Status                int8         `gorm:"not null" json:"status"`
+	HandledServer         string       `gorm:"not null" json:"-"`
+	Patch                 bool         `json:"-"`
+	PatchBaseVersion      int          `json:"-"`
 }
 
-// createFileVersionFromFile creates a FileVersion from a File
-func createFileVersionFromFile(tx *gorm.DB, file *File, user *User) error {
+// CreateFileVersionFromFile creates a FileVersion from a File
+func CreateFileVersionFromFile(tx *gorm.DB, file *File, user *User) error {
 
 	// Get the current parent folder and it's current version
 
@@ -66,8 +68,10 @@ func createFileVersionFromFile(tx *gorm.DB, file *File, user *User) error {
 		ModifiedTime:          file.ModifiedTime,
 		VersioningMode:        file.VersioningMode,
 		Checksum:              file.Checksum,
-		FragCount:             file.FragCount,
-		ParityCount:           file.ParityCount,
+		TotalShards:           file.TotalShards,
+		DataShards:            file.DataShards,
+		ParityShards:          file.ParityShards,
+		KeyThreshold:          file.KeyThreshold,
 		EncryptionKey:         file.EncryptionKey,
 		EncryptionIv:          file.EncryptionIv,
 		PasswordProtected:     file.PasswordProtected,
@@ -102,7 +106,7 @@ func getFileVersionFromFile(tx *gorm.DB, file *File, version int) (*FileVersion,
 }
 
 // GetFragments returns the fragments of a FileVersion
-func (fileVersion *FileVersion) GetFragments(tx *gorm.DB, user *User) ([]Fragment, error) {
+func (fv *FileVersion) GetFragments(tx *gorm.DB, user *User) ([]Fragment, error) {
 
 	// Check if user has permissions to the file
 
@@ -112,7 +116,7 @@ func (fileVersion *FileVersion) GetFragments(tx *gorm.DB, user *User) ([]Fragmen
 	// of deleted files as well. Or for now, we just take it that you can't see deleted files.
 
 	// Get original File and check permissions (can't get file without permissions)
-	file, err := GetFileById(tx, fileVersion.FileId, user)
+	file, err := GetFileById(tx, fv.FileId, user)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +128,7 @@ func (fileVersion *FileVersion) GetFragments(tx *gorm.DB, user *User) ([]Fragmen
 	}
 
 	var fragments []Fragment
-	err = tx.Model(&fragments).Where("file_id = ? AND version_no = ?", fileVersion.FileId, fileVersion.VersionNo).Find(&fragments).Error
+	err = tx.Model(&fragments).Where("file_version_file_id = ? AND file_version_data_id = ?", fv.FileId, fv.DataId).Find(&fragments).Error
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +136,7 @@ func (fileVersion *FileVersion) GetFragments(tx *gorm.DB, user *User) ([]Fragmen
 }
 
 // ListFiles list the files in a folder of a FileVersion
-func (fileVersion *FileVersion) ListFiles(tx *gorm.DB, user *User) ([]FileVersion, error) {
+func (fv *FileVersion) ListFiles(tx *gorm.DB, user *User) ([]FileVersion, error) {
 
 	// Check if user has permissions to the file
 
@@ -142,7 +146,7 @@ func (fileVersion *FileVersion) ListFiles(tx *gorm.DB, user *User) ([]FileVersio
 	// of deleted files as well. Or for now, we just take it that you can't see deleted files.
 
 	// Get original File and check permissions (can't get file without permissions)
-	file, err := GetFileById(tx, fileVersion.FileId, user)
+	file, err := GetFileById(tx, fv.FileId, user)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +158,7 @@ func (fileVersion *FileVersion) ListFiles(tx *gorm.DB, user *User) ([]FileVersio
 	}
 
 	var files []FileVersion
-	err = tx.Model(&files).Where("parent_folder_file_id = ? AND parent_folder_version_no = ?", fileVersion.FileId, fileVersion.VersionNo).Find(&files).Error
+	err = tx.Model(&files).Where("parent_folder_file_id = ? AND parent_folder_version_no = ?", fv.FileId, fv.VersionNo).Find(&files).Error
 	if err != nil {
 		return nil, err
 	}
@@ -191,8 +195,10 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 		ModifiedTime:          file.ModifiedTime,
 		VersioningMode:        file.VersioningMode,
 		Checksum:              file.Checksum,
-		FragCount:             file.FragCount,
-		ParityCount:           file.ParityCount,
+		TotalShards:           file.TotalShards,
+		DataShards:            file.DataShards,
+		ParityShards:          file.ParityShards,
+		KeyThreshold:          file.KeyThreshold,
 		EncryptionKey:         file.EncryptionKey,
 		PasswordProtected:     file.PasswordProtected,
 		//LinkFileFileId:        "GET LINKED FOLDER", // NOT READY
@@ -215,4 +221,106 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 	}
 
 	return nil
+}
+
+// GetDecryptionKey returns the Key and IV of a file given a password (or not)
+func (fv *FileVersion) GetDecryptionKey(tx *gorm.DB, user *User, password string) (string, string, error) {
+
+	// Check permissions for the original file
+	_, err := GetFileById(tx, fv.FileId, user)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Get FileKey, FileIv from PasswordProtect
+
+	var passwordProtect PasswordProtect
+	err = tx.Model(&PasswordProtect{}).Where("file_id = ?", fv.FileId).First(&passwordProtect).Error
+	if err != nil {
+		return "", "", err
+	}
+
+	// if password nil
+	if password == "" && !passwordProtect.PasswordActive {
+
+		// decrypt file key with PasswordProtect
+		fileKey, err := DecryptWithKeyIV(fv.EncryptionKey, passwordProtect.FileKey, passwordProtect.FileIv)
+		if err != nil {
+			return "", "", err
+		}
+		fileIv, err := DecryptWithKeyIV(fv.EncryptionIv, passwordProtect.FileKey, passwordProtect.FileIv)
+		if err != nil {
+			return "", "", err
+		}
+		return fileKey, fileIv, nil
+	} else if password == "" && passwordProtect.PasswordActive {
+		return "", "", ErrPasswordRequired
+	} else {
+		decryptedFileKey, decryptedFileIv, err := passwordProtect.DecryptWithPassword(password)
+		if err != nil {
+			return "", "", err
+		}
+		fileKey, err := DecryptWithKeyIV(fv.EncryptionKey, decryptedFileKey, decryptedFileIv)
+		if err != nil {
+			return "", "", err
+		}
+		fileIv, err := DecryptWithKeyIV(fv.EncryptionIv, decryptedFileKey, decryptedFileIv)
+		if err != nil {
+			return "", "", err
+		}
+		return fileKey, fileIv, nil
+
+	}
+
+}
+
+func (f *File) RevertFileToVersion(tx *gorm.DB, versionNo int, user *User) error {
+
+	// Check permissions for the original file
+	perm, err := user.HasPermission(tx, f, &PermissionNeeded{Write: true})
+	if err != nil || !perm {
+		return err
+	}
+
+	// Getting old version
+
+	var oldVersion FileVersion
+
+	err = tx.Model(&FileVersion{}).Where("file_id = ? AND version_no = ?", f.FileId, versionNo).First(&oldVersion).Error
+	if err != nil {
+		return err
+	}
+
+	// Setting it as the new version
+	f.FileName = oldVersion.FileName
+	f.MIMEType = oldVersion.MIMEType
+	// f.ParentFolderFileID will not be updated.
+	f.VersionNo = f.VersionNo + 1
+	f.DataId = oldVersion.DataId
+	f.DataIdVersion = f.DataIdVersion + 1
+	f.Size = oldVersion.Size
+	f.ActualSize = oldVersion.ActualSize
+	// no need to update CreatedTime
+	f.ModifiedUserUserId = &user.UserId
+	f.ModifiedTime = time.Now()
+	f.Checksum = oldVersion.Checksum
+	f.TotalShards = oldVersion.TotalShards
+	f.DataShards = oldVersion.DataShards
+	f.ParityShards = oldVersion.ParityShards
+	f.KeyThreshold = oldVersion.KeyThreshold
+	f.EncryptionKey = oldVersion.EncryptionKey
+	f.EncryptionIv = oldVersion.EncryptionIv
+	f.LastChecked = oldVersion.LastChecked
+	f.Status = oldVersion.Status
+
+	// Save
+	err = tx.Save(f).Error
+	if err != nil {
+		return err
+	}
+	// Update the file
+	err = CreateFileVersionFromFile(tx, f, user)
+
+	return err
+
 }
