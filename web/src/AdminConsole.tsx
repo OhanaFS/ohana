@@ -138,7 +138,8 @@ export function AdminConsole(props: ConsoleDetails) {
           width: '100%', 
           marginTop: '1%' 
           }}>
-          <Table captionSide="top" verticalSpacing="sm" style={{}}>
+          <Table captionSide="top" verticalSpacing="sm" >
+   
             <caption
               style={{
                 textAlign: 'center',

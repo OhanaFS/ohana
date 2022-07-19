@@ -120,11 +120,21 @@
     #settingText{
       font-size: 12px;
     }
+    .settings{
+      border:none;
+    }
   #maintenanceSettings caption{
     font-size: 18px;
   } 
   .maintenanceSettings{
       height: 500px;
+      border:none;
+    }
+    .maintenanceLogs{
+      border:none;
+    }
+    .console{
+      border:none;
     }
 }
 @media screen and (min-width: 1830px) {

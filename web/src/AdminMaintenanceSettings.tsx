@@ -71,13 +71,6 @@ export function AdminMaintenanceSettings() {
     return false;
   });
 
-  const [checked7, setChecked7] = useState(() => {
-    if (MaintenanceSettings[7].setting == 'true') {
-      return true;
-    }
-
-    return false;
-  });
 
   return (
     <AppBase
