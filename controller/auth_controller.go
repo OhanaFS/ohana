@@ -7,6 +7,7 @@ import (
 	"github.com/OhanaFS/ohana/controller/middleware"
 	"github.com/OhanaFS/ohana/service"
 	"github.com/OhanaFS/ohana/util"
+	"github.com/OhanaFS/ohana/util/ctxutil"
 	"github.com/gorilla/mux"
 )
 
@@ -14,10 +15,22 @@ type Authentication struct {
 	service service.Auth
 }
 
-func RegisterAuth(r *mux.Router, service service.Auth) {
+func RegisterAuth(r *mux.Router, service service.Auth, mw *middleware.Middlewares) {
 	s := &Authentication{service}
 	r.HandleFunc("/auth/login", s.GetAuth).Methods("GET")
 	r.HandleFunc("/auth/callback", s.HandCallback).Methods("GET")
+
+	r2 := r.NewRoute().Subrouter()
+	r2.HandleFunc("/auth/whoami", s.Whoami).Methods("GET")
+	r2.Use(mw.UserAuth)
+}
+
+func (s *Authentication) Whoami(w http.ResponseWriter, r *http.Request) {
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, err.Error())
+	}
+	util.HttpJson(w, http.StatusOK, user)
 }
 
 func (s *Authentication) GetAuth(w http.ResponseWriter, r *http.Request) {
