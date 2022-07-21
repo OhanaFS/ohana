@@ -47,15 +47,20 @@ export function AdminPerformMaintenance() {
     var hDisplay = h > 0 ? h + (h == 1 ? " hour, " : " hrs, ") : "";
     var mDisplay = m > 0 ? m + (m == 1 ? " minute, " : " mins, ") : "";
     var sDisplay = s > 0 ? s + (s == 1 ? " second" : " secs") : "";
-    return dDisplay + hDisplay + mDisplay + sDisplay;
+    var end = seconds == 0? "Maintenance Completed.":"";
+    return dDisplay + hDisplay + mDisplay + sDisplay + end;
   }
   
 // convert the number of seconds into day hour month and seconds
   const renderTime = (dimension:string, time:number) => {
     return (
-      <div >
-        <div>{secondsToDhms(time)}</div>
-      </div>
+   
+        <div style= {{    
+          display: 'flex',
+        justifyContent: 'center',
+        flexDirection: 'row'
+        }}>{secondsToDhms(time)}</div>
+    
     );
   };
 
