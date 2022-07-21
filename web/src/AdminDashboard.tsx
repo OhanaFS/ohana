@@ -49,26 +49,22 @@ export function AdminDashboard() {
   const logs = [
     {
       'Date and time': '09/16/2019, 14:07',
-      Account: 'End-user',
-      User: 'Peter',
+      Node: 'Peter',
       Change: 'Added a node ip address 45.2.1.6',
     },
     {
       'Date and time': '09/16/2019, 14:07',
-      Account: 'End-user',
-      User: 'Peter',
+      Node: 'Peter',
       Change: 'Added a node ip address 95.2.2.6',
     },
     {
       'Date and time': '09/16/2019, 14:09',
-      Account: 'End-user',
-      User: 'Peter',
+      Node: 'Peter',
       Change: 'Added a node ip address 125.2.1.6',
     },
     {
       'Date and time': '09/16/2019, 14:10',
-      Account: 'End-user',
-      User: 'Peter',
+      Node: 'Peter',
       Change: 'Added a node ip address 125.2.1.6',
     },
   ];
@@ -177,19 +173,8 @@ export function AdminDashboard() {
           color: 'black',
         }}
       >
-        User
-      </th>
-      <th
-        style={{
-          width: '10%',
-          textAlign: 'left',
-          fontWeight: '700',
-          fontSize: '16px',
-          color: 'black',
-        }}
-      >
         {' '}
-        Account
+        Node
       </th>
       <th
         style={{
@@ -200,7 +185,7 @@ export function AdminDashboard() {
           color: 'black',
         }}
       >
-        Change
+        Message
       </th>
     </tr>
   );
@@ -226,18 +211,7 @@ export function AdminDashboard() {
           color: 'black',
         }}
       >
-        {items['User']}
-      </td>
-      <td
-        width="10%"
-        style={{
-          textAlign: 'left',
-          fontWeight: '400',
-          fontSize: '16px',
-          color: 'black',
-        }}
-      >
-        {items['Account']}
+        {items['Node']}
       </td>
       <td
         width="30%"
