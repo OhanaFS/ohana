@@ -119,6 +119,20 @@ func GetUserById(tx *gorm.DB, userId string) (*User, error) {
 	return user, nil
 }
 
+// GetUserByMappedId returns the User struct based on the given mappedId
+func GetUserByMappedId(tx *gorm.DB, mappedId string) (*User, error) {
+	user := &User{}
+
+	if err := tx.Preload(clause.Associations).
+		First(&user, "mapped_id = ?", mappedId).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrUserNotFound
+		}
+	}
+
+	return user, nil
+}
+
 // DeleteUser deletes the user and removes the associated links instantly.
 func DeleteUser(tx *gorm.DB, username string) error {
 	user, err := GetUser(tx, username)
