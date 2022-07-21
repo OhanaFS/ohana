@@ -32,6 +32,7 @@ type claims struct {
 type Auth interface {
 	SendRequest(ctx context.Context, rawAccessToken string) (string, error)
 	Callback(ctx context.Context, code string, checkState string) (*callbackResult, error)
+	InvalidateSession(ctx context.Context, sessionId string) error
 }
 
 type auth struct {
@@ -142,4 +143,8 @@ func (a *auth) Callback(ctx context.Context, code string, checkState string) (*c
 	return &callbackResult{
 		SessionID: sessionId,
 	}, nil
+}
+
+func (a *auth) InvalidateSession(ctx context.Context, sessionId string) error {
+	return a.sess.Invalidate(ctx, sessionId)
 }
