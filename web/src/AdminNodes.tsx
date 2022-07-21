@@ -98,13 +98,11 @@ export function AdminNodes() {
           display: 'flex',
           justifyContent: 'center',
         }}>
-          <div style={{
-            width: '100%',
+          <div className='w-full md:w-9/12 p-2 md:p-4' style={{
             backgroundColor: 'white',
             borderRadius: '10px',
             border: 'none',
             overflow: 'hidden',
-            padding: '15px',
             paddingBottom: '40px'
           }}>
             <Title order={2} style={{
