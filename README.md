@@ -15,7 +15,7 @@ To get started with development, you'll need:
 - [Docker and Docker Compose](https://www.docker.com/)
 - GNU Make
 - Node.js and Yarn
-- [upx](https://github.com/upx/upx) (optional)
+- [upx](https://github.com/upx/upx)
 
 Once you have the tools installed, simply run `make`:
 

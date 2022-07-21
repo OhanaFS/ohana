@@ -22,3 +22,7 @@ go.work
 .idea/modules.xml
 .idea/ohana.iml
 .idea/vcs.xml
+*.shard0
+*.shard1
+*.shard2
+*.DS_Store

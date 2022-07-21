@@ -1,12 +1,13 @@
 package config
 
 import (
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 	"log"
 	"os"
 	"time"
+
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func NewDatabase(config *Config) (*gorm.DB, error) {
@@ -35,7 +36,8 @@ func NewDatabase(config *Config) (*gorm.DB, error) {
 	const maxTries = 10
 	for try := 0; try < maxTries; try++ {
 		db, err = gorm.Open(postgres.Open(dbString), &gorm.Config{
-			Logger: lg,
+			Logger:                                   lg,
+			DisableForeignKeyConstraintWhenMigrating: true,
 		})
 		if err == nil {
 			break

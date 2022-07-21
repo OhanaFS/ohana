@@ -23,20 +23,20 @@ var (
 )
 
 type User struct {
-	UserId       string `gorm:"primaryKey; not null"` // Random UUId
-	Name         string
-	Email        string `gorm:"not null; unique"` // Maps to email?
-	MappedId     string `gorm:"not null; unique"` // Maps to userID
-	RefreshToken string
-	AccessToken  string
-	LastLogin    time.Time
-	Activated    bool           `gorm:"not null; default: true"`
-	AccountType  int8           `gorm:"not null; default: 1"` // 1 = End User, 2 = Admin
-	CreatedAt    time.Time      `gorm:"autoCreateTime"`
-	UpdatedAt    time.Time      `gorm:"autoUpdateTime"`
-	DeletedAt    gorm.DeletedAt `gorm:"index"`
-	Groups       []*Group       `gorm:"many2many:user_groups;"`
-	Roles        []*Role        `gorm:"many2many:user_roles;"`
+	UserId       string         `gorm:"primaryKey; not null; foreignKey:user_id" json:"user_id"` // Random UUId
+	Name         string         `json:"name"`
+	Email        string         `gorm:"not null; unique" json:"email"` // Maps to email?
+	MappedId     string         `gorm:"not null; unique" json:"-"`     // Maps to userID
+	RefreshToken string         `json:"-"`
+	AccessToken  string         `json:"-"`
+	LastLogin    time.Time      `json:"-"`
+	Activated    bool           `gorm:"not null; default: true" json:"-"`
+	AccountType  int8           `gorm:"not null; default: 1" json:"-"` // 1 = End User, 2 = Admin
+	CreatedAt    time.Time      `gorm:"autoCreateTime" json:"-"`
+	UpdatedAt    time.Time      `gorm:"autoUpdateTime" json:"-"`
+	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
+	Groups       []*Group       `gorm:"many2many:user_groups;" json:"-"`
+	//Roles        []*Role        `gorm:"many2many:user_roles;" json:"-"`
 }
 
 //	Groups      []Group        `gorm:"many2many:user_groups"`
@@ -119,6 +119,20 @@ func GetUserById(tx *gorm.DB, userId string) (*User, error) {
 	return user, nil
 }
 
+// GetUserByMappedId returns the User struct based on the given mappedId
+func GetUserByMappedId(tx *gorm.DB, mappedId string) (*User, error) {
+	user := &User{}
+
+	if err := tx.Preload(clause.Associations).
+		First(&user, "mapped_id = ?", mappedId).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrUserNotFound
+		}
+	}
+
+	return user, nil
+}
+
 // DeleteUser deletes the user and removes the associated links instantly.
 func DeleteUser(tx *gorm.DB, username string) error {
 	user, err := GetUser(tx, username)
@@ -187,24 +201,24 @@ func (user *User) GetGroupsWithUser(tx *gorm.DB) ([]Group, error) {
 
 	// Get the roles associated with the user
 
-	var roles []Role
+	//var roles []Role
 	var groups []Group
-	err := tx.
-		Preload("Roles.Groups").
-		Preload(clause.Associations).
-		Model(&user).
-		Association("Roles").
-		Find(&roles)
+	//err := tx.
+	//	Preload("Roles.Groups").
+	//	Preload(clause.Associations).
+	//	Model(&user).
+	//	Association("Roles").
+	//	Find(&roles)
+	//
+	//// Get groups associated with each role.
+	//
+	//for _, role := range roles {
+	//	for _, group := range role.Groups {
+	//		groups = append(groups, *group)
+	//	}
+	//}
 
-	// Get groups associated with each role.
-
-	for _, role := range roles {
-		for _, group := range role.Groups {
-			groups = append(groups, *group)
-		}
-	}
-
-	//err := tx.Preload(clause.Associations).Model(&user).Association("Groups").Find(&groups)
+	err := tx.Preload(clause.Associations).Model(&user).Association("Groups").Find(&groups)
 
 	return groups, err
 }

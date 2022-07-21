@@ -22,9 +22,8 @@ type Fragment struct {
 	FragId                   int `gorm:"primaryKey"`
 	ServerId                 string
 	FileFragmentPath         string
-	Checksum                 string
 	LastChecked              time.Time
-	FragCount                int `gorm:"not null"`
+	TotalShards              int `gorm:"not null"`
 	Status                   int8
 }
 
