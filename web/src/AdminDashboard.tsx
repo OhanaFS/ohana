@@ -92,8 +92,85 @@ export function AdminDashboard() {
       Node: 'Peter',
       Change: 'Added a node ip address 125.2.1.6',
     },
-  ];
+    {
+      'Date and time': '09/16/2019, 14:10',
+      Node: 'Peter',
+      Change: 'Added a node ip address 125.2.1.7',
+    },
+    {
+      'Date and time': '09/16/2019, 14:10',
+      Node: 'Peter',
+      Change: 'Added a node ip address 125.2.1.8',
+    },
+    {
+      'Date and time': '09/16/2019, 14:10',
+      Node: 'Peter',
+      Change: 'Added a node ip address 125.2.1.9',
+    },
+    {
+      'Date and time': '09/16/2019, 14:10',
+      Node: 'Peter',
+      Change: 'Added a node ip address 125.2.1.10',
+    },
+    {
+      'Date and time': '09/16/2019, 14:10',
+      Node: 'Peter',
+      Change: 'Added a node ip address 125.2.1.11',
+    },
+    {
+      'Date and time': '09/16/2019, 14:10',
+      Node: 'Peter',
+      Change: 'Added a node ip address 125.2.1.12',
+    },
+    {
+      'Date and time': '09/16/2019, 14:10',
+      Node: 'Peter',
+      Change: 'Added a node ip address 125.2.1.13',
+    },
+    {
+      'Date and time': '09/16/2019, 14:10',
+      Node: 'Peter',
+      Change: 'Added a node ip address 125.2.1.14',
+    }
 
+  ];
+  const fullrows = fulllogs.map((items, index) => (
+    <tr>
+    <td
+      width="15%"
+      style={{
+        textAlign: 'left',
+        fontWeight: '400',
+        fontSize: '16px',
+        color: 'black',
+      }}
+    >
+      {items['Date and time']}
+    </td>
+    <td
+      width="10%"
+      style={{
+        textAlign: 'left',
+        fontWeight: '400',
+        fontSize: '16px',
+        color: 'black',
+      }}
+    >
+      {items['Node']}
+    </td>
+    <td
+      width="30%"
+      style={{
+        textAlign: 'left',
+        fontWeight: '400',
+        fontSize: '16px',
+        color: 'black',
+      }}
+    >
+      {items['Change']}
+    </td>
+  </tr>
+  ));
   const ClusterHealthChartData = [
     {
       name: 'No of Healthy Nodes',
@@ -215,7 +292,8 @@ export function AdminDashboard() {
       </th>
     </tr>
   );
-  const rows = logs.map((items) => (
+
+  const rows = logs.map((items,index) => (
     <tr>
       <td
         width="15%"
@@ -267,10 +345,10 @@ export function AdminDashboard() {
     >
          <Modal
             centered
-            size={400}
+            size={600}
             opened={logsModal}
             title={<span style={{ fontSize: '22px' ,fontWeight:550
-           }}> Backup Key</span>}
+           }}> All Logs</span>}
             onClose={() => setOpened(false)}
           >
            <div style={{
@@ -294,8 +372,26 @@ export function AdminDashboard() {
           }}>
          
           </caption>
-      
-      
+          <ScrollArea style={{ 
+          height: '500px', 
+          width: '100%', 
+          marginTop: '1%' 
+          }}>
+          <Table captionSide="top" verticalSpacing="sm" >
+   
+          
+            <thead style={{}}>{ths}</thead>
+            <tbody>{fullrows}</tbody>
+          </Table>
+        </ScrollArea>
+        <Button
+            variant="default"
+            color="dark"
+            size="md"
+            style={{ alignSelf: "flex-end" }}
+          >
+            Export Logs
+          </Button>
         </div>
       </div>
           </Modal>
@@ -469,6 +565,7 @@ export function AdminDashboard() {
             color="dark"
             size="md"
             style={{ textAlign: 'right', marginTop: '1%' }}
+            onClick={()=> setOpened(true)}
           >
             View All Logs
           </Button>
