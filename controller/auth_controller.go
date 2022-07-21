@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/OhanaFS/ohana/controller/middleware"
 	"github.com/OhanaFS/ohana/service"
 	"github.com/OhanaFS/ohana/util"
 	"github.com/gorilla/mux"
@@ -42,6 +43,13 @@ func (s *Authentication) HandCallback(w http.ResponseWriter, r *http.Request) {
 		util.HttpError(w, http.StatusInternalServerError, fmt.Sprintf("Error getting roles: %s", err))
 		return
 	}
+
+	// Assign session to user with cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:  middleware.SessionCookieName,
+		Value: result.SessionID,
+		Path:  "/",
+	})
 
 	util.HttpJson(w, http.StatusOK, result)
 }
