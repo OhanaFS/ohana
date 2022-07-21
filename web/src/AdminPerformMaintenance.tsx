@@ -24,6 +24,10 @@ export function AdminPerformMaintenance() {
   'Finish Cleaning Server 7',
   ];
 
+  //labels
+  const [timeRemaining,setTime] =useState(" Time remaining: ");
+  const [percentageCompleted,setPercent] = useState("% Completed: ");
+
   const [elapsedTime,setElapsedTime] = useState(0);
  
   const timerProps = {
@@ -35,6 +39,8 @@ export function AdminPerformMaintenance() {
   //get the maintenance of time needed based on how much steps
   const time = steps.length;
   const minuteSeconds = time;
+
+
   const getTimeSeconds = (time:number) => (minuteSeconds - time) | 0;
 
   function secondsToDhms(seconds: number) {
@@ -47,10 +53,12 @@ export function AdminPerformMaintenance() {
     var hDisplay = h > 0 ? h + (h == 1 ? " hour, " : " hrs, ") : "";
     var mDisplay = m > 0 ? m + (m == 1 ? " minute, " : " mins, ") : "";
     var sDisplay = s > 0 ? s + (s == 1 ? " second" : " secs") : "";
-    var end = seconds == 0? "Maintenance Completed.":"";
+    var end = seconds == 0? ['Maintenance Completed. Gathering Results',setTime(""),setLogs("")] :"";
     return dDisplay + hDisplay + mDisplay + sDisplay + end;
   }
   
+
+const [logs,setLogs] = useState( "Maintenance Logs : " ); 
 // convert the number of seconds into day hour month and seconds
   const renderTime = (dimension:string, time:number) => {
     return (
@@ -83,6 +91,8 @@ export function AdminPerformMaintenance() {
     setIsActive(!isActive);
     navigate('/maintenanceresults');
   }
+
+
 
   return (
     <>  
@@ -149,12 +159,12 @@ export function AdminPerformMaintenance() {
         {({ elapsedTime, color }) => (
           <>
             {setElapsedTime(Math.floor(elapsedTime))}
-     
+            {setLogs("Maintenance Logs : " +steps[Math.floor(elapsedTime)])}
         
           <div style={{ color, display:'flex',flexDirection: 'column',textAlign:'center'
          }}>
            <div style={{color, display:'flex',flexDirection: 'column'}}>
-            Time remaining:
+          {timeRemaining}
           </div>
 
           <div style={{ color, display:'flex',flexDirection: 'row',marginTop:'20px'
@@ -168,7 +178,8 @@ export function AdminPerformMaintenance() {
           
          <div style={{marginTop:'20px'}}>
           
-         % Completed: {elapsedTime/(time) *100 | 0 }
+        {percentageCompleted} {elapsedTime/(time) *100 | 0 }
+       
          </div>
    
           </div>
@@ -184,7 +195,7 @@ export function AdminPerformMaintenance() {
               marginBottom:'20px'
             }}>
 
-            Maintenance Logs : {steps[Math.floor(elapsedTime)]}
+           {logs}
           
       </div>
       <div style={{

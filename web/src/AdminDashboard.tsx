@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Card, Table, Text, ScrollArea } from '@mantine/core';
+import { Button, Card, Table, Text, ScrollArea, Modal } from '@mantine/core';
 import {
   Area,
   AreaChart,
@@ -44,7 +44,6 @@ export function AdminDashboard() {
       </text>
     );
   };
-
   // Show only 4 recent logs
   const logs = [
     {
@@ -68,6 +67,33 @@ export function AdminDashboard() {
       Change: 'Added a node ip address 125.2.1.6',
     },
   ];
+
+  // Show all the logs
+
+  const [logsModal, setOpened] = useState(false);
+  const fulllogs = [
+    {
+      'Date and time': '09/16/2019, 14:07',
+      Node: 'Peter',
+      Change: 'Added a node ip address 45.2.1.6',
+    },
+    {
+      'Date and time': '09/16/2019, 14:07',
+      Node: 'Peter',
+      Change: 'Added a node ip address 95.2.2.6',
+    },
+    {
+      'Date and time': '09/16/2019, 14:09',
+      Node: 'Peter',
+      Change: 'Added a node ip address 125.2.1.6',
+    },
+    {
+      'Date and time': '09/16/2019, 14:10',
+      Node: 'Peter',
+      Change: 'Added a node ip address 125.2.1.6',
+    },
+  ];
+
   const ClusterHealthChartData = [
     {
       name: 'No of Healthy Nodes',
@@ -239,6 +265,40 @@ export function AdminDashboard() {
       username="@alex"
       image="https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80"
     >
+         <Modal
+            centered
+            size={400}
+            opened={logsModal}
+            title={<span style={{ fontSize: '22px' ,fontWeight:550
+           }}> Backup Key</span>}
+            onClose={() => setOpened(false)}
+          >
+           <div style={{
+        display: 'flex',
+        flexDirection:'column',
+        height: '100%',
+      }}>
+        <div style={{
+          display: 'flex',     
+          flexDirection: 'column',
+          justifyContent: 'center',
+          backgroundColor: 'white',   
+        }}>
+          <caption style={{
+            textAlign: 'center',
+            fontWeight: 600,
+            fontSize: '24px',
+            color: 'black',
+            marginBottom: '20px',
+            alignSelf: 'center',
+          }}>
+         
+          </caption>
+      
+      
+        </div>
+      </div>
+          </Modal>
       <div
         style={{
           display: 'flex',
