@@ -1,18 +1,15 @@
-import React from 'react';
-import CSS from 'csstype';
+
 import {
-  MediaQuery,
   Title,
   TextInput,
   Button,
   useMantineTheme,
-  CSSObject,
 } from '@mantine/core';
 import { Link } from 'react-router-dom';
 import './assets/styles.css';
 import backgroundimage from './images/2.webp';
 
-function LoginPage() {
+export function LoginPage() {
   const theme = useMantineTheme();
   return (
     <div
@@ -61,7 +58,7 @@ function LoginPage() {
           size="md"
           component={Link}
           to="/dashboard"
-        >
+        > 
           Login Using SSO
         </Button>
       </div>
@@ -69,4 +66,4 @@ function LoginPage() {
   );
 }
 
-export default LoginPage;
+

@@ -1,19 +1,16 @@
 import {
   useMantineTheme,
-  Text,
   Checkbox,
   Button,
-  Center,
-  Card,
   Table,
+  ActionIcon,
 } from '@mantine/core';
-import Admin_navigation from './Admin_navigation';
-
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { Settings } from 'tabler-icons-react';
+import AppBase from './components/AppBase';
 
-function Admin_runmaintenance() {
+export function AdminRunMaintenance() {
   const theme = useMantineTheme();
   let MaintenanceSettings = [
     { name: 'CrawlPermissions', setting: 'true' },
@@ -76,64 +73,49 @@ function Admin_runmaintenance() {
 
   return (
     <>
-      <Admin_navigation>
-        <Center>
-          <Card
-            style={{
-              marginLeft: '0%',
-              height: '65vh',
-              border: '1px solid ',
-              marginTop: '3%',
-              width: '60%',
-              background:
-                theme.colorScheme === 'dark'
-                  ? theme.colors.dark[8]
-                  : theme.white[0],
-            }}
-            shadow="sm"
-            p="xl"
-          >
-            <Table striped verticalSpacing="md">
-              <caption
-                style={{
-                  fontWeight: '600',
-                  fontSize: '22px',
-                  color: 'black',
-                  textAlign: 'left',
-                  marginLeft: '1%',
-                }}
-              >
-                {' '}
-                <span>Run Scheduled Maintenance</span>
-                <span style={{ float: 'right' }}>
-                  {' '}
-                  <Button
-                    variant="default"
-                    color="dark"
-                    size="md"
-                    component={Link}
-                    to="/Admin_maintenancesettings"
-                    leftIcon={<Settings />}
-                  >
-                    {' '}
-                    Settings
-                  </Button>
+       <AppBase
+        userType="admin"
+        name="Alex Simmons"
+        username="@alex"
+        image="https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80"
+       >
+     
+     <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'flex-start',
+           
+          }}
+
+        >
+          <div className="maintenanceSettings">
+          
+            <Table striped verticalSpacing="xs" id='maintenanceSettings' >
+              <caption  >
+                {' '} <div style={{marginTop:'10px'}}>   Run Maintenance
+              
+                <span style={{marginTop:'2px',marginRight:'10px', float: 'right' }}>
+              
+                <ActionIcon component={Link} to="/maintenancesettings">
+             <Settings></Settings>
+               </ActionIcon>
+  
                 </span>
+                </div>
               </caption>
 
               <thead></thead>
               <tbody style={{}}>
                 <tr>
                   <td>
-                    {' '}
-                    <Text style={{}}>
-                      {' '}
+
                       Crawl the list of files to remove permissions from expired
-                      users{' '}
-                    </Text>
+                      users
+            
                   </td>
                   <td>
-                    {' '}
+        
                     <Checkbox
                       size="md"
                       checked={checked0}
@@ -146,11 +128,11 @@ function Admin_runmaintenance() {
 
                 <tr>
                   <td>
-                    {' '}
-                    <Text style={{}}> Purging orphaned files and shards </Text>
+               
+                  Purging orphaned files and shards 
                   </td>
                   <td>
-                    {' '}
+             
                     <Checkbox
                       size="md"
                       id="1"
@@ -164,8 +146,7 @@ function Admin_runmaintenance() {
 
                 <tr>
                   <td>
-                    {' '}
-                    <Text style={{}}> Purge a user and their files </Text>{' '}
+                   Purge a user and their files 
                   </td>
                   <td>
                     {' '}
@@ -183,16 +164,16 @@ function Admin_runmaintenance() {
                 <tr>
                   <td>
                     {' '}
-                    <Text style={{}}>
+                  
                       {' '}
                       Crawl all of the files to make sure it has full replicas
-                    </Text>{' '}
+                  
                   </td>
                   <td>
                     {' '}
                     <Checkbox
                       size="md"
-                      id="1"
+                      id="2"
                       checked={checked3}
                       onChange={(event) =>
                         setChecked3(event.currentTarget.checked)
@@ -204,17 +185,17 @@ function Admin_runmaintenance() {
                 <tr>
                   <td>
                     {' '}
-                    <Text style={{}}>
+                
                       {' '}
                       Quick File Check (Only checks current versions of files to
                       see if it’s fine and is not corrupted){' '}
-                    </Text>
+                 
                   </td>
                   <td>
                     {' '}
                     <Checkbox
                       size="md"
-                      id="1"
+                      id="3"
                       checked={checked4}
                       onChange={(event) =>
                         setChecked4(event.currentTarget.checked)
@@ -226,17 +207,17 @@ function Admin_runmaintenance() {
                 <tr>
                   <td>
                     {' '}
-                    <Text style={{}}>
+               
                       {' '}
                       Full File Check (Checks all fragments to ensure that it’s
                       not corrupted){' '}
-                    </Text>{' '}
+                  
                   </td>
                   <td>
                     {' '}
                     <Checkbox
                       size="md"
-                      id="1"
+                      id="4"
                       checked={checked5}
                       onChange={(event) =>
                         setChecked5(event.currentTarget.checked)
@@ -248,13 +229,13 @@ function Admin_runmaintenance() {
                 <tr>
                   <td>
                     {' '}
-                    <Text style={{}}> DB integrity Check </Text>{' '}
+                    DB integrity Check 
                   </td>
                   <td>
                     {' '}
                     <Checkbox
                       size="md"
-                      id="1"
+                      id="5"
                       checked={checked6}
                       onChange={(event) =>
                         setChecked6(event.currentTarget.checked)
@@ -268,25 +249,30 @@ function Admin_runmaintenance() {
                   <td> </td>
                 </tr>
               </tbody>
+              <div  style={{
+       display: 'flex',
+      flexDirection:'column',
+      }} >
 
-              <td>
                 <Button
-                  style={{ float: 'right' }}
+                    style={{
+                      alignSelf:"flex-end",marginTop:'20px'
+                    }}
                   variant="default"
                   color="dark"
                   size="md"
                   component={Link}
-                  to="/Admin_performmaintenance"
+                  to="/performmaintenance"
                 >
-                  Run Maintenance
+               Perform Maintenance
                 </Button>
-              </td>
+           
+              </div>
             </Table>
-          </Card>
-        </Center>
-      </Admin_navigation>
+       </div>
+       </div>
+      </AppBase>
     </>
   );
 }
 
-export default Admin_runmaintenance;

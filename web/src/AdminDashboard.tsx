@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Button, Card, Table, Text, ScrollArea } from '@mantine/core';
-
+import { Button, Card, Table, Text, ScrollArea, Modal } from '@mantine/core';
 import {
   Area,
   AreaChart,
@@ -13,7 +12,6 @@ import {
   YAxis,
   ResponsiveContainer,
 } from 'recharts';
-
 import AppBase from './components/AppBase';
 import '../src/assets/styles.css';
 
@@ -46,34 +44,133 @@ export function AdminDashboard() {
       </text>
     );
   };
-
   // Show only 4 recent logs
   const logs = [
     {
       'Date and time': '09/16/2019, 14:07',
-      Account: 'End-user',
-      User: 'Peter',
+      Node: 'Peter',
       Change: 'Added a node ip address 45.2.1.6',
     },
     {
       'Date and time': '09/16/2019, 14:07',
-      Account: 'End-user',
-      User: 'Peter',
+      Node: 'Peter',
       Change: 'Added a node ip address 95.2.2.6',
     },
     {
       'Date and time': '09/16/2019, 14:09',
-      Account: 'End-user',
-      User: 'Peter',
+      Node: 'Peter',
       Change: 'Added a node ip address 125.2.1.6',
     },
     {
       'Date and time': '09/16/2019, 14:10',
-      Account: 'End-user',
-      User: 'Peter',
+      Node: 'Peter',
       Change: 'Added a node ip address 125.2.1.6',
     },
   ];
+
+  // Show all the logs
+
+  const [logsModal, setOpened] = useState(false);
+  const fulllogs = [
+    {
+      'Date and time': '09/16/2019, 14:07',
+      Node: 'Peter',
+      Change: 'Added a node ip address 45.2.1.6',
+    },
+    {
+      'Date and time': '09/16/2019, 14:07',
+      Node: 'Peter',
+      Change: 'Added a node ip address 95.2.2.6',
+    },
+    {
+      'Date and time': '09/16/2019, 14:09',
+      Node: 'Peter',
+      Change: 'Added a node ip address 125.2.1.6',
+    },
+    {
+      'Date and time': '09/16/2019, 14:10',
+      Node: 'Peter',
+      Change: 'Added a node ip address 125.2.1.6',
+    },
+    {
+      'Date and time': '09/16/2019, 14:10',
+      Node: 'Peter',
+      Change: 'Added a node ip address 125.2.1.7',
+    },
+    {
+      'Date and time': '09/16/2019, 14:10',
+      Node: 'Peter',
+      Change: 'Added a node ip address 125.2.1.8',
+    },
+    {
+      'Date and time': '09/16/2019, 14:10',
+      Node: 'Peter',
+      Change: 'Added a node ip address 125.2.1.9',
+    },
+    {
+      'Date and time': '09/16/2019, 14:10',
+      Node: 'Peter',
+      Change: 'Added a node ip address 125.2.1.10',
+    },
+    {
+      'Date and time': '09/16/2019, 14:10',
+      Node: 'Peter',
+      Change: 'Added a node ip address 125.2.1.11',
+    },
+    {
+      'Date and time': '09/16/2019, 14:10',
+      Node: 'Peter',
+      Change: 'Added a node ip address 125.2.1.12',
+    },
+    {
+      'Date and time': '09/16/2019, 14:10',
+      Node: 'Peter',
+      Change: 'Added a node ip address 125.2.1.13',
+    },
+    {
+      'Date and time': '09/16/2019, 14:10',
+      Node: 'Peter',
+      Change: 'Added a node ip address 125.2.1.14',
+    }
+
+  ];
+  const fullrows = fulllogs.map((items, index) => (
+    <tr>
+    <td
+      width="15%"
+      style={{
+        textAlign: 'left',
+        fontWeight: '400',
+        fontSize: '16px',
+        color: 'black',
+      }}
+    >
+      {items['Date and time']}
+    </td>
+    <td
+      width="10%"
+      style={{
+        textAlign: 'left',
+        fontWeight: '400',
+        fontSize: '16px',
+        color: 'black',
+      }}
+    >
+      {items['Node']}
+    </td>
+    <td
+      width="30%"
+      style={{
+        textAlign: 'left',
+        fontWeight: '400',
+        fontSize: '16px',
+        color: 'black',
+      }}
+    >
+      {items['Change']}
+    </td>
+  </tr>
+  ));
   const ClusterHealthChartData = [
     {
       name: 'No of Healthy Nodes',
@@ -179,19 +276,8 @@ export function AdminDashboard() {
           color: 'black',
         }}
       >
-        User
-      </th>
-      <th
-        style={{
-          width: '10%',
-          textAlign: 'left',
-          fontWeight: '700',
-          fontSize: '16px',
-          color: 'black',
-        }}
-      >
         {' '}
-        Account
+        Node
       </th>
       <th
         style={{
@@ -202,11 +288,12 @@ export function AdminDashboard() {
           color: 'black',
         }}
       >
-        Change
+        Message
       </th>
     </tr>
   );
-  const rows = logs.map((items) => (
+
+  const rows = logs.map((items,index) => (
     <tr>
       <td
         width="15%"
@@ -228,18 +315,7 @@ export function AdminDashboard() {
           color: 'black',
         }}
       >
-        {items['User']}
-      </td>
-      <td
-        width="10%"
-        style={{
-          textAlign: 'left',
-          fontWeight: '400',
-          fontSize: '16px',
-          color: 'black',
-        }}
-      >
-        {items['Account']}
+        {items['Node']}
       </td>
       <td
         width="30%"
@@ -267,6 +343,58 @@ export function AdminDashboard() {
       username="@alex"
       image="https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80"
     >
+         <Modal
+            centered
+            size={600}
+            opened={logsModal}
+            title={<span style={{ fontSize: '22px' ,fontWeight:550
+           }}> All Logs</span>}
+            onClose={() => setOpened(false)}
+          >
+           <div style={{
+        display: 'flex',
+        flexDirection:'column',
+        height: '100%',
+      }}>
+        <div style={{
+          display: 'flex',     
+          flexDirection: 'column',
+          justifyContent: 'center',
+          backgroundColor: 'white',   
+        }}>
+          <caption style={{
+            textAlign: 'center',
+            fontWeight: 600,
+            fontSize: '24px',
+            color: 'black',
+            marginBottom: '20px',
+            alignSelf: 'center',
+          }}>
+         
+          </caption>
+          <ScrollArea style={{ 
+          height: '500px', 
+          width: '100%', 
+          marginTop: '1%' 
+          }}>
+          <Table captionSide="top" verticalSpacing="sm" >
+   
+          
+            <thead style={{}}>{ths}</thead>
+            <tbody>{fullrows}</tbody>
+          </Table>
+        </ScrollArea>
+        <Button
+            variant="default"
+            color="dark"
+            size="md"
+            style={{ alignSelf: "flex-end" }}
+          >
+            Export Logs
+          </Button>
+        </div>
+      </div>
+          </Modal>
       <div
         style={{
           display: 'flex',
@@ -437,6 +565,7 @@ export function AdminDashboard() {
             color="dark"
             size="md"
             style={{ textAlign: 'right', marginTop: '1%' }}
+            onClick={()=> setOpened(true)}
           >
             View All Logs
           </Button>

@@ -22,6 +22,8 @@ go.work
 .idea/modules.xml
 .idea/ohana.iml
 .idea/vcs.xml
+
+node_modules/
 *.shard0
 *.shard1
 *.shard2

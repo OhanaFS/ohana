@@ -3,15 +3,12 @@ import {
   Grid,
   Button,
   Card,
-  Text,
-  Paper,
   Center,
   Table,
 } from '@mantine/core';
-import Admin_navigation from './Admin_navigation';
 import AppBase from './components/AppBase';
 
-function Admin_maintenanceresults() {
+export function AdminMaintenanceResults() {
   const logs = [
     'Turning server one offline',
     'Cleaning server one',
@@ -22,8 +19,6 @@ function Admin_maintenanceresults() {
     'Maintenance is not completed.',
   ];
 
-  const serverOnline = 641;
-  const nodeOnline = 120;
   const theme = useMantineTheme();
 
   const rows = logs.map((items) => (
@@ -98,5 +93,3 @@ function Admin_maintenanceresults() {
     </>
   );
 }
-
-export default Admin_maintenanceresults;
