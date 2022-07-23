@@ -1,11 +1,9 @@
-
 import { AdminConsole } from './AdminConsole';
 import AppBase from './components/AppBase';
 
 export function AdminSsoGroupsInside() {
-  
-  const data: Array<any>= ['Tom', 'Peter', 'Raymond'];
-  
+  const data: Array<any> = ['Tom', 'Peter', 'Raymond'];
+
   return (
     <>
       <AppBase
@@ -25,12 +23,7 @@ export function AdminSsoGroupsInside() {
           caption="User Management Console"
           pointerEvents={false}
         ></AdminConsole>
-       
       </AppBase>
-
-      
     </>
   );
 }
-
-

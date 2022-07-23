@@ -1,10 +1,8 @@
-
-
 import { AdminConsole } from './AdminConsole';
 import AppBase from './components/AppBase';
 
 export function AdminSsoGroups() {
-  const SSOGroupList = ['Hr', 'Finance','IT','Management'];
+  const SSOGroupList = ['Hr', 'Finance', 'IT', 'Management'];
 
   return (
     <>
@@ -29,5 +27,3 @@ export function AdminSsoGroups() {
     </>
   );
 }
-
-

@@ -73,35 +73,37 @@ export function AdminRunMaintenance() {
 
   return (
     <>
-       <AppBase
+      <AppBase
         userType="admin"
         name="Alex Simmons"
         username="@alex"
         image="https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80"
-       >
-     
-     <div
+      >
+        <div
           style={{
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'flex-start',
-           
           }}
-
         >
           <div className="maintenanceSettings">
-          
-            <Table striped verticalSpacing="xs" id='maintenanceSettings' >
-              <caption  >
-                {' '} <div style={{marginTop:'10px'}}>   Run Maintenance
-              
-                <span style={{marginTop:'2px',marginRight:'10px', float: 'right' }}>
-              
-                <ActionIcon component={Link} to="/maintenancesettings">
-             <Settings></Settings>
-               </ActionIcon>
-  
-                </span>
+            <Table striped verticalSpacing="xs" id="maintenanceSettings">
+              <caption>
+                {' '}
+                <div style={{ marginTop: '10px' }}>
+                  {' '}
+                  Run Maintenance
+                  <span
+                    style={{
+                      marginTop: '2px',
+                      marginRight: '10px',
+                      float: 'right',
+                    }}
+                  >
+                    <ActionIcon component={Link} to="/maintenancesettings">
+                      <Settings></Settings>
+                    </ActionIcon>
+                  </span>
                 </div>
               </caption>
 
@@ -109,13 +111,10 @@ export function AdminRunMaintenance() {
               <tbody style={{}}>
                 <tr>
                   <td>
-
-                      Crawl the list of files to remove permissions from expired
-                      users
-            
+                    Crawl the list of files to remove permissions from expired
+                    users
                   </td>
                   <td>
-        
                     <Checkbox
                       size="md"
                       checked={checked0}
@@ -127,12 +126,8 @@ export function AdminRunMaintenance() {
                 </tr>
 
                 <tr>
+                  <td>Purging orphaned files and shards</td>
                   <td>
-               
-                  Purging orphaned files and shards 
-                  </td>
-                  <td>
-             
                     <Checkbox
                       size="md"
                       id="1"
@@ -145,9 +140,7 @@ export function AdminRunMaintenance() {
                 </tr>
 
                 <tr>
-                  <td>
-                   Purge a user and their files 
-                  </td>
+                  <td>Purge a user and their files</td>
                   <td>
                     {' '}
                     <Checkbox
@@ -164,10 +157,7 @@ export function AdminRunMaintenance() {
                 <tr>
                   <td>
                     {' '}
-                  
-                      {' '}
-                      Crawl all of the files to make sure it has full replicas
-                  
+                    Crawl all of the files to make sure it has full replicas
                   </td>
                   <td>
                     {' '}
@@ -185,11 +175,8 @@ export function AdminRunMaintenance() {
                 <tr>
                   <td>
                     {' '}
-                
-                      {' '}
-                      Quick File Check (Only checks current versions of files to
-                      see if it’s fine and is not corrupted){' '}
-                 
+                    Quick File Check (Only checks current versions of files to
+                    see if it’s fine and is not corrupted){' '}
                   </td>
                   <td>
                     {' '}
@@ -207,11 +194,8 @@ export function AdminRunMaintenance() {
                 <tr>
                   <td>
                     {' '}
-               
-                      {' '}
-                      Full File Check (Checks all fragments to ensure that it’s
-                      not corrupted){' '}
-                  
+                    Full File Check (Checks all fragments to ensure that it’s
+                    not corrupted){' '}
                   </td>
                   <td>
                     {' '}
@@ -227,10 +211,7 @@ export function AdminRunMaintenance() {
                 </tr>
 
                 <tr>
-                  <td>
-                    {' '}
-                    DB integrity Check 
-                  </td>
+                  <td> DB integrity Check</td>
                   <td>
                     {' '}
                     <Checkbox
@@ -249,30 +230,30 @@ export function AdminRunMaintenance() {
                   <td> </td>
                 </tr>
               </tbody>
-              <div  style={{
-       display: 'flex',
-      flexDirection:'column',
-      }} >
-
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
                 <Button
-                    style={{
-                      alignSelf:"flex-end",marginTop:'20px'
-                    }}
+                  style={{
+                    alignSelf: 'flex-end',
+                    marginTop: '20px',
+                  }}
                   variant="default"
                   color="dark"
                   size="md"
                   component={Link}
                   to="/performmaintenance"
                 >
-               Perform Maintenance
+                  Perform Maintenance
                 </Button>
-           
               </div>
             </Table>
-       </div>
-       </div>
+          </div>
+        </div>
       </AppBase>
     </>
   );
 }
-

@@ -13,6 +13,7 @@
     "@mantine/form": "^4.2.4",
     "@mantine/hooks": "^4.2.4",
     "@tabler/icons": "^1.71.0",
+    "@tanstack/react-query": "^4.0.10",
     "chonky": "^2.3.2",
     "chonky-icon-fontawesome": "^2.3.2",
     "react": "^18.1.0",

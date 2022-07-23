@@ -8,7 +8,7 @@ import {
 } from '@mantine/core';
 
 import { Link } from 'react-router-dom';
-import {  useState } from 'react';
+import { useState } from 'react';
 
 export interface ConsoleDetails {
   groupList: Array<any>;
@@ -23,21 +23,20 @@ export interface ConsoleDetails {
 }
 
 export function AdminConsole(props: ConsoleDetails) {
-
   const [CurrentSSOGroups, setValue] = useState(props.groupList);
   const [Group, addGroup] = useState('');
-  function add() {  
+  function add() {
     setValue(CurrentSSOGroups.concat(Group));
     setOpened(false);
   }
   const [openedAddUserModel, setOpened] = useState(false);
-  const title = "Add "+ props.addObjectLabel;
-  const textField ="Name of the " +props.addObjectLabel;
+  const title = 'Add ' + props.addObjectLabel;
+  const textField = 'Name of the ' + props.addObjectLabel;
 
-  const deleteGroup = (index:any) => {
+  const deleteGroup = (index: any) => {
     setValue(CurrentSSOGroups.filter((v, i) => i !== index));
-}
-  
+  };
+
   const ths = (
     <tr>
       <th
@@ -48,22 +47,22 @@ export function AdminConsole(props: ConsoleDetails) {
           color: 'black',
         }}
       >
-        <div style={{marginLeft:'10px'}}>
-        {props.tableHeader}
-        </div>
+        <div style={{ marginLeft: '10px' }}>{props.tableHeader}</div>
       </th>
     </tr>
   );
   const rows = CurrentSSOGroups.map((items, index) => (
     <tr key={index}>
-     <td style={{
-        display:'flex',
-        justifyContent:'space-between',
-      }}>
+      <td
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+        }}
+      >
         <Text
           color="dark"
           style={{
-            marginLeft:'10px',
+            marginLeft: '10px',
             pointerEvents: props.pointerEvents ? 'auto' : 'none',
           }}
           component={Link}
@@ -73,16 +72,14 @@ export function AdminConsole(props: ConsoleDetails) {
           {items}
         </Text>
         <Button
-              variant="default"
-              color="dark"
-              size="md"
-              style={{ marginRight:'15px' }}
-              onClick={() => [         
-               deleteGroup(index)            
-              ]}
-            >
-              Delete 
-            </Button>
+          variant="default"
+          color="dark"
+          size="md"
+          style={{ marginRight: '15px' }}
+          onClick={() => [deleteGroup(index)]}
+        >
+          Delete
+        </Button>
       </td>
     </tr>
   ));
@@ -92,54 +89,59 @@ export function AdminConsole(props: ConsoleDetails) {
       style={{
         display: 'flex',
         height: '80vh',
-        justifyContent: 'center',    
+        justifyContent: 'center',
       }}
-    > 
+    >
       <div className="console">
-      <Modal
-         centered 
-         opened={openedAddUserModel}
-         onClose={() => setOpened(false)} 
-      >
-        {         
-      <div style ={{    
-             display: 'flex',
-             height: '25vh',
-             flexDirection:'column',
-            }}>
-            <Textarea
-            placeholder={textField}
-            label= {title}
-            size="md"
-            name="password"
-            id="password"
-            required
-            onChange={(event) => {addGroup(event.target.value)}}    
-            />  
-            <Button
-              variant="default"
-              color="dark"
-              size="md"
-              onClick={() => add()}
-              style={{ 
-                marginLeft:'15px', 
-                alignSelf:'flex-end',
-                marginTop:'20px' 
+        <Modal
+          centered
+          opened={openedAddUserModel}
+          onClose={() => setOpened(false)}
+        >
+          {
+            <div
+              style={{
+                display: 'flex',
+                height: '25vh',
+                flexDirection: 'column',
               }}
             >
-              Submit 
-            </Button>
+              <Textarea
+                placeholder={textField}
+                label={title}
+                size="md"
+                name="password"
+                id="password"
+                required
+                onChange={(event) => {
+                  addGroup(event.target.value);
+                }}
+              />
+              <Button
+                variant="default"
+                color="dark"
+                size="md"
+                onClick={() => add()}
+                style={{
+                  marginLeft: '15px',
+                  alignSelf: 'flex-end',
+                  marginTop: '20px',
+                }}
+              >
+                Submit
+              </Button>
             </div>
-        }
-      </Modal>
+          }
+        </Modal>
 
-        <ScrollArea style={{ 
-          height: '90%', 
-          width: '100%', 
-          marginTop: '1%' 
-          }}>
-          <Table captionSide="top" verticalSpacing="sm" >
-   
+        <ScrollArea
+          style={{
+            height: '90%',
+            width: '100%',
+            marginTop: '1%',
+          }}
+        >
+          <Table captionSide="top" verticalSpacing="sm">
             <caption
               style={{
                 textAlign: 'center',
@@ -156,25 +158,24 @@ export function AdminConsole(props: ConsoleDetails) {
           </Table>
         </ScrollArea>
 
-   
-       <div style={{
-             display: 'flex',
-             flexDirection:'row',
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
             justifyContent: 'space-between',
-      }} >
-            <Button
-              variant="default"
-              color="dark"
-              size="md"
-              onClick={() => setOpened(true)}
-              style={{ marginLeft:'15px' }}
-            >
-              Add {props.addObjectLabel}
-            </Button>   
-            </div>       
+          }}
+        >
+          <Button
+            variant="default"
+            color="dark"
+            size="md"
+            onClick={() => setOpened(true)}
+            style={{ marginLeft: '15px' }}
+          >
+            Add {props.addObjectLabel}
+          </Button>
+        </div>
       </div>
     </div>
   );
 }
-
-
