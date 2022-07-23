@@ -349,16 +349,6 @@ export function AdminDashboard() {
               backgroundColor: 'white',
             }}
           >
-            <caption
-              style={{
-                textAlign: 'center',
-                fontWeight: 600,
-                fontSize: '24px',
-                color: 'black',
-                marginBottom: '20px',
-                alignSelf: 'center',
-              }}
-            ></caption>
             <ScrollArea
               style={{
                 height: '500px',

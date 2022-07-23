@@ -11,7 +11,6 @@ import { LoginPage } from './LoginPage';
 import { AdminConfiguration } from './AdminConfiguration';
 import { AdminKeyManagement } from './AdminKeyManagement';
 import { AdminMaintenanceResults } from './AdminMaintenanceResults';
-import { AdminMaintenanceSettings } from './AdminMaintenanceSettings';
 import { AdminNodes } from './AdminNodes';
 import { AdminPerformMaintenance } from './AdminPerformMaintenance';
 import { AdminRunMaintenance } from './AdminRunMaintenance';
@@ -54,10 +53,6 @@ export default function Demo() {
           <Route
             path="/performmaintenance"
             element={<AdminPerformMaintenance />}
-          />
-          <Route
-            path="/maintenancesettings"
-            element={<AdminMaintenanceSettings />}
           />
           <Route path="/runmaintenance" element={<AdminRunMaintenance />} />
           <Route path="dashboard" element={<AdminDashboard />} />

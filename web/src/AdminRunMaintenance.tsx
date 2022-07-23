@@ -4,6 +4,7 @@ import {
   Button,
   Table,
   ActionIcon,
+  Modal,
 } from '@mantine/core';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
@@ -21,49 +22,59 @@ export function AdminRunMaintenance() {
     { name: 'FullCheck', setting: 'false' },
     { name: 'DBCheck', setting: 'true' },
   ];
-  const [checked0, setChecked] = useState(() => {
+
+  const [openedMaintenanceSettingsModal, setOpened] = useState(false);
+
+
+
+
+  // Maintenance settings that will be run
+
+  var [firstCheck, setFirstCheck] = useState(() => {
     if (MaintenanceSettings[0].setting === 'true') {
       return true;
     }
 
     return false;
   });
-  const [checked1, setChecked1] = useState(() => {
+
+
+  var [secondCheck, setSecondCheck] = useState(() => {
     if (MaintenanceSettings[1].setting === 'true') {
       return true;
     }
 
     return false;
   });
-  const [checked2, setChecked2] = useState(() => {
+  var [thirdCheck, setThirdCheck] = useState(() => {
     if (MaintenanceSettings[2].setting === 'true') {
       return true;
     }
 
     return false;
   });
-  const [checked3, setChecked3] = useState(() => {
+  var [fourthCheck, setFourthCheck] = useState(() => {
     if (MaintenanceSettings[3].setting === 'true') {
       return true;
     }
 
     return false;
   });
-  const [checked4, setChecked4] = useState(() => {
+  var [fifthCheck, setFifthCheck] = useState(() => {
     if (MaintenanceSettings[4].setting === 'true') {
       return true;
     }
 
     return false;
   });
-  const [checked5, setChecked5] = useState(() => {
+  var [sixthCheck, setSixthCheck] = useState(() => {
     if (MaintenanceSettings[5].setting === 'true') {
       return true;
     }
 
     return false;
   });
-  const [checked6, setChecked6] = useState(() => {
+  var [seventhCheck, setSeventhCheck] = useState(() => {
     if (MaintenanceSettings[6].setting === 'true') {
       return true;
     }
@@ -71,6 +82,72 @@ export function AdminRunMaintenance() {
     return false;
   });
 
+
+
+  // maintenance settings
+
+  var [sFirstCheck, setsFirstCheck] = useState(() => {
+    if (MaintenanceSettings[0].setting === 'true') {
+      return true;
+    }
+
+    return false;
+  });
+
+  var [sSecondCheck, setsSecondCheck] = useState(() => {
+    if (MaintenanceSettings[1].setting === 'true') {
+      return true;
+    }
+
+    return false;
+  });
+  var [sThirdCheck, setsThirdCheck] = useState(() => {
+    if (MaintenanceSettings[2].setting === 'true') {
+      return true;
+    }
+
+    return false;
+  });
+  var [sFourthCheck, setsFourthCheck] = useState(() => {
+    if (MaintenanceSettings[3].setting === 'true') {
+      return true;
+    }
+
+    return false;
+  });
+  var [sFifthCheck, setsFifthCheck] = useState(() => {
+    if (MaintenanceSettings[4].setting === 'true') {
+      return true;
+    }
+
+    return false;
+  });
+  var [sSixthCheck, setsSixthCheck] = useState(() => {
+    if (MaintenanceSettings[5].setting === 'true') {
+      return true;
+    }
+
+    return false;
+  });
+  var [sSeventhCheck, setsSeventhCheck] = useState(() => {
+    if (MaintenanceSettings[6].setting === 'true') {
+      return true;
+    }
+
+    return false;
+  });
+
+  function saveSettings(){
+
+    setFirstCheck(sFirstCheck);
+    setSecondCheck(sSecondCheck);
+    setThirdCheck(sThirdCheck);
+    setFourthCheck(sFourthCheck);
+    setFifthCheck(sFifthCheck);
+    setSixthCheck(sSixthCheck);
+    setSeventhCheck(sSeventhCheck);
+    setOpened(false);
+  }
   return (
     <>
       <AppBase
@@ -86,6 +163,176 @@ export function AdminRunMaintenance() {
             alignItems: 'flex-start',
           }}
         >
+  
+        <Modal 
+              centered
+              opened={openedMaintenanceSettingsModal}
+              size={600}
+              title={
+              "Maintenance Settings" 
+              }
+      
+              styles={{
+                title: { fontSize: '22px', fontWeight: 550,display: "flex",
+                justifyContent: "center",
+                alignItems: "center"
+             },
+              }}
+          
+              onClose={() => setOpened(false)}>
+         <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              backgroundColor: 'white',
+            }}
+          >
+          <Table striped verticalSpacing="xs" id="maintenanceSettings">
+       
+            <tbody >
+              <tr >
+                <td>
+                  Crawl the list of files to remove permissions from expired
+                  users
+                </td>
+                <td>
+                  <Checkbox
+                    size="md"
+                    checked={sFirstCheck}
+                    onChange={(event) =>
+                      setsFirstCheck(event.currentTarget.checked)
+                    }
+                  />{' '}
+                </td>
+              </tr>
+
+              <tr>
+                <td>Purging orphaned files and shards</td>
+                <td>
+                  <Checkbox
+                    size="md"
+                    checked={sSecondCheck}
+                    onChange={(event) =>
+                      setsSecondCheck(event.currentTarget.checked)
+                    }
+                  />
+                </td>
+              </tr>
+
+              <tr>
+                <td>Purge a user and their files</td>
+                <td>
+                  {' '}
+                  <Checkbox
+                    size="md"
+                    checked={sThirdCheck}
+                    onChange={(event) =>
+                      setsThirdCheck(event.currentTarget.checked)
+                    }
+                  />{' '}
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  {' '}
+                  Crawl all of the files to make sure it has full replicas
+                </td>
+                <td>
+                  {' '}
+                  <Checkbox
+                    size="md"
+                    checked={sFourthCheck}
+                    onChange={(event) =>
+                      setsFourthCheck(event.currentTarget.checked)
+                    }
+                  />
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  Quick File Check (Only checks current versions of files to see
+                  if it’s fine and is not corrupted){' '}
+                </td>
+                <td>
+                  <Checkbox
+                    size="md"
+                    checked={sFifthCheck}
+                    onChange={(event) =>
+                      [setsFifthCheck(event.currentTarget.checked),{
+                        sSixthCheck:true? setsSixthCheck(false): ""
+                      }]
+                    }
+                  />
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  Full File Check (Checks all fragments to ensure that it’s not
+                  corrupted)
+                </td>
+                <td>
+                  <Checkbox
+                    size="md"
+                    checked={sSixthCheck}
+                    onChange={(event) =>
+                      [ setsSixthCheck(event.currentTarget.checked),{
+                        sFifthCheck:true? setsFifthCheck(false): ""
+                      }]
+                    }
+                  />
+                </td>
+              </tr>
+
+              <tr>
+                <td>DB integrity Check</td>
+                <td>
+                  <Checkbox
+                    size="md"
+                    checked={sSeventhCheck}
+                    onChange={(event) =>
+                      setsSeventhCheck(event.currentTarget.checked)
+                    }
+                  />
+                </td>
+              </tr>
+            
+            </tbody>
+
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <Button
+                style={{
+                  alignSelf: 'flex-end',
+                  marginTop: '20px',
+                  marginRight:'10px'
+                }}
+                variant="default"
+                color="dark"
+                size="md"
+                onClick={()=>saveSettings()}
+              >
+                Save Settings
+              </Button>
+            </div>
+          </Table>
+        </div>
+      </div>    
+          </Modal>
           <div className="maintenanceSettings">
             <Table striped verticalSpacing="xs" id="maintenanceSettings">
               <caption>
@@ -100,9 +347,11 @@ export function AdminRunMaintenance() {
                       float: 'right',
                     }}
                   >
-                    <ActionIcon component={Link} to="/maintenancesettings">
-                      <Settings></Settings>
+                    <ActionIcon  onClick={()=> setOpened(true)}>
+                  <Settings></Settings>
                     </ActionIcon>
+
+                  
                   </span>
                 </div>
               </caption>
@@ -117,9 +366,9 @@ export function AdminRunMaintenance() {
                   <td>
                     <Checkbox
                       size="md"
-                      checked={checked0}
+                      checked={firstCheck}
                       onChange={(event) =>
-                        setChecked(event.currentTarget.checked)
+                        setFirstCheck(event.currentTarget.checked)
                       }
                     />{' '}
                   </td>
@@ -130,10 +379,9 @@ export function AdminRunMaintenance() {
                   <td>
                     <Checkbox
                       size="md"
-                      id="1"
-                      checked={checked1}
+                      checked={secondCheck}
                       onChange={(event) =>
-                        setChecked1(event.currentTarget.checked)
+                        setSecondCheck(event.currentTarget.checked)
                       }
                     />
                   </td>
@@ -145,10 +393,9 @@ export function AdminRunMaintenance() {
                     {' '}
                     <Checkbox
                       size="md"
-                      id="1"
-                      checked={checked2}
+                      checked={thirdCheck}
                       onChange={(event) =>
-                        setChecked2(event.currentTarget.checked)
+                        setThirdCheck(event.currentTarget.checked)
                       }
                     />{' '}
                   </td>
@@ -163,10 +410,9 @@ export function AdminRunMaintenance() {
                     {' '}
                     <Checkbox
                       size="md"
-                      id="2"
-                      checked={checked3}
+                      checked={fourthCheck}
                       onChange={(event) =>
-                        setChecked3(event.currentTarget.checked)
+                        setFourthCheck(event.currentTarget.checked)
                       }
                     />
                   </td>
@@ -182,10 +428,13 @@ export function AdminRunMaintenance() {
                     {' '}
                     <Checkbox
                       size="md"
-                      id="3"
-                      checked={checked4}
+                    
+                      checked={fifthCheck}
                       onChange={(event) =>
-                        setChecked4(event.currentTarget.checked)
+                        [setFifthCheck(event.currentTarget.checked),{
+                          sixthCheck:true?  setSixthCheck(false): ""
+                        }
+                      ]
                       }
                     />{' '}
                   </td>
@@ -201,10 +450,11 @@ export function AdminRunMaintenance() {
                     {' '}
                     <Checkbox
                       size="md"
-                      id="4"
-                      checked={checked5}
+                      checked={sixthCheck}
                       onChange={(event) =>
-                        setChecked5(event.currentTarget.checked)
+                        [setSixthCheck(event.currentTarget.checked),{
+                          fifthCheck:true?  setFifthCheck(false): ""
+                        }]
                       }
                     />
                   </td>
@@ -216,19 +466,15 @@ export function AdminRunMaintenance() {
                     {' '}
                     <Checkbox
                       size="md"
-                      id="5"
-                      checked={checked6}
+                      checked={seventhCheck}
                       onChange={(event) =>
-                        setChecked6(event.currentTarget.checked)
+                        setSeventhCheck(event.currentTarget.checked)
                       }
                     />
                   </td>
                 </tr>
 
-                <tr>
-                  <td> </td>
-                  <td> </td>
-                </tr>
+     
               </tbody>
               <div
                 style={{
@@ -253,6 +499,8 @@ export function AdminRunMaintenance() {
             </Table>
           </div>
         </div>
+
+       
       </AppBase>
     </>
   );
