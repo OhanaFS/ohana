@@ -131,45 +131,44 @@ export function AdminDashboard() {
       'Date and time': '09/16/2019, 14:10',
       Node: 'Peter',
       Change: 'Added a node ip address 125.2.1.14',
-    }
-
+    },
   ];
   const fullrows = fulllogs.map((items, index) => (
     <tr>
-    <td
-      width="15%"
-      style={{
-        textAlign: 'left',
-        fontWeight: '400',
-        fontSize: '16px',
-        color: 'black',
-      }}
-    >
-      {items['Date and time']}
-    </td>
-    <td
-      width="10%"
-      style={{
-        textAlign: 'left',
-        fontWeight: '400',
-        fontSize: '16px',
-        color: 'black',
-      }}
-    >
-      {items['Node']}
-    </td>
-    <td
-      width="30%"
-      style={{
-        textAlign: 'left',
-        fontWeight: '400',
-        fontSize: '16px',
-        color: 'black',
-      }}
-    >
-      {items['Change']}
-    </td>
-  </tr>
+      <td
+        width="15%"
+        style={{
+          textAlign: 'left',
+          fontWeight: '400',
+          fontSize: '16px',
+          color: 'black',
+        }}
+      >
+        {items['Date and time']}
+      </td>
+      <td
+        width="10%"
+        style={{
+          textAlign: 'left',
+          fontWeight: '400',
+          fontSize: '16px',
+          color: 'black',
+        }}
+      >
+        {items['Node']}
+      </td>
+      <td
+        width="30%"
+        style={{
+          textAlign: 'left',
+          fontWeight: '400',
+          fontSize: '16px',
+          color: 'black',
+        }}
+      >
+        {items['Change']}
+      </td>
+    </tr>
   ));
   const ClusterHealthChartData = [
     {
@@ -293,7 +292,7 @@ export function AdminDashboard() {
     </tr>
   );
 
-  const rows = logs.map((items,index) => (
+  const rows = logs.map((items, index) => (
     <tr>
       <td
         width="15%"
@@ -343,58 +342,63 @@ export function AdminDashboard() {
       username="@alex"
       image="https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80"
     >
-         <Modal
-            centered
-            size={600}
-            opened={logsModal}
-            title={<span style={{ fontSize: '22px' ,fontWeight:550
-           }}> All Logs</span>}
-            onClose={() => setOpened(false)}
+      <Modal
+        centered
+        size={600}
+        opened={logsModal}
+        title={
+          <span style={{ fontSize: '22px', fontWeight: 550 }}> All Logs</span>
+        }
+        onClose={() => setOpened(false)}
+      >
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              backgroundColor: 'white',
+            }}
           >
-           <div style={{
-        display: 'flex',
-        flexDirection:'column',
-        height: '100%',
-      }}>
-        <div style={{
-          display: 'flex',     
-          flexDirection: 'column',
-          justifyContent: 'center',
-          backgroundColor: 'white',   
-        }}>
-          <caption style={{
-            textAlign: 'center',
-            fontWeight: 600,
-            fontSize: '24px',
-            color: 'black',
-            marginBottom: '20px',
-            alignSelf: 'center',
-          }}>
-         
-          </caption>
-          <ScrollArea style={{ 
-          height: '500px', 
-          width: '100%', 
-          marginTop: '1%' 
-          }}>
-          <Table captionSide="top" verticalSpacing="sm" >
-   
-          
-            <thead style={{}}>{ths}</thead>
-            <tbody>{fullrows}</tbody>
-          </Table>
-        </ScrollArea>
-        <Button
-            variant="default"
-            color="dark"
-            size="md"
-            style={{ alignSelf: "flex-end" }}
-          >
-            Export Logs
-          </Button>
+            <caption
+              style={{
+                textAlign: 'center',
+                fontWeight: 600,
+                fontSize: '24px',
+                color: 'black',
+                marginBottom: '20px',
+                alignSelf: 'center',
+              }}
+            ></caption>
+            <ScrollArea
+              style={{
+                height: '500px',
+                width: '100%',
+                marginTop: '1%',
+              }}
+            >
+              <Table captionSide="top" verticalSpacing="sm">
+                <thead style={{}}>{ths}</thead>
+                <tbody>{fullrows}</tbody>
+              </Table>
+            </ScrollArea>
+            <Button
+              variant="default"
+              color="dark"
+              size="md"
+              style={{ alignSelf: 'flex-end' }}
+            >
+              Export Logs
+            </Button>
+          </div>
         </div>
-      </div>
-          </Modal>
+      </Modal>
       <div
         style={{
           display: 'flex',
@@ -565,7 +569,7 @@ export function AdminDashboard() {
             color="dark"
             size="md"
             style={{ textAlign: 'right', marginTop: '1%' }}
-            onClick={()=> setOpened(true)}
+            onClick={() => setOpened(true)}
           >
             View All Logs
           </Button>

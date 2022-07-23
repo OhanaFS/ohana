@@ -1,12 +1,7 @@
-import {
-  Button,
-  Checkbox,
-  Table,
-  useMantineTheme,
-} from '@mantine/core';
+import { Button, Checkbox, Table, useMantineTheme } from '@mantine/core';
 
 import { useState } from 'react';
-import {  Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import AppBase from './components/AppBase';
 
 export function AdminMaintenanceSettings() {
@@ -71,7 +66,6 @@ export function AdminMaintenanceSettings() {
     return false;
   });
 
-
   return (
     <AppBase
       userType="admin"
@@ -79,172 +73,156 @@ export function AdminMaintenanceSettings() {
       username="@alex"
       image="https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80"
     >
-      
-
       <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'flex-start',
-           
-          }}
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+        }}
+      >
+        <div className="maintenanceSettings">
+          <Table striped verticalSpacing="xs" id="maintenanceSettings">
+            <caption>
+              {' '}
+              <div style={{ marginTop: '10px' }}> Maintenance Settings</div>
+            </caption>
 
-        >
-          <div className="maintenanceSettings">
-          
-            <Table striped verticalSpacing="xs" id='maintenanceSettings' >
-              <caption  >
-                {' '} <div style={{marginTop:'10px'}}>    Maintenance Settings     
-                </div>
-              </caption>
+            <thead></thead>
+            <tbody style={{}}>
+              <tr>
+                <td>
+                  Crawl the list of files to remove permissions from expired
+                  users
+                </td>
+                <td>
+                  <Checkbox
+                    size="md"
+                    checked={checked0}
+                    onChange={(event) =>
+                      setChecked(event.currentTarget.checked)
+                    }
+                  />{' '}
+                </td>
+              </tr>
 
-              <thead></thead>
-              <tbody style={{}}>
-                <tr>
-                  <td>
-                      Crawl the list of files to remove permissions from expired
-                      users   
-                  </td>
-                  <td>
-        
-                    <Checkbox
-                      size="md"
-                      checked={checked0}
-                      onChange={(event) =>
-                        setChecked(event.currentTarget.checked)
-                      }
-                    />{' '}
-                  </td>
-                </tr>
+              <tr>
+                <td>Purging orphaned files and shards</td>
+                <td>
+                  <Checkbox
+                    size="md"
+                    id="1"
+                    checked={checked1}
+                    onChange={(event) =>
+                      setChecked1(event.currentTarget.checked)
+                    }
+                  />
+                </td>
+              </tr>
 
-                <tr>
-                  <td>
-               
-                  Purging orphaned files and shards 
-                  </td>
-                  <td>
-             
-                    <Checkbox
-                      size="md"
-                      id="1"
-                      checked={checked1}
-                      onChange={(event) =>
-                        setChecked1(event.currentTarget.checked)
-                      }
-                    />
-                  </td>
-                </tr>
+              <tr>
+                <td>Purge a user and their files</td>
+                <td>
+                  {' '}
+                  <Checkbox
+                    size="md"
+                    id="1"
+                    checked={checked2}
+                    onChange={(event) =>
+                      setChecked2(event.currentTarget.checked)
+                    }
+                  />{' '}
+                </td>
+              </tr>
 
-                <tr>
-                  <td>
-                   Purge a user and their files 
-                  </td>
-                  <td>
-                    {' '}
-                    <Checkbox
-                      size="md"
-                      id="1"
-                      checked={checked2}
-                      onChange={(event) =>
-                        setChecked2(event.currentTarget.checked)
-                      }
-                    />{' '}
-                  </td>
-                </tr>
+              <tr>
+                <td>
+                  {' '}
+                  Crawl all of the files to make sure it has full replicas
+                </td>
+                <td>
+                  {' '}
+                  <Checkbox
+                    size="md"
+                    id="2"
+                    checked={checked3}
+                    onChange={(event) =>
+                      setChecked3(event.currentTarget.checked)
+                    }
+                  />
+                </td>
+              </tr>
 
-                <tr>
-                  <td>
-                    {' '}
-                  
-                      {' '}
-                      Crawl all of the files to make sure it has full replicas
-                  
-                  </td>
-                  <td>
-                    {' '}
-                    <Checkbox
-                      size="md"
-                      id="2"
-                      checked={checked3}
-                      onChange={(event) =>
-                        setChecked3(event.currentTarget.checked)
-                      }
-                    />
-                  </td>
-                </tr>
+              <tr>
+                <td>
+                  Quick File Check (Only checks current versions of files to see
+                  if it’s fine and is not corrupted){' '}
+                </td>
+                <td>
+                  <Checkbox
+                    size="md"
+                    id="3"
+                    checked={checked4}
+                    onChange={(event) =>
+                      setChecked4(event.currentTarget.checked)
+                    }
+                  />
+                </td>
+              </tr>
 
-                <tr>
-                  <td>
-                      Quick File Check (Only checks current versions of files to
-                      see if it’s fine and is not corrupted){' '}
-                  </td>
-                  <td>
-                    <Checkbox
-                      size="md"
-                      id="3"
-                      checked={checked4}
-                      onChange={(event) =>
-                        setChecked4(event.currentTarget.checked)
-                      }
-                    />
-                  </td>
-                </tr>
+              <tr>
+                <td>
+                  Full File Check (Checks all fragments to ensure that it’s not
+                  corrupted)
+                </td>
+                <td>
+                  <Checkbox
+                    size="md"
+                    id="4"
+                    checked={checked5}
+                    onChange={(event) =>
+                      setChecked5(event.currentTarget.checked)
+                    }
+                  />
+                </td>
+              </tr>
 
-                <tr>
-                  <td>
-                      Full File Check (Checks all fragments to ensure that it’s
-                      not corrupted)
-                  </td>
-                  <td>
-                    <Checkbox
-                      size="md"
-                      id="4"
-                      checked={checked5}
-                      onChange={(event) =>
-                        setChecked5(event.currentTarget.checked)
-                      }
-                    />
-                  </td>
-                </tr>
-
-                <tr>
-                  <td>
-                    DB integrity Check 
-                  </td>
-                  <td>
-                    <Checkbox
-                      size="md"
-                      id="5"
-                      checked={checked6}
-                      onChange={(event) =>
-                        setChecked6(event.currentTarget.checked)
-                      }
-                    />
-                  </td>
-                </tr>
-
-              </tbody>
-              <div style={{
-                    display: 'flex',
-                    flexDirection:'column',
-               }}>
-
-                <Button style={{
-                          alignSelf:"flex-end",
-                          marginTop:'20px'
-                           }}
-                        variant="default"
-                        color="dark"
-                        size="md"
-                        component={Link}
-                        to="/runmaintenance"
-                 >
-                  Save Settings
-                  </Button>
-              </div>
-            </Table>
-       </div>
-       </div>
+              <tr>
+                <td>DB integrity Check</td>
+                <td>
+                  <Checkbox
+                    size="md"
+                    id="5"
+                    checked={checked6}
+                    onChange={(event) =>
+                      setChecked6(event.currentTarget.checked)
+                    }
+                  />
+                </td>
+              </tr>
+            </tbody>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <Button
+                style={{
+                  alignSelf: 'flex-end',
+                  marginTop: '20px',
+                }}
+                variant="default"
+                color="dark"
+                size="md"
+                component={Link}
+                to="/runmaintenance"
+              >
+                Save Settings
+              </Button>
+            </div>
+          </Table>
+        </div>
+      </div>
     </AppBase>
   );
 }

@@ -1,10 +1,4 @@
-
-import {
-  Title,
-  TextInput,
-  Button,
-  useMantineTheme,
-} from '@mantine/core';
+import { Title, TextInput, Button, useMantineTheme } from '@mantine/core';
 import { Link } from 'react-router-dom';
 import './assets/styles.css';
 import backgroundimage from './images/2.webp';
@@ -58,12 +52,10 @@ export function LoginPage() {
           size="md"
           component={Link}
           to="/dashboard"
-        > 
+        >
           Login Using SSO
         </Button>
       </div>
     </div>
   );
 }
-
-
