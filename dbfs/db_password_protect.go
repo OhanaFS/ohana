@@ -111,7 +111,7 @@ func (p *PasswordProtect) encryptWithPassword(tx *gorm.DB, oldPassword, newPassw
 
 	if p.PasswordActive {
 		// get original key and iv
-		ogKey, ogIv, err = p.decryptWithPassword(oldPassword)
+		ogKey, ogIv, err = p.DecryptWithPassword(oldPassword)
 		if err != nil {
 			return err
 		}
@@ -170,7 +170,7 @@ func (p *PasswordProtect) encryptWithPassword(tx *gorm.DB, oldPassword, newPassw
 
 }
 
-func (p *PasswordProtect) decryptWithPassword(password string) (string, string, error) {
+func (p *PasswordProtect) DecryptWithPassword(password string) (string, string, error) {
 
 	if password != "" && p.PasswordActive {
 		// Getting everything in bytes first
@@ -220,7 +220,7 @@ func (p *PasswordProtect) removePassword(tx *gorm.DB, password string) error {
 		return ErrNoPassword
 	}
 
-	ogKey, ogIv, err := p.decryptWithPassword(password)
+	ogKey, ogIv, err := p.DecryptWithPassword(password)
 	if err != nil {
 		return err
 	}

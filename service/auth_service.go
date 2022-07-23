@@ -4,16 +4,18 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/OhanaFS/ohana/config"
+	"github.com/OhanaFS/ohana/dbfs"
+	"github.com/OhanaFS/ohana/util/ctxutil"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
+	"gorm.io/gorm"
 )
 
 type callbackResult struct {
-	AccessToken string  `json:"access_token"`
-	IdToken     string  `json:"id_token"`
-	UserInfo    *claims `json:"user_info"`
+	SessionID string
 }
 
 type claims struct {
@@ -30,17 +32,20 @@ type claims struct {
 type Auth interface {
 	SendRequest(ctx context.Context, rawAccessToken string) (string, error)
 	Callback(ctx context.Context, code string, checkState string) (*callbackResult, error)
+	InvalidateSession(ctx context.Context, sessionId string) error
 }
 
 type auth struct {
 	provider     *oidc.Provider
 	verifier     *oidc.IDTokenVerifier
 	oauth2Config *oauth2.Config
+	db           *gorm.DB
+	sess         Session
 }
 
 var state = "somestate"
 
-func NewAuth(c *config.Config) (Auth, error) {
+func NewAuth(c *config.Config, db *gorm.DB, sess Session) (Auth, error) {
 	// Fetch the provider configuration from the discovery endpoint.
 	ctx := context.Background()
 	provider, err := oidc.NewProvider(ctx, c.Authentication.ConfigURL)
@@ -66,6 +71,8 @@ func NewAuth(c *config.Config) (Auth, error) {
 			// "openid" is a required scope for OpenID Connect flows.
 			Scopes: []string{oidc.ScopeOpenID, "profile", "email"},
 		},
+		db:   db,
+		sess: sess,
 	}, nil
 }
 
@@ -95,7 +102,7 @@ func (a *auth) Callback(ctx context.Context, code string, checkState string) (*c
 	// Exchange the authorization code for an access token.
 	accessToken, err := a.oauth2Config.Exchange(ctx, code)
 	if err != nil {
-		return nil, fmt.Errorf("failed to exchange token: %v", err)
+		return nil, fmt.Errorf("failed to exchange token: %w", err)
 	}
 
 	rawIDToken, ok := accessToken.Extra("id_token").(string)
@@ -105,17 +112,39 @@ func (a *auth) Callback(ctx context.Context, code string, checkState string) (*c
 
 	idToken, err := a.verifier.Verify(ctx, rawIDToken)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to verify ID Token: %v", err)
+		return nil, fmt.Errorf("Failed to verify ID Token: %w", err)
 	}
 
 	var idTokenClaims claims
 	if err := idToken.Claims(&idTokenClaims); err != nil {
-		return nil, fmt.Errorf("Failed to parse ID Token claims: %v", err)
+		return nil, fmt.Errorf("Failed to parse ID Token claims: %w", err)
 	}
 
+	// Create user in DBFS if not exists
+	var user *dbfs.User
+	tx := ctxutil.GetTransaction(ctx, a.db)
+	if user, err = dbfs.GetUserByMappedId(tx, idTokenClaims.Subject); err != nil {
+		// User doesn't exist, create
+		if user, err = dbfs.CreateNewUser(tx,
+			idTokenClaims.Email, idTokenClaims.Name, dbfs.AccountTypeEndUser,
+			idTokenClaims.Subject, "TODO", accessToken.AccessToken, rawIDToken,
+		); err != nil {
+			return nil, fmt.Errorf("Failed to create new user: %w", err)
+		}
+	}
+
+	// Create session ID from user ID
+	sessionId, err := a.sess.Create(ctx, user.UserId, time.Hour*24*7)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create session: %w", err)
+	}
+
+	// Return session ID
 	return &callbackResult{
-		AccessToken: accessToken.AccessToken,
-		IdToken:     rawIDToken,
-		UserInfo:    &idTokenClaims,
+		SessionID: sessionId,
 	}, nil
+}
+
+func (a *auth) InvalidateSession(ctx context.Context, sessionId string) error {
+	return a.sess.Invalidate(ctx, sessionId)
 }

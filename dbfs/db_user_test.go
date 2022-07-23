@@ -63,6 +63,16 @@ func TestUsers(t *testing.T) {
 		assert.Equal("test3", user3.Email)
 	})
 
+	t.Run("Get User based on mappedId", func(t *testing.T) {
+		assert := assert.New(t)
+
+		user3, err := dbfs.GetUserByMappedId(db, user3.MappedId)
+
+		assert.Nil(err)
+
+		assert.Equal("test3", user3.Email)
+	})
+
 	t.Run("Get User based on userId", func(t *testing.T) {
 		assert := assert.New(t)
 

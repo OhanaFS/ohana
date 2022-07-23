@@ -1,18 +1,19 @@
 package dbfs
 
 import (
+	"errors"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 type Group struct {
-	GroupId       string `gorm:"primaryKey"`
-	GroupName     string `gorm:"not null"`
-	Activated     bool   `gorm:"not null"`
-	MappedGroupId string
-	Users         []*User `gorm:"many2many:user_groups;"`
-	Roles         []*Role `gorm:"many2many:group_roles;"`
+	GroupId       string  `gorm:"primaryKey" json:"group_id"`
+	GroupName     string  `gorm:"not null" json:"group_name"`
+	Activated     bool    `gorm:"not null" json:"-"`
+	MappedGroupId string  `json:"-"`
+	Users         []*User `gorm:"many2many:user_groups;" json:"-"`
+	Roles         []*Role `gorm:"many2many:group_roles;" json:"-"`
 }
 
 type GroupInterface interface {
@@ -130,4 +131,18 @@ func (g *Group) ModifyMappedGroupId(tx *gorm.DB, newMappedGroup string) error {
 // AddMappedRole adds a role to a group
 func (g *Group) AddMappedRole(tx *gorm.DB, role *Role) error {
 	return tx.Model(&g).Association("Roles").Append([]Role{*role})
+}
+
+// GetGroupById returns the Group struct based on the given groupId
+func GetGroupById(tx *gorm.DB, groupId string) (*Group, error) {
+	group := &Group{}
+
+	if err := tx.Preload(clause.Associations).
+		First(&group, "group_id = ?", groupId).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrUserNotFound
+		}
+	}
+
+	return group, nil
 }

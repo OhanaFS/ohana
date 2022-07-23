@@ -8,7 +8,7 @@ import (
 // InitDB Initiates the DB with gorm.db.AutoMigrate
 func InitDB(db *gorm.DB) error {
 	err := db.AutoMigrate(&User{}, &Group{}, &File{}, &FileVersion{}, &Fragment{}, &Permission{}, &PermissionHistory{},
-		&PasswordProtect{}, &Server{})
+		&PasswordProtect{}, &Server{}, KeyValueDBPair{})
 
 	if err != nil {
 		return err
@@ -84,6 +84,7 @@ type PermissionNeeded struct {
 	Audit   bool
 }
 
+// UpdatePermissionsHave updates current record with incoming superseding permissions
 func (current PermissionNeeded) UpdatePermissionsHave(newPermissions Permission) {
 	if newPermissions.CanRead {
 		current.Read = true
@@ -118,6 +119,20 @@ func (current PermissionNeeded) UpdatePermissionsHaveForSharing(newPermissions P
 
 func (current PermissionNeeded) HasPermissions(incomingPermissions PermissionNeeded) bool {
 
-	return !((incomingPermissions.Read && !current.Read) || (incomingPermissions.Write && !current.Write) ||
-		(incomingPermissions.Execute && !current.Execute) || (incomingPermissions.Share && !current.Share))
+	// Check if any incoming permissions are lower than current permissions
+
+	if current.Read && !incomingPermissions.Read {
+		return false
+	} else if current.Write && !incomingPermissions.Write {
+		return false
+	} else if current.Execute && !incomingPermissions.Execute {
+		return false
+	} else if current.Share && !incomingPermissions.Share {
+		return false
+	} else if current.Audit && !incomingPermissions.Audit {
+		return false
+	} else {
+		return true
+	}
+
 }
