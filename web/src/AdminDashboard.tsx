@@ -47,7 +47,8 @@ export function AdminDashboard() {
 
   // all the logs
   const [logsModal, setOpened] = useState(false);
-  const logs = [
+
+  var logsDetails = [
     {
       'Date and time': '09/16/2019, 14:07',
       Node: 'Peter',
@@ -110,7 +111,7 @@ export function AdminDashboard() {
     },
   ];
 
-  
+  const [logs, setlogs] = useState(logsDetails)
  
   const ClusterHealthChartData = [
     {
@@ -318,6 +319,27 @@ export function AdminDashboard() {
     margin: '10px',
     height: '300px',
   };
+
+
+
+  function downloadLogs(){
+
+    const fileData = JSON.stringify(logs);
+    const blob = new Blob([fileData], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.download = "logs.txt";
+    link.href = url;
+    link.click();
+
+    /* after download, delete away all the logs?
+    setlogs(current =>
+      current.filter(logs => {
+        return null;
+      }),
+    );
+     */
+  }
   return (
     <AppBase
       userType="admin"
@@ -366,8 +388,9 @@ export function AdminDashboard() {
               color="dark"
               size="md"
               style={{ alignSelf: 'flex-end' }}
+              onClick={()=> downloadLogs()}
             >
-              Export Logs
+              Download Logs
             </Button>
           </div>
         </div>
