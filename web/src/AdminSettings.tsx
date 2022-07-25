@@ -74,7 +74,7 @@ export function AdminSettings() {
     }
   }
 
-  const [backupMod, setVisible1] = useState(false);
+  const [backupMod, setBackupMod] = useState(false);
   const [backupLocation, setBackupLocation] = useState(
     oldConfigurationSettings[5].setting.toString()
   );
@@ -83,9 +83,8 @@ export function AdminSettings() {
   );
 
   function backup() {
-    console.log('Backup Temp ', backupTemp);
     setBackupLocation(backupTemp);
-    setVisible1(false);
+    setBackupMod(false);
   }
 
   const [redundancyMod, setVisible] = useState(false);
@@ -138,7 +137,7 @@ export function AdminSettings() {
     return false;
   });
 
-  let currentLocation = oldConfigurationSettings[5].setting;
+  const [submitBtn,setSubmitBtn]= useState(true);
 
   return (
     <AppBase
@@ -237,7 +236,7 @@ export function AdminSettings() {
                 Backup Key
               </span>
             }
-            onClose={() => setVisible1(false)}
+            onClose={() => setBackupMod(false)}
           >
             <div
               style={{
@@ -269,7 +268,9 @@ export function AdminSettings() {
                   radius="md"
                   size="lg"
                   required
-                  onChange={(event) => setBackupTemp(event.target.value)}
+                  value={backupLocation}
+                  disabled
+                  onChange={(event) => [setBackupTemp(event.target.value),setSubmitBtn(false)]}
                 />
 
                 <Button
@@ -277,6 +278,7 @@ export function AdminSettings() {
                   color="dark"
                   size="md"
                   style={{ marginTop: '20px', alignSelf: 'flex-end' }}
+                  disabled={submitBtn}
                   onClick={() => backup()}
                 >
                   Submit
@@ -448,7 +450,7 @@ export function AdminSettings() {
                     variant="default"
                     color="dark"
                     size="md"
-                    onClick={() => setVisible1(true)}
+                    onClick={() => setBackupMod(true)}
                   >
                     Backup
                   </Button>

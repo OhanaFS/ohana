@@ -10,7 +10,6 @@ import { AdminDashboard } from './AdminDashboard';
 import { LoginPage } from './LoginPage';
 import { AdminConfiguration } from './AdminConfiguration';
 import { AdminKeyManagement } from './AdminKeyManagement';
-import { AdminMaintenanceResults } from './AdminMaintenanceResults';
 import { AdminNodes } from './AdminNodes';
 import { AdminPerformMaintenance } from './AdminPerformMaintenance';
 import { AdminRunMaintenance } from './AdminRunMaintenance';
@@ -46,10 +45,6 @@ export default function Demo() {
           <Route path="/" element={<LoginPage />} />
           <Route path="/insidessogroup" element={<AdminSsoGroupsInside />} />
           <Route path="/key_management" element={<AdminKeyManagement />} />
-          <Route
-            path="/maintenanceresults"
-            element={<AdminMaintenanceResults />}
-          />
           <Route
             path="/performmaintenance"
             element={<AdminPerformMaintenance />}
