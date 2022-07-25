@@ -64,7 +64,7 @@ func (s *Authentication) Logout(w http.ResponseWriter, r *http.Request) {
 		Path:    "/",
 	})
 
-	util.HttpJson(w, http.StatusOK, "Logged out")
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func (s *Authentication) GetAuth(w http.ResponseWriter, r *http.Request) {
@@ -98,5 +98,5 @@ func (s *Authentication) HandCallback(w http.ResponseWriter, r *http.Request) {
 		Path:  "/",
 	})
 
-	util.HttpJson(w, http.StatusOK, result)
+	http.Redirect(w, r, "/home", http.StatusFound)
 }
