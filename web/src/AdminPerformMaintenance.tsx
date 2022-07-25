@@ -29,7 +29,6 @@ export function AdminPerformMaintenance() {
   //labels
   const [timeRemaining, setTime] = useState(' Time remaining: ');
   const [percentageCompleted, setPercent] = useState('% Completed: ');
-
   const [elapsedTime, setElapsedTime] = useState(0);
 
   const timerProps = {
@@ -42,8 +41,8 @@ export function AdminPerformMaintenance() {
   const time = steps.length;
   const minuteSeconds = time;
 
-  const [pauseBtn,setPauseBtn] = useState(false);
-  const [stopBtn,setStopBtn] = useState(false);
+  const [pauseBtn, setPauseBtn] = useState(false);
+  const [stopBtn, setStopBtn] = useState(false);
   const getTimeSeconds = (time: number) => (minuteSeconds - time) | 0;
 
   function secondsToDhms(seconds: number) {
@@ -58,12 +57,14 @@ export function AdminPerformMaintenance() {
     var sDisplay = s > 0 ? s + (s == 1 ? ' second' : ' secs') : '';
     var end =
       seconds == 0
-        ? ['Maintenance Completed. Gathering Results', setTime(''), setLogs(''),setPauseBtn(true),setStopBtn(true)]
+        ? ['Maintenance Completed. Gathering Results', setTime(''), setLogs(''), setPauseBtn(true), setStopBtn(true)]
         : '';
     return dDisplay + hDisplay + mDisplay + sDisplay + end;
   }
 
   const [logs, setLogs] = useState('Maintenance Logs : ');
+
+  const [logsDone, setLogsDone] = useState('');
   // convert the number of seconds into day hour month and seconds
   const renderTime = (dimension: string, time: number) => {
     return (
@@ -81,7 +82,7 @@ export function AdminPerformMaintenance() {
 
   const [isActive, setIsActive] = useState(true);
   const [buttonText, setButtonText] = useState('Pause');
-  const [maintenanceStatus,setMaintenanceStatus] = useState("Not Completed");
+  const [maintenanceStatus, setMaintenanceStatus] = useState("Not Completed");
   const navigate = useNavigate();
   function pause() {
     setIsActive(!isActive);
@@ -95,75 +96,81 @@ export function AdminPerformMaintenance() {
     setIsActive(false);
     setMaintenanceModal(true);
     setMaintenanceStatus("Not Completed");
-   
+
   }
-
   //modal 
-  const [maintenanceModal,setMaintenanceModal] = useState(false);
-
-
- 
-  const displayedLogs =[""];
+  const [maintenanceModal, setMaintenanceModal] = useState(false);
+  const displayedLogs = [""];
   //setValue(CurrentSSOGroups.concat(Group));
-  function setDisplayedLogs(items:string){
+  function setDisplayedLogs(items: string) {
     displayedLogs.concat(items)
   }
-  
   const recentRows = steps.map((items, index) => (
 
-    index <=elapsedTime?
-  <tr>
-    <td
-      width="15%"
-      style={{
-        textAlign: 'left',
-        fontWeight: '400',
-        fontSize: '16px',
-        color: 'black',
-      }}
-    >
-      {items}
-    </td>
-  </tr>
-      :""
-));
+    index <= elapsedTime ?
+      <tr>
+        <td
+          width="15%"
+          style={{
+            textAlign: 'left',
+            fontWeight: '400',
+            fontSize: '16px',
+            color: 'black',
+          }}
+        >
+          {items}
+        </td>
+      </tr>
+      : ""
+  ));
 
-function getTotalTime(seconds:number){
-  seconds = Number(seconds);
-  var d = Math.floor(seconds / (3600 * 24));
-  var h = Math.floor((seconds % (3600 * 24)) / 3600);
-  var m = Math.floor((seconds % 3600) / 60);
-  var s = Math.floor(seconds % 60);
-  var dDisplay = d > 0 ? d + (d == 1 ? ' day, ' : ' days, ') : '';
-  var hDisplay = h > 0 ? h + (h == 1 ? ' hour, ' : ' hrs, ') : '';
-  var mDisplay = m > 0 ? m + (m == 1 ? ' minute, ' : ' mins, ') : '';
-  var sDisplay = s > 0 ? s + (s == 1 ? ' second' : ' secs') : '';
-  return dDisplay + hDisplay + mDisplay + sDisplay ;
-}
-function downloadLogs(){
+  function getTotalTime(seconds: number) {
+    seconds = Number(seconds);
+    var d = Math.floor(seconds / (3600 * 24));
+    var h = Math.floor((seconds % (3600 * 24)) / 3600);
+    var m = Math.floor((seconds % 3600) / 60);
+    var s = Math.floor(seconds % 60);
+    var dDisplay = d > 0 ? d + (d == 1 ? ' day, ' : ' days, ') : '';
+    var hDisplay = h > 0 ? h + (h == 1 ? ' hour, ' : ' hrs, ') : '';
+    var mDisplay = m > 0 ? m + (m == 1 ? ' minute, ' : ' mins, ') : '';
+    var sDisplay = s > 0 ? s + (s == 1 ? ' second' : ' secs') : '';
+    return dDisplay + hDisplay + mDisplay + sDisplay;
+  }
 
-  const fileData = JSON.stringify(logs);
-  const blob = new Blob([fileData], { type: "text/plain" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.download = "logs.txt";
-  link.href = url;
-  link.click();
+  //get the date and time of maintenance
+  function getCurrentDate(separator = '') {
 
-  /* after download, delete away all the logs?
-  setlogs(current =>
-    current.filter(logs => {
-      return null;
-    }),
-  );
-   */
-}
+    let newDate = new Date()
+    let date = newDate.getDate();
+    let month = newDate.getMonth() + 1;
+    let year = newDate.getFullYear();
 
-function setComplete(){
-  setMaintenanceStatus("Completed");
-  setMaintenanceModal(true);
-  
-}
+    return `${year}${separator}${month < 10 ? `0${month}` : `${month}`}${separator}${date}`
+  }
+  function downloadLogs() {
+
+    const fileData = JSON.stringify("Maintenance Status: " + maintenanceStatus + ", Time taken: " + getTotalTime(elapsedTime) + ", " + "Date: " + getCurrentDate('/') + ", Maintenance logs: " + logsDone);
+    const blob = new Blob([fileData], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.download = "logs.txt";
+    link.href = url;
+    link.click();
+
+    /* after download, delete away all the logs?
+    setlogs(current =>
+      current.filter(logs => {
+        return null;
+      }),
+    );
+     */
+  }
+
+  function setComplete() {
+    setMaintenanceStatus("Completed");
+    setMaintenanceModal(true);
+
+  }
 
 
   return (
@@ -175,59 +182,64 @@ function setComplete(){
         image="https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80"
       >
 
-          <Modal
-        centered
-        size={600}
-        opened={maintenanceModal}
-        title={
-          <span style={{ fontSize: '22px', fontWeight: 550 }}> Maintenance Report</span>
-        }
-        //
-        onClose={() => [setMaintenanceModal(false),navigate('/maintenance')]}
-      >
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100%',
-          }}
+        <Modal
+          centered
+          size={600}
+          opened={maintenanceModal}
+          title={
+            <span style={{ fontSize: '22px', fontWeight: 550 }}> Maintenance Status Report</span>
+          }
+          //
+          onClose={() => [setMaintenanceModal(false), navigate('/maintenance')]}
         >
           <div
             style={{
               display: 'flex',
               flexDirection: 'column',
-              justifyContent: 'center',
-              backgroundColor: 'white',
+              height: '100%',
             }}
           >
-            <ScrollArea
+            <div
               style={{
-                height: '500px',
-                width: '100%',
-                marginTop: '1%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                backgroundColor: 'white',
               }}
             >
-              <Table captionSide="top" verticalSpacing="xs">
-               <thead>
-                <div style={{fontSize:'18px'}}>Status: <span style={{fontWeight:500}}> {maintenanceStatus}</span></div>
-                <div style={{fontSize:'18px'}}>Time taken:  <span style={{fontWeight:500}}>{getTotalTime(elapsedTime)}  </span></div>
-                <div style={{fontSize:'20px',fontWeight:500,textAlign:'center'}}>Maintenance logs: </div>
-               </thead>
-                <tbody>{recentRows}</tbody>
-              </Table>
-            </ScrollArea>
-            <Button
-              variant="default"
-              color="dark"
-              size="md"
-              style={{ alignSelf: 'flex-end' }}
-              onClick={()=> downloadLogs()}
-            >
-              Download Report
-            </Button>
+              <ScrollArea
+                style={{
+                  height: '500px',
+                  width: '100%',
+                  marginTop: '1%',
+                }}
+              >
+                <Table captionSide="top" verticalSpacing="xs">
+                  <thead>
+
+                    <div style={{ fontSize: '18px' }}>Date: <span style={{ fontWeight: 500 }}> {getCurrentDate('/')}</span></div>
+                    <div style={{ fontSize: '18px' }}>
+                      Status: <span style={{ fontWeight: 500 }}> {maintenanceStatus}</span>
+
+                    </div>
+                    <div style={{ fontSize: '18px' }}>Time taken:  <span style={{ fontWeight: 500 }}>{getTotalTime(elapsedTime)}  </span></div>
+                    <div style={{ fontSize: '20px', fontWeight: 500, textAlign: 'center' }}>Maintenance logs: </div>
+                  </thead>
+                  <tbody>{recentRows}</tbody>
+                </Table>
+              </ScrollArea>
+              <Button
+                variant="default"
+                color="dark"
+                size="md"
+                style={{ alignSelf: 'flex-end' }}
+                onClick={() => downloadLogs()}
+              >
+                Download Report
+              </Button>
+            </div>
           </div>
-        </div>
-      </Modal>
+        </Modal>
         <div
           style={{
             display: 'flex',
@@ -280,15 +292,18 @@ function setComplete(){
                 isPlaying={isActive}
                 initialRemainingTime={time}
                 onComplete={() => setComplete()}
-               
+
               >
                 {({ elapsedTime, color }) => (
                   <>
                     {setElapsedTime(Math.floor(elapsedTime))}
+
                     {setLogs(
                       'Maintenance Logs : ' + steps[Math.floor(elapsedTime)]
                     )}
-
+                    {
+                      logsDone.includes(steps[Math.floor(elapsedTime)]) ? "" : setLogsDone(logsDone.concat(", "+steps[Math.floor(elapsedTime)]))
+                    }
                     <div
                       style={{
                         color,
