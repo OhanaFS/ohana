@@ -178,7 +178,7 @@ export function AdminSettings() {
     tempKey==""? "":setKey(tempKey);
     
     backup();
-    
+    setsaveSettings(true);
     setTempKey("");
     setBackupMod(false);
   }
@@ -298,7 +298,7 @@ export function AdminSettings() {
                 Backup Key
               </span>
             }
-            onClose={() => [setBackupMod(false),setTempKey("")]}
+            onClose={() => [setBackupMod(false),setTempKey(""),   setsaveSettings(true)]}
           >
             <div
               style={{
