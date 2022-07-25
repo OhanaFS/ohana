@@ -191,14 +191,6 @@ export function AdminSettings() {
     link.download = "logs.txt";
     link.href = url;
     link.click();
-
-    /* after download, delete away all the logs?
-    setlogs(current =>
-      current.filter(logs => {
-        return null;
-      }),
-    );
-     */
   }
   
   return (
