@@ -31,7 +31,7 @@ export default function Demo() {
           <Route
             path="/blank"
             element={
-              <AppBase>
+              <AppBase userType="user">
                 <></>
               </AppBase>
             }

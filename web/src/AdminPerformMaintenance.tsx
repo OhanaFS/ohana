@@ -189,7 +189,7 @@ export function AdminPerformMaintenance() {
 
   return (
     <>
-      <AppBase>
+      <AppBase userType="admin">
         <Modal
           centered
           size={600}

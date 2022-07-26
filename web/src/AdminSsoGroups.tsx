@@ -6,7 +6,7 @@ export function AdminSsoGroups() {
 
   return (
     <>
-      <AppBase>
+      <AppBase userType="admin">
         <AdminConsole
           groupList={SSOGroupList}
           addObjectLabel="Group"

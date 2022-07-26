@@ -111,8 +111,8 @@ export function AdminDashboard() {
     },
   ];
 
-  const [logs, setlogs] = useState(logsDetails)
- 
+  const [logs, setlogs] = useState(logsDetails);
+
   const ClusterHealthChartData = [
     {
       name: 'No of Healthy Nodes',
@@ -235,46 +235,47 @@ export function AdminDashboard() {
     </tr>
   );
 
-  const recentRows = logs.map((items, index) => (
-      index <4?
-    <tr>
-      <td
-        width="15%"
-        style={{
-          textAlign: 'left',
-          fontWeight: '400',
-          fontSize: '16px',
-          color: 'black',
-        }}
-      >
-        {items['Date and time']}
-      </td>
-      <td
-        width="10%"
-        style={{
-          textAlign: 'left',
-          fontWeight: '400',
-          fontSize: '16px',
-          color: 'black',
-        }}
-      >
-        {items['Node']}
-      </td>
-      <td
-        width="30%"
-        style={{
-          textAlign: 'left',
-          fontWeight: '400',
-          fontSize: '16px',
-          color: 'black',
-        }}
-      >
-        {items['Change']}
-      </td>
-    </tr>
-
-      :""
-  ));
+  const recentRows = logs.map((items, index) =>
+    index < 4 ? (
+      <tr>
+        <td
+          width="15%"
+          style={{
+            textAlign: 'left',
+            fontWeight: '400',
+            fontSize: '16px',
+            color: 'black',
+          }}
+        >
+          {items['Date and time']}
+        </td>
+        <td
+          width="10%"
+          style={{
+            textAlign: 'left',
+            fontWeight: '400',
+            fontSize: '16px',
+            color: 'black',
+          }}
+        >
+          {items['Node']}
+        </td>
+        <td
+          width="30%"
+          style={{
+            textAlign: 'left',
+            fontWeight: '400',
+            fontSize: '16px',
+            color: 'black',
+          }}
+        >
+          {items['Change']}
+        </td>
+      </tr>
+    ) : (
+      ''
+    )
+  );
 
   const rows = logs.map((items, index) => (
     <tr>
@@ -320,15 +321,12 @@ export function AdminDashboard() {
     height: '300px',
   };
 
-
-
-  function downloadLogs(){
-
+  function downloadLogs() {
     const fileData = JSON.stringify(logs);
-    const blob = new Blob([fileData], { type: "text/plain" });
+    const blob = new Blob([fileData], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.download = "logs.txt";
+    const link = document.createElement('a');
+    link.download = 'logs.txt';
     link.href = url;
     link.click();
 
@@ -341,7 +339,7 @@ export function AdminDashboard() {
      */
   }
   return (
-    <AppBase>
+    <AppBase userType="admin">
       <Modal
         centered
         size={600}
@@ -383,7 +381,7 @@ export function AdminDashboard() {
               color="dark"
               size="md"
               style={{ alignSelf: 'flex-end' }}
-              onClick={()=> downloadLogs()}
+              onClick={() => downloadLogs()}
             >
               Download Logs
             </Button>

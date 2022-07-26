@@ -9,7 +9,7 @@ import {
   RadioGroup,
   createStyles,
   TextInput,
-  Textarea
+  Textarea,
 } from '@mantine/core';
 import { useState } from 'react';
 import AppBase from './components/AppBase';
@@ -18,13 +18,11 @@ const titleStyle = createStyles(() => ({
   title: {
     fontWeight: 600,
     fontSize: '24px',
-
   },
   input: {
     fontWeight: 600,
     fontSize: '24px',
-
-  }
+  },
 }));
 export function AdminSettings() {
   const theme = useMantineTheme();
@@ -51,15 +49,15 @@ export function AdminSettings() {
   ];
 
   const [disable, setDisable] = useState(true);
-  const [saveSettings,setsaveSettings] = useState(true);
+  const [saveSettings, setsaveSettings] = useState(true);
 
   function generateRandomString() {
-    var result = "";
-    var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    var result = '';
+    var characters =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     var charactersLength = characters.length;
     for (var i = 0; i < 16; i++) {
-      result += characters.charAt(Math.floor(Math.random() *
-        charactersLength));
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
 
     return result;
@@ -129,7 +127,7 @@ export function AdminSettings() {
     setVisible(false);
   }
 
-  function saveChanges() { }
+  function saveChanges() {}
 
   const [clusterAlerts, setChecked] = useState(() => {
     if (oldConfigurationSettings[0].setting === true) {
@@ -166,35 +164,33 @@ export function AdminSettings() {
     return false;
   });
 
-  
-  let [key,setKey] =  useState("5q0L5mVB5mUlJjil");
-  let [tempKey, setTempKey] = useState("");
+  let [key, setKey] = useState('5q0L5mVB5mUlJjil');
+  let [tempKey, setTempKey] = useState('');
   function generateKeys() {
     setTempKey(generateRandomString());
     setsaveSettings(false);
   }
 
   function saveKey() {
-    tempKey==""? "":setKey(tempKey);
-    
+    tempKey == '' ? '' : setKey(tempKey);
+
     backup();
     setsaveSettings(true);
-    setTempKey("");
+    setTempKey('');
     setBackupMod(false);
   }
   function downloadKey() {
-
-    const fileData = JSON.stringify("key:" + key);
-    const blob = new Blob([fileData], { type: "text/plain" });
+    const fileData = JSON.stringify('key:' + key);
+    const blob = new Blob([fileData], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.download = "logs.txt";
+    const link = document.createElement('a');
+    link.download = 'logs.txt';
     link.href = url;
     link.click();
   }
-  
+
   return (
-    <AppBase>
+    <AppBase userType="admin">
       <div
         style={{
           display: 'flex',
@@ -285,7 +281,11 @@ export function AdminSettings() {
                 Backup Key
               </span>
             }
-            onClose={() => [setBackupMod(false),setTempKey(""),   setsaveSettings(true)]}
+            onClose={() => [
+              setBackupMod(false),
+              setTempKey(''),
+              setsaveSettings(true),
+            ]}
           >
             <div
               style={{
@@ -322,20 +322,22 @@ export function AdminSettings() {
                   required
                   value={key}
                   disabled={true}
-           
                   rightSection={
-
                     <Button
                       variant="default"
                       color="dark"
                       size="md"
-                      style={{ marginRight: '100px', height: '20px', width: '200px', fontSize: '10px' }}
+                      style={{
+                        marginRight: '100px',
+                        height: '20px',
+                        width: '200px',
+                        fontSize: '10px',
+                      }}
                       onClick={() => downloadKey()}
                     >
                       Download key
                     </Button>
                   }
-
                 />
                 <TextInput
                   classNames={{
@@ -348,47 +350,52 @@ export function AdminSettings() {
                   value={tempKey}
                   disabled={true}
                   onChange={(event) => setTempKey(event.currentTarget.value)}
-                  rightSection={<Button
-                    variant="default"
-                    color="dark"
-                    size="md"
-                    style={{ marginRight: '100px', height: '20px', width: '200px', fontSize: '10px' }}
-
-                    onClick={() => generateKeys()}
-                  >
-                    Generate New key
-                  </Button>}
-
-
-
-
+                  rightSection={
+                    <Button
+                      variant="default"
+                      color="dark"
+                      size="md"
+                      style={{
+                        marginRight: '100px',
+                        height: '20px',
+                        width: '200px',
+                        fontSize: '10px',
+                      }}
+                      onClick={() => generateKeys()}
+                    >
+                      Generate New key
+                    </Button>
+                  }
                 />
 
-              <Textarea
+                <Textarea
                   label="New Location:"
                   radius="md"
                   size="lg"
                   required
-                  
-                  onChange={(event) => [setBackupTemp(event.target.value),setsaveSettings(false)]}
+                  onChange={(event) => [
+                    setBackupTemp(event.target.value),
+                    setsaveSettings(false),
+                  ]}
                 />
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  marginBottom: '20px',
-                  marginTop: '20px'
-                }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    marginBottom: '20px',
+                    marginTop: '20px',
+                  }}
+                >
                   <Button
                     variant="default"
                     color="dark"
                     size="md"
-                    style={{ marginTop: '20px',alignSelf:'flex-end' }}
+                    style={{ marginTop: '20px', alignSelf: 'flex-end' }}
                     onClick={() => saveKey()}
-                    disabled= {saveSettings}
+                    disabled={saveSettings}
                   >
                     Save Settings
                   </Button>
-
                 </div>
               </div>
             </div>
