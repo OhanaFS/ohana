@@ -14,7 +14,7 @@ export function AdminConfiguration() {
         style={{
           display: 'flex',
           justifyContent: 'center',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           height: '100%',
         }}
       >
