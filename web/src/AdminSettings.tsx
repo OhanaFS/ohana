@@ -7,13 +7,28 @@ import {
   Modal,
   Radio,
   RadioGroup,
-  Textarea,
+  createStyles,
+  TextInput,
+  Textarea
 } from '@mantine/core';
 import { useState } from 'react';
 import AppBase from './components/AppBase';
 
+const titleStyle = createStyles(() => ({
+  title: {
+    fontWeight: 600,
+    fontSize: '24px',
+
+  },
+  input: {
+    fontWeight: 600,
+    fontSize: '24px',
+
+  }
+}));
 export function AdminSettings() {
   const theme = useMantineTheme();
+  const { classes } = titleStyle();
   //retrieve from database
   let oldConfigurationSettings = [
     { name: 'clusterAlerts', setting: true },
@@ -36,6 +51,19 @@ export function AdminSettings() {
   ];
 
   const [disable, setDisable] = useState(true);
+  const [saveSettings,setsaveSettings] = useState(true);
+
+  function generateRandomString() {
+    var result = "";
+    var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    var charactersLength = characters.length;
+    for (var i = 0; i < 16; i++) {
+      result += characters.charAt(Math.floor(Math.random() *
+        charactersLength));
+    }
+
+    return result;
+  }
 
   function add(item: string) {
     if (oldConfigurationSettings[0].setting === true) {
@@ -63,6 +91,7 @@ export function AdminSettings() {
 
     validate();
   }
+
   function validate() {
     if (
       oldConfigurationSettings[0].setting !==
@@ -74,7 +103,7 @@ export function AdminSettings() {
     }
   }
 
-  const [backupMod, setVisible1] = useState(false);
+  const [backupMod, setBackupMod] = useState(false);
   const [backupLocation, setBackupLocation] = useState(
     oldConfigurationSettings[5].setting.toString()
   );
@@ -83,9 +112,8 @@ export function AdminSettings() {
   );
 
   function backup() {
-    console.log('Backup Temp ', backupTemp);
     setBackupLocation(backupTemp);
-    setVisible1(false);
+    setBackupMod(false);
   }
 
   const [redundancyMod, setVisible] = useState(false);
@@ -101,7 +129,7 @@ export function AdminSettings() {
     setVisible(false);
   }
 
-  function saveChanges() {}
+  function saveChanges() { }
 
   const [clusterAlerts, setChecked] = useState(() => {
     if (oldConfigurationSettings[0].setting === true) {
@@ -138,8 +166,33 @@ export function AdminSettings() {
     return false;
   });
 
-  let currentLocation = oldConfigurationSettings[5].setting;
+  
+  let [key,setKey] =  useState("5q0L5mVB5mUlJjil");
+  let [tempKey, setTempKey] = useState("");
+  function generateKeys() {
+    setTempKey(generateRandomString());
+    setsaveSettings(false);
+  }
 
+  function saveKey() {
+    tempKey==""? "":setKey(tempKey);
+    
+    backup();
+    setsaveSettings(true);
+    setTempKey("");
+    setBackupMod(false);
+  }
+  function downloadKey() {
+
+    const fileData = JSON.stringify("key:" + key);
+    const blob = new Blob([fileData], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.download = "logs.txt";
+    link.href = url;
+    link.click();
+  }
+  
   return (
     <AppBase
       userType="admin"
@@ -156,20 +209,20 @@ export function AdminSettings() {
       >
         <div className="settings">
           <Modal
+            classNames={{
+              title: classes.title,
+            }}
             centered
             size={400}
             opened={redundancyMod}
-            title={
-              <span style={{ fontSize: '22px', fontWeight: 550 }}>
-                Redundancy Level
-              </span>
-            }
+            title="Redundancy Level"
             onClose={() => setVisible(false)}
           >
             <div
               style={{
                 display: 'flex',
                 flexDirection: 'column',
+                alignItems: 'left',
               }}
             >
               <div
@@ -229,7 +282,7 @@ export function AdminSettings() {
           </Modal>
           <Modal
             centered
-            size={400}
+            size={600}
             opened={backupMod}
             title={
               <span style={{ fontSize: '22px', fontWeight: 550 }}>
@@ -237,7 +290,7 @@ export function AdminSettings() {
                 Backup Key
               </span>
             }
-            onClose={() => setVisible1(false)}
+            onClose={() => [setBackupMod(false),setTempKey(""),   setsaveSettings(true)]}
           >
             <div
               style={{
@@ -264,23 +317,84 @@ export function AdminSettings() {
                     alignSelf: 'center',
                   }}
                 ></caption>
-                <Textarea
-                  label="Location:"
+                <TextInput
+                  classNames={{
+                    input: classes.input,
+                  }}
+                  label="Current Key"
+                  radius="xs"
+                  size="md"
+                  required
+                  value={key}
+                  disabled={true}
+           
+                  rightSection={
+
+                    <Button
+                      variant="default"
+                      color="dark"
+                      size="md"
+                      style={{ marginRight: '100px', height: '20px', width: '200px', fontSize: '10px' }}
+                      onClick={() => downloadKey()}
+                    >
+                      Download key
+                    </Button>
+                  }
+
+                />
+                <TextInput
+                  classNames={{
+                    input: classes.input,
+                  }}
+                  label="New Key"
+                  radius="xs"
+                  size="md"
+                  required
+                  value={tempKey}
+                  disabled={true}
+                  onChange={(event) => setTempKey(event.currentTarget.value)}
+                  rightSection={<Button
+                    variant="default"
+                    color="dark"
+                    size="md"
+                    style={{ marginRight: '100px', height: '20px', width: '200px', fontSize: '10px' }}
+
+                    onClick={() => generateKeys()}
+                  >
+                    Generate New key
+                  </Button>}
+
+
+
+
+                />
+
+              <Textarea
+                  label="New Location:"
                   radius="md"
                   size="lg"
                   required
-                  onChange={(event) => setBackupTemp(event.target.value)}
+                  
+                  onChange={(event) => [setBackupTemp(event.target.value),setsaveSettings(false)]}
                 />
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  marginBottom: '20px',
+                  marginTop: '20px'
+                }}>
+                  <Button
+                    variant="default"
+                    color="dark"
+                    size="md"
+                    style={{ marginTop: '20px',alignSelf:'flex-end' }}
+                    onClick={() => saveKey()}
+                    disabled= {saveSettings}
+                  >
+                    Save Settings
+                  </Button>
 
-                <Button
-                  variant="default"
-                  color="dark"
-                  size="md"
-                  style={{ marginTop: '20px', alignSelf: 'flex-end' }}
-                  onClick={() => backup()}
-                >
-                  Submit
-                </Button>
+                </div>
               </div>
             </div>
           </Modal>
@@ -448,7 +562,7 @@ export function AdminSettings() {
                     variant="default"
                     color="dark"
                     size="md"
-                    onClick={() => setVisible1(true)}
+                    onClick={() => setBackupMod(true)}
                   >
                     Backup
                   </Button>

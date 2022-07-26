@@ -44,34 +44,11 @@ export function AdminDashboard() {
       </text>
     );
   };
-  // Show only 4 recent logs
-  const logs = [
-    {
-      'Date and time': '09/16/2019, 14:07',
-      Node: 'Peter',
-      Change: 'Added a node ip address 45.2.1.6',
-    },
-    {
-      'Date and time': '09/16/2019, 14:07',
-      Node: 'Peter',
-      Change: 'Added a node ip address 95.2.2.6',
-    },
-    {
-      'Date and time': '09/16/2019, 14:09',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.6',
-    },
-    {
-      'Date and time': '09/16/2019, 14:10',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.6',
-    },
-  ];
 
-  // Show all the logs
-
+  // all the logs
   const [logsModal, setOpened] = useState(false);
-  const fulllogs = [
+
+  var logsDetails = [
     {
       'Date and time': '09/16/2019, 14:07',
       Node: 'Peter',
@@ -133,43 +110,9 @@ export function AdminDashboard() {
       Change: 'Added a node ip address 125.2.1.14',
     },
   ];
-  const fullrows = fulllogs.map((items, index) => (
-    <tr>
-      <td
-        width="15%"
-        style={{
-          textAlign: 'left',
-          fontWeight: '400',
-          fontSize: '16px',
-          color: 'black',
-        }}
-      >
-        {items['Date and time']}
-      </td>
-      <td
-        width="10%"
-        style={{
-          textAlign: 'left',
-          fontWeight: '400',
-          fontSize: '16px',
-          color: 'black',
-        }}
-      >
-        {items['Node']}
-      </td>
-      <td
-        width="30%"
-        style={{
-          textAlign: 'left',
-          fontWeight: '400',
-          fontSize: '16px',
-          color: 'black',
-        }}
-      >
-        {items['Change']}
-      </td>
-    </tr>
-  ));
+
+  const [logs, setlogs] = useState(logsDetails)
+ 
   const ClusterHealthChartData = [
     {
       name: 'No of Healthy Nodes',
@@ -292,6 +235,47 @@ export function AdminDashboard() {
     </tr>
   );
 
+  const recentRows = logs.map((items, index) => (
+      index <4?
+    <tr>
+      <td
+        width="15%"
+        style={{
+          textAlign: 'left',
+          fontWeight: '400',
+          fontSize: '16px',
+          color: 'black',
+        }}
+      >
+        {items['Date and time']}
+      </td>
+      <td
+        width="10%"
+        style={{
+          textAlign: 'left',
+          fontWeight: '400',
+          fontSize: '16px',
+          color: 'black',
+        }}
+      >
+        {items['Node']}
+      </td>
+      <td
+        width="30%"
+        style={{
+          textAlign: 'left',
+          fontWeight: '400',
+          fontSize: '16px',
+          color: 'black',
+        }}
+      >
+        {items['Change']}
+      </td>
+    </tr>
+
+      :""
+  ));
+
   const rows = logs.map((items, index) => (
     <tr>
       <td
@@ -335,6 +319,27 @@ export function AdminDashboard() {
     margin: '10px',
     height: '300px',
   };
+
+
+
+  function downloadLogs(){
+
+    const fileData = JSON.stringify(logs);
+    const blob = new Blob([fileData], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.download = "logs.txt";
+    link.href = url;
+    link.click();
+
+    /* after download, delete away all the logs?
+    setlogs(current =>
+      current.filter(logs => {
+        return null;
+      }),
+    );
+     */
+  }
   return (
     <AppBase
       userType="admin"
@@ -366,16 +371,6 @@ export function AdminDashboard() {
               backgroundColor: 'white',
             }}
           >
-            <caption
-              style={{
-                textAlign: 'center',
-                fontWeight: 600,
-                fontSize: '24px',
-                color: 'black',
-                marginBottom: '20px',
-                alignSelf: 'center',
-              }}
-            ></caption>
             <ScrollArea
               style={{
                 height: '500px',
@@ -385,7 +380,7 @@ export function AdminDashboard() {
             >
               <Table captionSide="top" verticalSpacing="sm">
                 <thead style={{}}>{ths}</thead>
-                <tbody>{fullrows}</tbody>
+                <tbody>{rows}</tbody>
               </Table>
             </ScrollArea>
             <Button
@@ -393,8 +388,9 @@ export function AdminDashboard() {
               color="dark"
               size="md"
               style={{ alignSelf: 'flex-end' }}
+              onClick={()=> downloadLogs()}
             >
-              Export Logs
+              Download Logs
             </Button>
           </div>
         </div>
@@ -561,7 +557,7 @@ export function AdminDashboard() {
                 Logs
               </caption>
               <thead>{ths}</thead>
-              <tbody>{rows}</tbody>
+              <tbody>{recentRows}</tbody>
             </Table>
           </ScrollArea>
           <Button

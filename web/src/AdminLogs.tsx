@@ -9,8 +9,6 @@ export interface LogsDetails {
   tableBody: Array<[string]>;
   caption: string;
   pointerEvents: boolean;
-  consoleWidth: number;
-  consoleHeight: number;
 }
 
 export function AdminLogs(props: LogsDetails) {
