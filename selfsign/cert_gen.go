@@ -16,6 +16,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -43,14 +44,34 @@ func GenCA(pathName string) error {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Enter your country: ")
 	country, _ := reader.ReadString('\n')
+	if country == "" {
+		country = "SG"
+		fmt.Println("No input. Defaulting to SG")
+	}
 	fmt.Print("Enter your state: ")
 	state, _ := reader.ReadString('\n')
+	if state == "" {
+		state = "Singapore"
+		fmt.Println("No input. Defaulting to Singapore")
+	}
 	fmt.Print("Enter your locality: ")
 	locality, _ := reader.ReadString('\n')
+	if locality == "" {
+		locality = "Singapore"
+		fmt.Println("No input. Defaulting to Singapore")
+	}
 	fmt.Print("Enter your organization: ")
 	organization, _ := reader.ReadString('\n')
+	if organization == "" {
+		organization = "Ohana"
+		fmt.Println("No input. Defaulting to Ohana")
+	}
 	fmt.Print("Enter your organization unit: ")
 	organizationalUnit, _ := reader.ReadString('\n')
+	if organizationalUnit == "" {
+		organizationalUnit = "Ohana"
+		fmt.Println("No input. Defaulting to Ohana")
+	}
 
 	req := csr.CertificateRequest{
 		KeyRequest: csr.NewKeyRequest(),
@@ -205,6 +226,16 @@ func GenCerts(csrPath, certPath, pkPath, output string, hosts []string) error {
 }
 
 func writeFile(filespec, contents string, perms os.FileMode) error {
+
+	// check if folder exists
+	folder, _ := filepath.Split(filespec)
+
+	if _, err := os.Stat(folder); os.IsNotExist(err) {
+		err = os.MkdirAll(folder, 0755)
+		if err != nil {
+			return err
+		}
+	}
 
 	// if file exists, add a number to the end of the file name
 	var err error

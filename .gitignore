@@ -18,6 +18,7 @@ coverage.html
 
 # Go workspace file
 go.work
+.certificates
 .idea/dataSources.xml
 .idea/modules.xml
 .idea/ohana.iml
