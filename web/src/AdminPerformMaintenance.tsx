@@ -57,7 +57,13 @@ export function AdminPerformMaintenance() {
     var sDisplay = s > 0 ? s + (s == 1 ? ' second' : ' secs') : '';
     var end =
       seconds == 0
-        ? ['Maintenance Completed. Gathering Results', setTime(''), setLogs(''), setPauseBtn(true), setStopBtn(true)]
+        ? [
+            'Maintenance Completed. Gathering Results',
+            setTime(''),
+            setLogs(''),
+            setPauseBtn(true),
+            setStopBtn(true),
+          ]
         : '';
     return dDisplay + hDisplay + mDisplay + sDisplay + end;
   }
@@ -82,7 +88,7 @@ export function AdminPerformMaintenance() {
 
   const [isActive, setIsActive] = useState(true);
   const [buttonText, setButtonText] = useState('Pause');
-  const [maintenanceStatus, setMaintenanceStatus] = useState("Not Completed");
+  const [maintenanceStatus, setMaintenanceStatus] = useState('Not Completed');
   const navigate = useNavigate();
   function pause() {
     setIsActive(!isActive);
@@ -95,19 +101,17 @@ export function AdminPerformMaintenance() {
   function stop() {
     setIsActive(false);
     setMaintenanceModal(true);
-    setMaintenanceStatus("Not Completed");
-
+    setMaintenanceStatus('Not Completed');
   }
-  //modal 
+  //modal
   const [maintenanceModal, setMaintenanceModal] = useState(false);
-  const displayedLogs = [""];
+  const displayedLogs = [''];
   //setValue(CurrentSSOGroups.concat(Group));
   function setDisplayedLogs(items: string) {
-    displayedLogs.concat(items)
+    displayedLogs.concat(items);
   }
-  const recentRows = steps.map((items, index) => (
-
-    index <= elapsedTime ?
+  const recentRows = steps.map((items, index) =>
+    index <= elapsedTime ? (
       <tr>
         <td
           width="15%"
@@ -121,8 +125,10 @@ export function AdminPerformMaintenance() {
           {items}
         </td>
       </tr>
-      : ""
-  ));
+    ) : (
+      ''
+    )
+  );
 
   function getTotalTime(seconds: number) {
     seconds = Number(seconds);
@@ -139,21 +145,31 @@ export function AdminPerformMaintenance() {
 
   //get the date and time of maintenance
   function getCurrentDate(separator = '') {
-
-    let newDate = new Date()
+    let newDate = new Date();
     let date = newDate.getDate();
     let month = newDate.getMonth() + 1;
     let year = newDate.getFullYear();
 
-    return `${year}${separator}${month < 10 ? `0${month}` : `${month}`}${separator}${date}`
+    return `${year}${separator}${
+      month < 10 ? `0${month}` : `${month}`
+    }${separator}${date}`;
   }
   function downloadLogs() {
-
-    const fileData = JSON.stringify("Maintenance Status: " + maintenanceStatus + ", Time taken: " + getTotalTime(elapsedTime) + ", " + "Date: " + getCurrentDate('/') + ", Maintenance logs: " + logsDone);
-    const blob = new Blob([fileData], { type: "text/plain" });
+    const fileData = JSON.stringify(
+      'Maintenance Status: ' +
+        maintenanceStatus +
+        ', Time taken: ' +
+        getTotalTime(elapsedTime) +
+        ', ' +
+        'Date: ' +
+        getCurrentDate('/') +
+        ', Maintenance logs: ' +
+        logsDone
+    );
+    const blob = new Blob([fileData], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.download = "logs.txt";
+    const link = document.createElement('a');
+    link.download = 'logs.txt';
     link.href = url;
     link.click();
 
@@ -167,27 +183,22 @@ export function AdminPerformMaintenance() {
   }
 
   function setComplete() {
-    setMaintenanceStatus("Completed");
+    setMaintenanceStatus('Completed');
     setMaintenanceModal(true);
-
   }
-
 
   return (
     <>
-      <AppBase
-        userType="admin"
-        name="Alex Simmons"
-        username="@alex"
-        image="https://images.unsplash.com/photo-1496302662116-35cc4f36df92?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80"
-      >
-
+      <AppBase>
         <Modal
           centered
           size={600}
           opened={maintenanceModal}
           title={
-            <span style={{ fontSize: '22px', fontWeight: 550 }}> Maintenance Status Report</span>
+            <span style={{ fontSize: '22px', fontWeight: 550 }}>
+              {' '}
+              Maintenance Status Report
+            </span>
           }
           //
           onClose={() => [setMaintenanceModal(false), navigate('/maintenance')]}
@@ -216,14 +227,35 @@ export function AdminPerformMaintenance() {
               >
                 <Table captionSide="top" verticalSpacing="xs">
                   <thead>
-
-                    <div style={{ fontSize: '18px' }}>Date: <span style={{ fontWeight: 500 }}> {getCurrentDate('/')}</span></div>
                     <div style={{ fontSize: '18px' }}>
-                      Status: <span style={{ fontWeight: 500 }}> {maintenanceStatus}</span>
-
+                      Date:{' '}
+                      <span style={{ fontWeight: 500 }}>
+                        {' '}
+                        {getCurrentDate('/')}
+                      </span>
                     </div>
-                    <div style={{ fontSize: '18px' }}>Time taken:  <span style={{ fontWeight: 500 }}>{getTotalTime(elapsedTime)}  </span></div>
-                    <div style={{ fontSize: '20px', fontWeight: 500, textAlign: 'center' }}>Maintenance logs: </div>
+                    <div style={{ fontSize: '18px' }}>
+                      Status:{' '}
+                      <span style={{ fontWeight: 500 }}>
+                        {' '}
+                        {maintenanceStatus}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '18px' }}>
+                      Time taken:{' '}
+                      <span style={{ fontWeight: 500 }}>
+                        {getTotalTime(elapsedTime)}{' '}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '20px',
+                        fontWeight: 500,
+                        textAlign: 'center',
+                      }}
+                    >
+                      Maintenance logs:{' '}
+                    </div>
                   </thead>
                   <tbody>{recentRows}</tbody>
                 </Table>
@@ -292,7 +324,6 @@ export function AdminPerformMaintenance() {
                 isPlaying={isActive}
                 initialRemainingTime={time}
                 onComplete={() => setComplete()}
-
               >
                 {({ elapsedTime, color }) => (
                   <>
@@ -301,9 +332,11 @@ export function AdminPerformMaintenance() {
                     {setLogs(
                       'Maintenance Logs : ' + steps[Math.floor(elapsedTime)]
                     )}
-                    {
-                      logsDone.includes(steps[Math.floor(elapsedTime)]) ? "" : setLogsDone(logsDone.concat(", "+steps[Math.floor(elapsedTime)]))
-                    }
+                    {logsDone.includes(steps[Math.floor(elapsedTime)])
+                      ? ''
+                      : setLogsDone(
+                          logsDone.concat(', ' + steps[Math.floor(elapsedTime)])
+                        )}
                     <div
                       style={{
                         color,
