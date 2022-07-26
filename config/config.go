@@ -1,6 +1,7 @@
 package config
 
 import (
+	"flag"
 	"log"
 	"os"
 
@@ -64,6 +65,36 @@ type SPAConfig struct {
 // It contains the path of where the shards are located on the server
 type StitchConfig struct {
 	ShardsLocation string `yaml:"shards_location"`
+}
+
+// CertsConfig is the configuration for the certs, stored via flags
+type FlagsConfig struct {
+	GenCA        *bool
+	GenCerts     *bool
+	GenCAPath    *string
+	GenCertsPath *string
+	CsrPath      *string
+	CertPath     *string
+	PkPath       *string
+	AllHosts     *string
+	NumOfCerts   *int
+}
+
+// LoadFlagsConfig tries to load the configuration from flags
+func LoadFlagsConfig() *FlagsConfig {
+	var config FlagsConfig
+	config.GenCA = flag.Bool("gen-ca", false, "Generate CA certs")
+	config.GenCerts = flag.Bool("gen-certs", false, "Generate certs")
+	config.GenCAPath = flag.String("gen-ca-path", "certificates/main", "Filename of output CA certs")
+	config.GenCertsPath = flag.String("gen-certs-path", "certificates/output", "Filename of output certs")
+	config.CsrPath = flag.String("csr-path", "certificates/main_csr.json", "Filename of input CSR")
+	config.CertPath = flag.String("cert-path", "certificates/main_GLOBAL_CERTIFICATE.pem", "Filename of CA cert")
+	config.PkPath = flag.String("pk-path", "certificates/main_PRIVATE_KEY.pem", "Filename of CA private key")
+	config.AllHosts = flag.String("hosts", "certhosts.yaml", "yaml file of hosts")
+	config.NumOfCerts = flag.Int("num-of-certs", 1, "Number of certs to generate")
+
+	flag.Parse()
+	return &config
 }
 
 // LoadConfig tries to load the configuration from the file specified in the

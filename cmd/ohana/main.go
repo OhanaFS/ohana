@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-
 	"github.com/OhanaFS/ohana/controller/middleware"
 	"github.com/OhanaFS/ohana/dbfs"
-
+	"github.com/OhanaFS/ohana/selfsign"
 	"go.uber.org/fx"
+	"os"
 
 	"github.com/OhanaFS/ohana/config"
 	"github.com/OhanaFS/ohana/controller"
@@ -21,6 +21,19 @@ var (
 
 func main() {
 	fmt.Printf("Ohana v%s (built %s, commit %s)\n", Version, BuildTime, GitCommit)
+
+	// Run normally or generate certs
+
+	flagsConfig := config.LoadFlagsConfig()
+
+	if *flagsConfig.GenCA || *flagsConfig.GenCerts {
+		err := selfsign.ProcessFlags(flagsConfig)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(-1)
+		}
+		os.Exit(0)
+	}
 
 	fx.New(
 		fx.Provide(
