@@ -204,10 +204,6 @@ func TestSelfSign(t *testing.T) {
 		path, err := os.Getwd()
 		Assert.NoError(err)
 
-		Assert.True(strings.Contains(path, "ohana/selfsign"))
-
-		// ensure we are in the right folder before we overwrite the files
-
 		if strings.Contains(path, "ohana/selfsign") {
 			caPathFolder, _ := filepath.Split(*ogc.GenCAPath)
 			err = os.RemoveAll(caPathFolder)
