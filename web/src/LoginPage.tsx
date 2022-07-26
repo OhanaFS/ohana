@@ -28,30 +28,15 @@ export function LoginPage() {
         >
           Ohana{' '}
         </Title>
-        <TextInput
-          required
-          label="Email"
-          placeholder="Email"
-          sx={(theme) => ({
-            display: 'block',
-            textAlign: 'left',
-            width: '90%',
-            height: '10vh',
-            paddingLeft: theme.spacing.md,
-            borderRadius: theme.radius.sm,
-            color:
-              theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
-          })}
-        />
 
-        <Button<typeof Link>
+        <Button<'a'>
           style={{ marginBottom: '2%' }}
           variant="default"
           color="dark"
           radius="xs"
           size="md"
-          component={Link}
-          to="/dashboard"
+          component={'a'}
+          href="/auth/login"
         >
           Login Using SSO
         </Button>

@@ -9,6 +9,8 @@ import {
   IconTool,
   IconRotate2,
   IconUserPlus,
+  IconAdjustments,
+  IconLogout,
 } from '@tabler/icons';
 import backgroundimage from '../images/2.webp';
 
@@ -20,20 +22,58 @@ import {
   MediaQuery,
   Burger,
   useMantineTheme,
+  Menu,
+  createStyles,
 } from '@mantine/core';
 import { MainLinks } from './MainLinks';
-import { User } from './user';
+import { UserButton } from './UserButton';
+import { useQueryUser } from '../api/auth';
+
+const useStyles = createStyles((theme) => ({
+  navbar: {
+    backgroundColor:
+      theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.white,
+    paddingBottom: 0,
+  },
+
+  header: {
+    padding: theme.spacing.md,
+    paddingTop: 0,
+    marginLeft: -theme.spacing.md,
+    marginRight: -theme.spacing.md,
+    color: theme.colorScheme === 'dark' ? theme.white : theme.black,
+    borderBottom: `1px solid ${
+      theme.colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[3]
+    }`,
+  },
+
+  links: {
+    marginLeft: -theme.spacing.md,
+    marginRight: -theme.spacing.md,
+  },
+
+  linksInner: {
+    paddingTop: theme.spacing.xl,
+    paddingBottom: theme.spacing.xl,
+  },
+
+  footer: {
+    marginLeft: -theme.spacing.md,
+    marginRight: -theme.spacing.md,
+    borderTop: `1px solid ${
+      theme.colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[3]
+    }`,
+  },
+}));
 
 type AppBaseProps = {
   children: React.ReactNode;
-  image: string;
-  name: string;
-  username: string;
-  userType: string;
 };
 
 export default function AppBase(props: AppBaseProps) {
+  const { classes } = useStyles();
   const theme = useMantineTheme();
+  const user = useQueryUser();
   const [opened, setOpened] = useState(false);
   const data_user = [
     { icon: <IconHome2 size={16} />, color: 'blue', label: 'Home' },
@@ -50,6 +90,8 @@ export default function AppBase(props: AppBaseProps) {
     { icon: <IconEdit size={16} />, color: 'blue', label: 'Key Management' },
   ];
 
+  const userType = 'user'; // TODO: get from api
+
   return (
     <AppShell
       styles={{
@@ -58,12 +100,15 @@ export default function AppBase(props: AppBaseProps) {
             theme.colorScheme === 'dark'
               ? theme.colors.dark[8]
               : theme.colors.gray[0],
-          backgroundImage:
-            props.userType === 'user' ? '' : `url(${backgroundimage})`,
-          backgroundPosition: props.userType === 'user' ? '' : 'center',
-          backgroundSize: props.userType === 'user' ? '' : 'cover',
-          backgroundRepeat: props.userType === 'user' ? '' : 'no-repeat',
-          width: props.userType === 'user' ? '' : '100vw',
+          ...(userType === 'user'
+            ? {}
+            : {
+                backgroundImage: `url(${backgroundimage})`,
+                backgroundPosition: 'center',
+                backgroundSize: 'cover',
+                backgroundRepeat: 'no-repeat',
+                width: '100vw',
+              }),
         },
       }}
       navbarOffsetBreakpoint="sm"
@@ -75,18 +120,48 @@ export default function AppBase(props: AppBaseProps) {
           hiddenBreakpoint="sm"
           hidden={!opened}
           width={{ sm: 250 }}
+          className={classes.navbar}
         >
-          <Navbar.Section grow mt="md">
-            <MainLinks
-              links={props.userType === 'user' ? data_user : data_admin}
-            />
+          <Navbar.Section grow className={classes.links}>
+            <MainLinks links={userType === 'user' ? data_user : data_admin} />
           </Navbar.Section>
-          <Navbar.Section>
-            <User
-              name={props.name}
-              username={props.username}
-              image={props.image}
-            />
+          <Navbar.Section className={classes.footer}>
+            <Menu
+              style={{ width: '100%' }}
+              position="right"
+              placement="end"
+              control={
+                <UserButton
+                  name={user.data?.name || ''}
+                  email={user.data?.email || ''}
+                />
+              }
+            >
+              {
+                // @ts-ignore
+                userType === 'admin' && (
+                  <>
+                    <Menu.Label>Admin</Menu.Label>
+                    <Menu.Item
+                      icon={<IconAdjustments size={14} />}
+                      onClick={() => {}}
+                    >
+                      Dashboard
+                    </Menu.Item>
+                  </>
+                )
+              }
+
+              <Menu.Label>User</Menu.Label>
+              <Menu.Item<'a'>
+                color="red"
+                icon={<IconLogout size={14} />}
+                component="a"
+                href="/auth/logout"
+              >
+                Log out
+              </Menu.Item>
+            </Menu>
           </Navbar.Section>
         </Navbar>
       }
