@@ -25,9 +25,6 @@ export function AdminRunMaintenance() {
 
   const [openedMaintenanceSettingsModal, setOpened] = useState(false);
 
-
-
-
   // Maintenance settings that will be run
 
   var [firstCheck, setFirstCheck] = useState(() => {
@@ -37,7 +34,6 @@ export function AdminRunMaintenance() {
 
     return false;
   });
-
 
   var [secondCheck, setSecondCheck] = useState(() => {
     if (MaintenanceSettings[1].setting === 'true') {
@@ -81,8 +77,6 @@ export function AdminRunMaintenance() {
 
     return false;
   });
-
-
 
   // maintenance settings
 
@@ -137,8 +131,7 @@ export function AdminRunMaintenance() {
     return false;
   });
 
-  function saveSettings(){
-
+  function saveSettings() {
     setFirstCheck(sFirstCheck);
     setSecondCheck(sSecondCheck);
     setThirdCheck(sThirdCheck);
@@ -150,7 +143,7 @@ export function AdminRunMaintenance() {
   }
   return (
     <>
-      <AppBase>
+      <AppBase userType="admin">
         <div
           style={{
             display: 'flex',
@@ -158,175 +151,174 @@ export function AdminRunMaintenance() {
             alignItems: 'flex-start',
           }}
         >
-  
-        <Modal 
-              centered
-              opened={openedMaintenanceSettingsModal}
-              size={600}
-              title={
-              "Maintenance Settings" 
-              }
-      
-              styles={{
-                title: { fontSize: '22px', fontWeight: 550,display: "flex",
-                justifyContent: "center",
-                alignItems: "center"
-             },
-              }}
-          
-              onClose={() => setOpened(false)}>
-         <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100%',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              backgroundColor: 'white',
+          <Modal
+            centered
+            opened={openedMaintenanceSettingsModal}
+            size={600}
+            title={'Maintenance Settings'}
+            styles={{
+              title: {
+                fontSize: '22px',
+                fontWeight: 550,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+              },
             }}
+            onClose={() => setOpened(false)}
           >
-          <Table striped verticalSpacing="xs" id="maintenanceSettings">
-       
-            <tbody >
-              <tr >
-                <td>
-                  Crawl the list of files to remove permissions from expired
-                  users
-                </td>
-                <td>
-                  <Checkbox
-                    size="md"
-                    checked={sFirstCheck}
-                    onChange={(event) =>
-                      setsFirstCheck(event.currentTarget.checked)
-                    }
-                  />{' '}
-                </td>
-              </tr>
-
-              <tr>
-                <td>Purging orphaned files and shards</td>
-                <td>
-                  <Checkbox
-                    size="md"
-                    checked={sSecondCheck}
-                    onChange={(event) =>
-                      setsSecondCheck(event.currentTarget.checked)
-                    }
-                  />
-                </td>
-              </tr>
-
-              <tr>
-                <td>Purge a user and their files</td>
-                <td>
-                  {' '}
-                  <Checkbox
-                    size="md"
-                    checked={sThirdCheck}
-                    onChange={(event) =>
-                      setsThirdCheck(event.currentTarget.checked)
-                    }
-                  />{' '}
-                </td>
-              </tr>
-
-              <tr>
-                <td>
-                  {' '}
-                  Crawl all of the files to make sure it has full replicas
-                </td>
-                <td>
-                  {' '}
-                  <Checkbox
-                    size="md"
-                    checked={sFourthCheck}
-                    onChange={(event) =>
-                      setsFourthCheck(event.currentTarget.checked)
-                    }
-                  />
-                </td>
-              </tr>
-
-              <tr>
-                <td>
-                  Quick File Check (Only checks current versions of files to see
-                  if it’s fine and is not corrupted){' '}
-                </td>
-                <td>
-                  <Checkbox
-                    size="md"
-                    checked={sFifthCheck}
-                    onChange={(event) =>
-                      [setsFifthCheck(event.currentTarget.checked),{
-                        sSixthCheck:true? setsSixthCheck(false): ""
-                      }]
-                    }
-                  />
-                </td>
-              </tr>
-
-              <tr>
-                <td>
-                  Full File Check (Checks all fragments to ensure that it’s not
-                  corrupted)
-                </td>
-                <td>
-                  <Checkbox
-                    size="md"
-                    checked={sSixthCheck}
-                    onChange={(event) =>
-                      [ setsSixthCheck(event.currentTarget.checked),{
-                        sFifthCheck:true? setsFifthCheck(false): ""
-                      }]
-                    }
-                  />
-                </td>
-              </tr>
-
-              <tr>
-                <td>DB integrity Check</td>
-                <td>
-                  <Checkbox
-                    size="md"
-                    checked={sSeventhCheck}
-                    onChange={(event) =>
-                      setsSeventhCheck(event.currentTarget.checked)
-                    }
-                  />
-                </td>
-              </tr>
-            
-            </tbody>
-
             <div
               style={{
                 display: 'flex',
                 flexDirection: 'column',
+                height: '100%',
               }}
             >
-              <Button
+              <div
                 style={{
-                  alignSelf: 'flex-end',
-                  marginTop: '20px',
-                  marginRight:'10px'
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  backgroundColor: 'white',
                 }}
-                variant="default"
-                color="dark"
-                size="md"
-                onClick={()=>saveSettings()}
               >
-                Save Settings
-              </Button>
+                <Table striped verticalSpacing="xs" id="maintenanceSettings">
+                  <tbody>
+                    <tr>
+                      <td>
+                        Crawl the list of files to remove permissions from
+                        expired users
+                      </td>
+                      <td>
+                        <Checkbox
+                          size="md"
+                          checked={sFirstCheck}
+                          onChange={(event) =>
+                            setsFirstCheck(event.currentTarget.checked)
+                          }
+                        />{' '}
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>Purging orphaned files and shards</td>
+                      <td>
+                        <Checkbox
+                          size="md"
+                          checked={sSecondCheck}
+                          onChange={(event) =>
+                            setsSecondCheck(event.currentTarget.checked)
+                          }
+                        />
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>Purge a user and their files</td>
+                      <td>
+                        {' '}
+                        <Checkbox
+                          size="md"
+                          checked={sThirdCheck}
+                          onChange={(event) =>
+                            setsThirdCheck(event.currentTarget.checked)
+                          }
+                        />{' '}
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        {' '}
+                        Crawl all of the files to make sure it has full replicas
+                      </td>
+                      <td>
+                        {' '}
+                        <Checkbox
+                          size="md"
+                          checked={sFourthCheck}
+                          onChange={(event) =>
+                            setsFourthCheck(event.currentTarget.checked)
+                          }
+                        />
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        Quick File Check (Only checks current versions of files
+                        to see if it’s fine and is not corrupted){' '}
+                      </td>
+                      <td>
+                        <Checkbox
+                          size="md"
+                          checked={sFifthCheck}
+                          onChange={(event) => [
+                            setsFifthCheck(event.currentTarget.checked),
+                            {
+                              sSixthCheck: true ? setsSixthCheck(false) : '',
+                            },
+                          ]}
+                        />
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        Full File Check (Checks all fragments to ensure that
+                        it’s not corrupted)
+                      </td>
+                      <td>
+                        <Checkbox
+                          size="md"
+                          checked={sSixthCheck}
+                          onChange={(event) => [
+                            setsSixthCheck(event.currentTarget.checked),
+                            {
+                              sFifthCheck: true ? setsFifthCheck(false) : '',
+                            },
+                          ]}
+                        />
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>DB integrity Check</td>
+                      <td>
+                        <Checkbox
+                          size="md"
+                          checked={sSeventhCheck}
+                          onChange={(event) =>
+                            setsSeventhCheck(event.currentTarget.checked)
+                          }
+                        />
+                      </td>
+                    </tr>
+                  </tbody>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                    }}
+                  >
+                    <Button
+                      style={{
+                        alignSelf: 'flex-end',
+                        marginTop: '20px',
+                        marginRight: '10px',
+                      }}
+                      variant="default"
+                      color="dark"
+                      size="md"
+                      onClick={() => saveSettings()}
+                    >
+                      Save Settings
+                    </Button>
+                  </div>
+                </Table>
+              </div>
             </div>
-          </Table>
-        </div>
-      </div>    
           </Modal>
           <div className="maintenanceSettings">
             <Table striped verticalSpacing="xs" id="maintenanceSettings">
@@ -342,11 +334,9 @@ export function AdminRunMaintenance() {
                       float: 'right',
                     }}
                   >
-                    <ActionIcon  onClick={()=> setOpened(true)}>
-                  <Settings></Settings>
+                    <ActionIcon onClick={() => setOpened(true)}>
+                      <Settings></Settings>
                     </ActionIcon>
-
-                  
                   </span>
                 </div>
               </caption>
@@ -423,14 +413,13 @@ export function AdminRunMaintenance() {
                     {' '}
                     <Checkbox
                       size="md"
-                    
                       checked={fifthCheck}
-                      onChange={(event) =>
-                        [setFifthCheck(event.currentTarget.checked),{
-                          sixthCheck:true?  setSixthCheck(false): ""
-                        }
-                      ]
-                      }
+                      onChange={(event) => [
+                        setFifthCheck(event.currentTarget.checked),
+                        {
+                          sixthCheck: true ? setSixthCheck(false) : '',
+                        },
+                      ]}
                     />{' '}
                   </td>
                 </tr>
@@ -446,11 +435,12 @@ export function AdminRunMaintenance() {
                     <Checkbox
                       size="md"
                       checked={sixthCheck}
-                      onChange={(event) =>
-                        [setSixthCheck(event.currentTarget.checked),{
-                          fifthCheck:true?  setFifthCheck(false): ""
-                        }]
-                      }
+                      onChange={(event) => [
+                        setSixthCheck(event.currentTarget.checked),
+                        {
+                          fifthCheck: true ? setFifthCheck(false) : '',
+                        },
+                      ]}
                     />
                   </td>
                 </tr>
@@ -468,8 +458,6 @@ export function AdminRunMaintenance() {
                     />
                   </td>
                 </tr>
-
-     
               </tbody>
               <div
                 style={{
@@ -494,8 +482,6 @@ export function AdminRunMaintenance() {
             </Table>
           </div>
         </div>
-
-       
       </AppBase>
     </>
   );

@@ -4,7 +4,7 @@ import AppBase from './components/AppBase';
 
 export function AdminConfiguration() {
   return (
-    <AppBase>
+    <AppBase userType="admin">
       <div
         style={{
           display: 'flex',

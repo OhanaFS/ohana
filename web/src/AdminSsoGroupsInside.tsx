@@ -6,7 +6,7 @@ export function AdminSsoGroupsInside() {
 
   return (
     <>
-      <AppBase>
+      <AppBase userType="admin">
         <AdminConsole
           groupList={data}
           addObjectLabel="User"

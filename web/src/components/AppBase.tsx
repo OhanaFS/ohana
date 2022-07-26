@@ -68,6 +68,7 @@ const useStyles = createStyles((theme) => ({
 
 type AppBaseProps = {
   children: React.ReactNode;
+  userType: string;
 };
 
 export default function AppBase(props: AppBaseProps) {
@@ -90,8 +91,6 @@ export default function AppBase(props: AppBaseProps) {
     { icon: <IconEdit size={16} />, color: 'blue', label: 'Key Management' },
   ];
 
-  const userType = 'user'; // TODO: get from api
-
   return (
     <AppShell
       styles={{
@@ -100,7 +99,7 @@ export default function AppBase(props: AppBaseProps) {
             theme.colorScheme === 'dark'
               ? theme.colors.dark[8]
               : theme.colors.gray[0],
-          ...(userType === 'user'
+          ...(props.userType === 'user'
             ? {}
             : {
                 backgroundImage: `url(${backgroundimage})`,
@@ -123,7 +122,9 @@ export default function AppBase(props: AppBaseProps) {
           className={classes.navbar}
         >
           <Navbar.Section grow className={classes.links}>
-            <MainLinks links={userType === 'user' ? data_user : data_admin} />
+            <MainLinks
+              links={props.userType === 'user' ? data_user : data_admin}
+            />
           </Navbar.Section>
           <Navbar.Section className={classes.footer}>
             <Menu
@@ -139,7 +140,7 @@ export default function AppBase(props: AppBaseProps) {
             >
               {
                 // @ts-ignore
-                userType === 'admin' && (
+                props.userType === 'admin' && (
                   <>
                     <Menu.Label>Admin</Menu.Label>
                     <Menu.Item

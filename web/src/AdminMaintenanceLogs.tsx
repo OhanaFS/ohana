@@ -707,7 +707,7 @@ export function AdminMaintenanceLogs() {
 
   return (
     <>
-      <AppBase>
+      <AppBase userType="admin">
         <AdminLogs
           groupList={maintenanceLogss}
           tableHeader={[

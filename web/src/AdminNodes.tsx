@@ -108,7 +108,7 @@ export function AdminNodes() {
 
   return (
     <>
-      <AppBase>
+      <AppBase userType="admin">
         <div
           style={{
             display: 'flex',

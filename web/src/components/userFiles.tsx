@@ -293,7 +293,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   );
 
   return (
-    <AppBase>
+    <AppBase userType="user">
       <div style={{ height: '100%' }}>
         <FullFileBrowser
           files={files}

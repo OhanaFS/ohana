@@ -10,7 +10,7 @@ export function AdminKeyManagement() {
 
   return (
     <>
-      <AppBase>
+      <AppBase userType="admin">
         <AdminConsole
           groupList={data}
           addObjectLabel="Key"
