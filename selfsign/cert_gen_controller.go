@@ -35,11 +35,9 @@ func ProcessFlags(flagsConfig *config.FlagsConfig) error {
 
 		hostFile, err := os.Open(*flagsConfig.AllHosts)
 		if err != nil {
-			return errors.New("unable to open hosts file. see certhosts.example.yaml for example file to provide system")
+			return errors.New("Unable to open hosts file. See certhosts.example.yaml for example file to provide system")
 		}
-		defer func(hostFile *os.File) {
-			_ = hostFile.Close()
-		}(hostFile)
+		defer hostFile.Close()
 
 		var hosts Hosts
 		decoder := yaml.NewDecoder(hostFile)

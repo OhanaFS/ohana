@@ -2,7 +2,6 @@ package selfsign
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/cloudflare/cfssl/api/generator"
@@ -13,7 +12,6 @@ import (
 	"github.com/cloudflare/cfssl/initca"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -42,35 +40,30 @@ func GenCA(pathName string) error {
 
 	// asking user for csr info
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter your country: ")
+	fmt.Print("Enter your country [SG]: ")
 	country, _ := reader.ReadString('\n')
 	if country == "" {
 		country = "SG"
-		fmt.Println("No input. Defaulting to SG")
 	}
-	fmt.Print("Enter your state: ")
+	fmt.Print("Enter your state [Singapore]: ")
 	state, _ := reader.ReadString('\n')
 	if state == "" {
 		state = "Singapore"
-		fmt.Println("No input. Defaulting to Singapore")
 	}
-	fmt.Print("Enter your locality: ")
+	fmt.Print("Enter your locality [Singapore]: ")
 	locality, _ := reader.ReadString('\n')
 	if locality == "" {
 		locality = "Singapore"
-		fmt.Println("No input. Defaulting to Singapore")
 	}
-	fmt.Print("Enter your organization: ")
+	fmt.Print("Enter your organization [Ohana]: ")
 	organization, _ := reader.ReadString('\n')
 	if organization == "" {
 		organization = "Ohana"
-		fmt.Println("No input. Defaulting to Ohana")
 	}
-	fmt.Print("Enter your organization unit: ")
+	fmt.Print("Enter your organization unit [Ohana]: ")
 	organizationalUnit, _ := reader.ReadString('\n')
 	if organizationalUnit == "" {
 		organizationalUnit = "Ohana"
-		fmt.Println("No input. Defaulting to Ohana")
 	}
 
 	req := csr.CertificateRequest{
@@ -97,29 +90,11 @@ func GenCA(pathName string) error {
 		return err
 	}
 
-	old := os.Stdout // keep backup of the real stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	cli.PrintCert(key, csrPEM, cert)
-
-	outChannel := make(chan string)
-	// copy the output to outChannel
-	go func() {
-		var buf bytes.Buffer
-		_, err := io.Copy(&buf, r)
-		if err != nil {
-			log.Error(err)
-		}
-		outChannel <- buf.String()
-	}()
-
-	err = w.Close()
+	outputString, err := certToJSON(key, csrPEM, cert)
 	if err != nil {
 		return err
 	}
-	os.Stdout = old // restoring the real stdout
-	outputString := <-outChannel
+
 	err = JSONCertWriter(outputString, pathName, true)
 	if err != nil {
 		return err
@@ -197,34 +172,18 @@ func GenCerts(csrPath, certPath, pkPath, output string, hosts []string) error {
 		log.Warning(generator.CSRNoHostMessage)
 	}
 
-	// Capturing stdout and piping it to a string
-	old := os.Stdout // keep backup of the real stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	cli.PrintCert(key, csrBytes, cert)
-
-	outChannel := make(chan string)
-	// copy the output to outChannel
-	go func() {
-		var buf bytes.Buffer
-		_, err := io.Copy(&buf, r)
-		if err != nil {
-			log.Error(err)
-		}
-		outChannel <- buf.String()
-	}()
-
-	err = w.Close()
+	outputString, err := certToJSON(key, csrBytes, cert)
 	if err != nil {
 		return err
 	}
-	os.Stdout = old // restoring the real stdout
-	outputString := <-outChannel
+
 	return JSONCertWriter(outputString, output, false)
 
 }
 
+// writeFile is an internal function that ensures that files are created with permissions,
+// and ensures that the folder exists (if not create) and that files are not overwritten (will append _number
+// if it finds an existing file.)
 func writeFile(filespec, contents string, perms os.FileMode) error {
 
 	// check if folder exists
@@ -265,6 +224,30 @@ func writeFile(filespec, contents string, perms os.FileMode) error {
 		}
 	}
 	return err
+}
+
+// certToJSON converts the key, csr, cert from cloudlfare's cfssl library to JSON format to be used by JSONCertWriter
+func certToJSON(key, csrBytes, cert []byte) (string, error) {
+
+	// copied and pasted from cfssl/cli/cli.go
+	out := map[string]string{}
+	if cert != nil {
+		out["cert"] = string(cert)
+	}
+
+	if key != nil {
+		out["key"] = string(key)
+	}
+
+	if csrBytes != nil {
+		out["csr"] = string(csrBytes)
+	}
+
+	jsonOut, err := json.Marshal(out)
+	if err != nil {
+		return "", err
+	}
+	return string(jsonOut), nil
 }
 
 // JSONCertWriter helps converts the output from cfssl to a json file
