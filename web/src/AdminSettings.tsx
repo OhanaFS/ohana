@@ -6,7 +6,6 @@ import {
   useMantineTheme,
   Modal,
   Radio,
-  RadioGroup,
   createStyles,
   TextInput,
   Textarea,
@@ -222,7 +221,7 @@ export function AdminSettings() {
                   flexDirection: 'row',
                 }}
               >
-                <RadioGroup
+                <Radio.Group
                   orientation="vertical"
                   label={
                     <span style={{ fontSize: '16px' }}>
@@ -249,7 +248,7 @@ export function AdminSettings() {
                     label="Low"
                     checked={redundancyTemp === 'Low'}
                   />
-                </RadioGroup>
+                </Radio.Group>
               </div>
               <div
                 style={{

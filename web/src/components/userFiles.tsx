@@ -2,12 +2,14 @@ import AppBase from './AppBase';
 import {
   ChonkyActions,
   ChonkyFileActionData,
+  FileActionHandler,
   FileArray,
   FileBrowserProps,
   FileData,
   FileHelper,
   FullFileBrowser,
 } from 'chonky';
+import { Modal, FileInput } from '@mantine/core';
 import React, {
   useCallback,
   useEffect,
@@ -16,6 +18,8 @@ import React, {
   useState,
 } from 'react';
 import DemoFsMap from '../assets/demo_fs.json';
+
+import { useMutateUploadFile } from '../api/file';
 
 // We define a custom interface for file data because we want to add some custom fields
 // to Chonky's built-in `FileData` interface.
@@ -260,6 +264,7 @@ export const useFileActionHandler = (
 export type VFSProps = Partial<FileBrowserProps>;
 
 export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
+  const [fuOpened, setFuOpened] = useState(false);
   const {
     fileMap,
     currentFolderId,
@@ -271,12 +276,21 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   } = useCustomFileMap();
   const files = useFiles(fileMap, currentFolderId);
   const folderChain = useFolderChain(fileMap, currentFolderId);
-  const handleFileAction = useFileActionHandler(
-    setCurrentFolderId,
-    deleteFiles,
-    moveFiles,
-    createFolder
-  );
+
+  const handleFileAction: FileActionHandler = (data) => {
+    if (data.action === ChonkyActions.UploadFiles) {
+      console.log('Upload a file');
+      setFuOpened(true);
+    } else {
+      useFileActionHandler(
+        setCurrentFolderId,
+        deleteFiles,
+        moveFiles,
+        createFolder
+      );
+    }
+  };
+
   const fileActions = useMemo(
     () => [
       ChonkyActions.CreateFolder,
@@ -303,6 +317,16 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
           thumbnailGenerator={thumbnailGenerator}
           {...props}
         />
+        {/* Upload file modal */}
+        <Modal
+          centered
+          opened={fuOpened}
+          onClose={() => setFuOpened(false)}
+          title="Upload a File"
+        >
+          <FileInput placeholder="Upload a  file" radius="md" required />
+        </Modal>
+        ;
       </div>
     </AppBase>
   );

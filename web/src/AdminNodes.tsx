@@ -52,7 +52,22 @@ function AccordionLabel({ label, warnings }: AccordionLabelProps) {
         }}
       >
         <Text>{label}</Text>
-        <Text color="red">{warnings > 0 ? warnings : ''}</Text>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          {warnings > 0 ? (
+            <ThemeIcon color="red" variant="light">
+              <ExclamationMark size={30} />
+            </ThemeIcon>
+          ) : null}
+          <Text style={{ padding: '5px' }} color="red">
+            {warnings > 0 ? warnings : ''}
+          </Text>
+        </div>
       </div>
     </Group>
   );
@@ -74,35 +89,30 @@ function secondsToDhms(seconds: number) {
 
 export function AdminNodes() {
   const items = charactersList.map((item) => (
-    <Accordion.Item
-      label={<AccordionLabel {...item} />}
-      key={item.label}
-      icon={
-        item.warnings > 0 ? (
-          <ThemeIcon color="red" variant="light">
-            <ExclamationMark size={30} />
-          </ThemeIcon>
-        ) : null
-      }
-    >
-      <Text size="md">
-        <Text weight={500} component="span">
-          IP-Address:&nbsp;
+    <Accordion.Item value={item.label} key={item.label}>
+      <Accordion.Control>
+        <AccordionLabel {...item} />
+      </Accordion.Control>
+      <Accordion.Panel>
+        <Text size="md">
+          <Text weight={500} component="span">
+            IP-Address:&nbsp;
+          </Text>
+          {item.ip}
         </Text>
-        {item.ip}
-      </Text>
-      <Text size="md">
-        <Text weight={500} component="span">
-          Uptime:&nbsp;
+        <Text size="md">
+          <Text weight={500} component="span">
+            Uptime:&nbsp;
+          </Text>
+          {secondsToDhms(item.uptime)}
         </Text>
-        {secondsToDhms(item.uptime)}
-      </Text>
-      <Text size="md">
-        <Text weight={500} component="span">
-          Load Average:&nbsp;
+        <Text size="md">
+          <Text weight={500} component="span">
+            Load Average:&nbsp;
+          </Text>
+          {item.loadavg.join(', ')}
         </Text>
-        {item.loadavg.join(', ')}
-      </Text>
+      </Accordion.Panel>
     </Accordion.Item>
   ));
 
@@ -135,13 +145,7 @@ export function AdminNodes() {
             >
               Nodes Summary
             </Title>
-            <Accordion
-              disableIconRotation
-              initialItem={-1}
-              iconPosition="right"
-            >
-              {items}
-            </Accordion>
+            <Accordion>{items}</Accordion>
           </div>
         </div>
       </AppBase>

@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react';
 import { UnstyledButton, Group, Avatar, Text } from '@mantine/core';
-import { IconChevronRight } from '@tabler/icons';
+import { IconChevronRight, IconLogout } from '@tabler/icons';
 
 interface UserButtonProps extends React.ComponentPropsWithoutRef<'button'> {
   image?: string;
@@ -41,8 +41,9 @@ export const UserButton = forwardRef<HTMLButtonElement, UserButtonProps>(
             {email}
           </Text>
         </div>
-
-        {icon || <IconChevronRight size={16} />}
+        <a href="/auth/logout">
+          {icon || <IconLogout size={16} color={'#bf4042'} />}
+        </a>
       </Group>
     </UnstyledButton>
   )

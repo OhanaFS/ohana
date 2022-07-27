@@ -24,6 +24,7 @@ import {
   useMantineTheme,
   Menu,
   createStyles,
+  Group,
 } from '@mantine/core';
 import { MainLinks } from './MainLinks';
 import { UserButton } from './UserButton';
@@ -127,42 +128,12 @@ export default function AppBase(props: AppBaseProps) {
             />
           </Navbar.Section>
           <Navbar.Section className={classes.footer}>
-            <Menu
-              style={{ width: '100%' }}
-              position="right"
-              placement="end"
-              control={
-                <UserButton
-                  name={user.data?.name || ''}
-                  email={user.data?.email || ''}
-                />
-              }
-            >
-              {
-                // @ts-ignore
-                props.userType === 'admin' && (
-                  <>
-                    <Menu.Label>Admin</Menu.Label>
-                    <Menu.Item
-                      icon={<IconAdjustments size={14} />}
-                      onClick={() => {}}
-                    >
-                      Dashboard
-                    </Menu.Item>
-                  </>
-                )
-              }
-
-              <Menu.Label>User</Menu.Label>
-              <Menu.Item<'a'>
-                color="red"
-                icon={<IconLogout size={14} />}
-                component="a"
-                href="/auth/logout"
-              >
-                Log out
-              </Menu.Item>
-            </Menu>
+            <Group style={{ width: '100%' }}>
+              <UserButton
+                name={user.data?.name || ''}
+                email={user.data?.email || ''}
+              />
+            </Group>
           </Navbar.Section>
         </Navbar>
       }
