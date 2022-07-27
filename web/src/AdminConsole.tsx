@@ -6,37 +6,55 @@ import {
   Modal,
   Textarea,
 } from '@mantine/core';
-
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import { group } from 'console';
 
 export interface ConsoleDetails {
+  // all the data needed from database
   groupList: Array<any>;
   addObjectLabel: string;
   deleteObjectLabel: string;
   tableHeader: Array<string>;
   tableBody: Array<string>;
   caption: string;
+  //whether the group can be press
   pointerEvents: boolean;
 }
 
 export function AdminConsole(props: ConsoleDetails) {
+  // Variable that show all the currentSSOGroups inside the props.groupList
   const [CurrentSSOGroups, setValue] = useState(props.groupList);
+
+  // Variable that will be added to the CurrentSSOGroups
   var [Group, addGroup] = useState('');
-  function add() {
-    setValue(CurrentSSOGroups.concat(Group));
-    setOpened(false);
-  }
-  var [submitBtn,setSubmitBtn]=useState(true);
+
+  // Variable that will decide whether the submit button is disabled
+  var [submitBtn, setSubmitBtn] = useState(true);
+
+  // Variable that will decide whether the addUserModel visibility is true or false
   const [openedAddUserModel, setOpened] = useState(false);
+
+  // Variable that is bind to each specific labels
   const title = 'Add ' + props.addObjectLabel;
   const textField = 'Name of the ' + props.addObjectLabel;
+
+  // Variable that will decide whether the errorMessage will be displayed
   var [errorMessage, setErrorMessage] = useState('');
+
+  // Delete away specific group from CurrentSSOGroups
   const deleteGroup = (index: any) => {
     setValue(CurrentSSOGroups.filter((v, i) => i !== index));
   };
 
+  // Add the group to the CurrentSSOGroups and set the addUserModel visibility to false
+  function add() {
+    setValue(CurrentSSOGroups.concat(Group));
+    setOpened(false);
+  }
+
+  /* Validate the textfield to check if there is any special characters
+     if there is special character, the function will display error message 
+     and set the submit button to false.  */
   function validate() {
     if (
       Group.includes('/') ||
@@ -51,7 +69,7 @@ export function AdminConsole(props: ConsoleDetails) {
       Group.includes('*') ||
       Group.includes('(') ||
       Group.includes(')') ||
-      Group.includes('\\')||
+      Group.includes('\\') ||
       Group.includes('=') ||
       Group.includes('[') ||
       Group.includes(']') ||
@@ -65,28 +83,27 @@ export function AdminConsole(props: ConsoleDetails) {
     ) {
       errorMessage = 'do not include special characters';
       setErrorMessage('do not include special characters');
-      submitBtn=true;
+      submitBtn = true;
       setSubmitBtn(true);
-    } 
-    else if(  Group.includes(' ')){
+    } else if (Group.includes(' ')) {
       errorMessage = 'No space is allowed';
       setErrorMessage('No space is allowed');
-      submitBtn=true;
+      submitBtn = true;
       setSubmitBtn(true);
-    }
-    else if(  Group==""){
+    } else if (Group == '') {
       errorMessage = 'Details needed';
       setErrorMessage('Details needed');
-      submitBtn=true;
+      submitBtn = true;
       setSubmitBtn(true);
-    }
-    else {
+    } else {
       errorMessage = '';
       setErrorMessage('');
-      submitBtn=false;
+      submitBtn = false;
       setSubmitBtn(false);
     }
   }
+
+  // display table header that is from props
   const ths = (
     <tr>
       <th
@@ -101,6 +118,8 @@ export function AdminConsole(props: ConsoleDetails) {
       </th>
     </tr>
   );
+
+  // display all the rows that is from props
   const rows = CurrentSSOGroups.map((items, index) => (
     <tr key={index}>
       <td
@@ -166,7 +185,7 @@ export function AdminConsole(props: ConsoleDetails) {
                 error={errorMessage}
                 onChange={(event) => {
                   addGroup(event.target.value),
-                  (Group = event.target.value),           
+                    (Group = event.target.value),
                     validate();
                 }}
               />

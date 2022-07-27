@@ -13,11 +13,15 @@ import {
 import { useState } from 'react';
 import AppBase from './components/AppBase';
 
+// style the specific label
 const titleStyle = createStyles(() => ({
+  // style the title for redundancy level modal
   title: {
     fontWeight: 600,
     fontSize: '24px',
   },
+
+  //style the text inside current Key (backup key modal)
   input: {
     fontWeight: 600,
     fontSize: '24px',
@@ -25,8 +29,9 @@ const titleStyle = createStyles(() => ({
 }));
 
 export function AdminSettings() {
-  const theme = useMantineTheme();
+  // variable that will be binded to
   const { classes } = titleStyle();
+
   //retrieve from database
   let oldConfigurationSettings = [
     { name: 'clusterAlerts', setting: false },
@@ -38,6 +43,7 @@ export function AdminSettings() {
     { name: 'redundancy', setting: 'Low' },
   ];
 
+  // bind the default newConfigurationSettings to oldConfigurationSettings
   let newConfigurationSettings = [
     { name: 'clusterAlerts', setting: oldConfigurationSettings[0].setting },
     { name: 'sActionAlerts', setting: oldConfigurationSettings[1].setting },
@@ -48,11 +54,16 @@ export function AdminSettings() {
     { name: 'redundancy', setting: oldConfigurationSettings[6].setting },
   ];
 
+  // key variable
   let [key, setKey] = useState('5q0L5mVB5mUlJjil');
 
+  // Variable that will decide whether the save pending changes button is disabled
   const [disable, setDisable] = useState(true);
+
+  //  Variable that will decide whether  save settings button is disabled
   const [saveSettings, setsaveSettings] = useState(true);
 
+  // function that will create a 16 letter key
   function generateRandomString() {
     var result = '';
     var characters =
@@ -65,27 +76,41 @@ export function AdminSettings() {
     return result;
   }
 
+  // Variable that will decide whether the backupModal visibility is true or false
   const [backupMod, setBackupMod] = useState(false);
+
+  // Variable that is bind to the backup key location
   var [backupLocation, setBackupLocation] = useState(
     oldConfigurationSettings[5].setting.toString()
   );
+
+  // temp location for backuplocation as only when the user save the settings, then it save the changes
   const [backupTemp, setBackupTemp] = useState(
     oldConfigurationSettings[5].setting.toString()
   );
 
+  /* after the user save the location, it will set the temp backup variable to the actual backup variable and 
+     sets the backupModal visibility to false*/
   function backup() {
     setBackupLocation(backupTemp);
     setBackupMod(false);
   }
 
+  // Variable that will decide whether the redundancyMod visibility is true or false
   const [redundancyMod, setVisible] = useState(false);
+
+  // Variable that is bind to the redundancy Level
   var [redundancyLevel, setredundancyLevel] = useState(
     oldConfigurationSettings[6].setting.toString()
   );
+
+  // temp location for redundancy Level as only when the user save the redundancy Level, then it save the changes
   const [redundancyTemp, setRedundancyTemp] = useState(
     oldConfigurationSettings[6].setting.toString()
   );
 
+  /* after the user save the redundancy Level, it will set the temp redundancy Level variable to the actual redundancy Level variable and 
+     sets the redundancyMod visibility to false*/
   function changeRedundancy() {
     redundancyLevel = redundancyTemp;
     newConfigurationSettings[6].setting = redundancyLevel;
@@ -95,6 +120,7 @@ export function AdminSettings() {
     setVisible(false);
   }
 
+  // each of these variable is binded, so if the data retrieve from database is true, the checkbox will be ticked
   const [clusterAlerts, setChecked] = useState(() => {
     if (oldConfigurationSettings[0].setting === true) {
       return true;
@@ -132,7 +158,9 @@ export function AdminSettings() {
     return false;
   });
 
+  // this function will check if any changes is made to the first checkbox
   function changeClusterAlert() {
+    // set whether it is ticked or not, so if the checkbox is ticked, it will untick the checkbox
     setChecked((clusterAlerts) => !clusterAlerts);
 
     //detect that the first state is true but the end result is false
@@ -146,7 +174,9 @@ export function AdminSettings() {
     }
   }
 
+  // this function will check if any changes is made to the second checkbox
   function changeActionAlerts() {
+    // set whether it is ticked or not, so if the checkbox is ticked, it will untick the checkbox
     setChecked1((sActionAlerts) => !sActionAlerts);
     //detect that the first state is true but the end result is false
     if (sActionAlerts == true) {
@@ -159,7 +189,9 @@ export function AdminSettings() {
     }
   }
 
+  // this function will check if any changes is made to the third checkbox
   function changeSupiciousAlerts() {
+    // set whether it is ticked or not, so if the checkbox is ticked, it will untick the checkbox
     setChecked2((supiciousAlerts) => !supiciousAlerts);
     //detect that the first state is true but the end result is false
     if (supiciousAlerts == true) {
@@ -172,7 +204,9 @@ export function AdminSettings() {
     }
   }
 
+  // this function will check if any changes is made to the fourth checkbox
   function changeServerAlerts() {
+    // set whether it is ticked or not, so if the checkbox is ticked, it will untick the checkbox
     setChecked3((serverAlerts) => !serverAlerts);
     //detect that the first state is true but the end result is false
     if (serverAlerts == true) {
@@ -185,7 +219,9 @@ export function AdminSettings() {
     }
   }
 
+  // this function will check if any changes is made to the last checkbox
   function changesFileAlerts() {
+    // set whether it is ticked or not, so if the checkbox is ticked, it will untick the checkbox
     setChecked4((sFileAlerts) => !sFileAlerts);
     //detect that the first state is true but the end result is false
     if (sFileAlerts == true) {
@@ -429,12 +465,15 @@ export function AdminSettings() {
     }
   }
 
+  // variable that is bind to New key textfield
   let [tempKey, setTempKey] = useState('');
+  // generate the key and show on the textfield, and enable the save button
   function generateKeys() {
     setTempKey(generateRandomString());
     setsaveSettings(false);
   }
 
+  // validate and save the key (works the same as how the checkbox is validated)
   function saveKey() {
     tempKey == '' ? '' : setKey(tempKey);
     backup();
@@ -445,6 +484,8 @@ export function AdminSettings() {
     setTempKey('');
     setBackupMod(false);
   }
+
+  //download the key
   function downloadKey() {
     const fileData = JSON.stringify('key:' + key);
     const blob = new Blob([fileData], { type: 'text/plain' });
