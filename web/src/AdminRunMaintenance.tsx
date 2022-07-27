@@ -75,7 +75,7 @@ export function AdminRunMaintenance() {
     return false;
   });
 
- // Variable that will decide whether the openedMaintenanceSettingsModal visibility is true or false
+  // Variable that will decide whether the openedMaintenanceSettingsModal visibility is true or false
   const [openedMaintenanceSettingsModal, setOpened] = useState(false);
 
   // maintenance settings

@@ -16,7 +16,6 @@ import AppBase from './components/AppBase';
 import '../src/assets/styles.css';
 
 export function AdminDashboard() {
-
   // Pie chart
   const barColors = ['#1f77b4', '#ff0000'];
   const RADIAN = Math.PI / 180;
@@ -124,9 +123,9 @@ export function AdminDashboard() {
       name: 'No of Unhealthy Nodes',
       value: 400,
     },
-  ]; 
+  ];
 
-    // data for diskusage
+  // data for diskusage
   const DiskUsageChartData = [
     {
       name: 'Empty',
@@ -138,7 +137,7 @@ export function AdminDashboard() {
     },
   ];
 
-    // data for new user
+  // data for new user
   const NewUserChartData = [
     {
       Date: 'jan 20',
@@ -170,7 +169,7 @@ export function AdminDashboard() {
     },
   ];
 
-    // data for new files
+  // data for new files
   const NewFileChartData = [
     {
       Date: 'jan 20',
@@ -202,7 +201,7 @@ export function AdminDashboard() {
     },
   ];
 
-   // table header 
+  // table header
   const ths = (
     <tr>
       <th
@@ -242,7 +241,7 @@ export function AdminDashboard() {
     </tr>
   );
 
-   // display the recent 4 row from log
+  // display the recent 4 row from log
   const recentRows = logs.map((items, index) =>
     index < 4 ? (
       <tr>
@@ -285,7 +284,7 @@ export function AdminDashboard() {
     )
   );
 
-   // display the all the row from log
+  // display the all the row from log
   const rows = logs.map((items, index) => (
     <tr>
       <td

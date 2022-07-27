@@ -3,11 +3,8 @@ import { Button, Textarea, Checkbox, Text } from '@mantine/core';
 import AppBase from './components/AppBase';
 
 export function AdminConfiguration() {
-
   //function will be rotate key
-  function rotateKey(){
-
-  }
+  function rotateKey() {}
 
   return (
     <AppBase userType="admin">
@@ -66,7 +63,7 @@ export function AdminConfiguration() {
             color="dark"
             size="md"
             style={{ alignSelf: 'flex-end' }}
-            onClick={()=>rotateKey()}
+            onClick={() => rotateKey()}
           >
             Rotate Key
           </Button>
