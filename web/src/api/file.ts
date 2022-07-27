@@ -70,7 +70,7 @@ export const useMutateUpdateFile = () =>
  * Get a file's metadata.
  */
 export const useQueryFileMetadata = (fileId: string) =>
-  useQuery(['file-metadata', fileId], () =>
+  useQuery(['file', 'metadata', fileId], () =>
     APIClient.get<FileMetadata>(`/api/v1/file/${fileId}/metadata`)
       .then((res) => res.data)
       .catch(typedError)
@@ -126,7 +126,130 @@ export const useMutateCopyFile = () =>
   );
 
 /**
- * Get the download URL for a file.
+ * Get the download URL for a file. If a version number is provided, the
+ * download URL will point to the specified version.
  */
-export const getFileDownloadURL = (fileId: string) =>
-  window.location.origin + `/api/v1/file/${fileId}`;
+export const getFileDownloadURL = (fileId: string, versionId?: number) =>
+  window.location.origin +
+  `/api/v1/file/${fileId}` +
+  (versionId ? `/version/${versionId}` : '');
+
+/**
+ * Delete a file by its ID.
+ */
+export const useMutateDeleteFile = () =>
+  useMutation((fileId: string) =>
+    APIClient.delete<boolean>(`/api/v1/file/${fileId}`)
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+
+export type Permission = {
+  can_read: boolean;
+  can_write: boolean;
+  can_execute: boolean;
+  can_share: boolean;
+  can_audit: boolean;
+};
+
+export type FilePermission = Permission & {
+  file_id: string;
+  permission_id: number;
+  user_id: string;
+  group_id: string;
+  version_no: number;
+  audit: boolean;
+  created_at: string;
+  updated_at: string;
+  status: number;
+};
+
+/**
+ * Check available permissions on a file.
+ */
+export const useQueryFilePermissions = (fileId: string) =>
+  useQuery(['file', 'permissions', fileId], () =>
+    APIClient.get<FilePermission[]>(`/api/v1/file/${fileId}/permissions`)
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+
+export type UpdateFilePermissionsRequest = Permission & {
+  file_id: string;
+  permission_id: number;
+};
+
+/**
+ * Modify permissions on a file.
+ */
+export const useMutateUpdateFilePermissions = () =>
+  useMutation(({ file_id, ...perms }: UpdateFilePermissionsRequest) =>
+    APIClient.patch<boolean>(`/api/v1/file/${file_id}/permissions`, null, {
+      headers: { ...perms },
+    })
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+
+export type AddFilePermissionsRequest = Permission & {
+  file_id: string;
+  users: string[];
+  groups: string[];
+};
+
+/**
+ * Add new permissions to a file with an array of users and groups.
+ */
+export const useMutateAddFilePermissions = () =>
+  useMutation(
+    ({ file_id, users, groups, ...perms }: AddFilePermissionsRequest) =>
+      APIClient.post<boolean>(`/api/v1/file/${file_id}/permissions`, null, {
+        headers: {
+          ...perms,
+          users: JSON.stringify(users),
+          groups: JSON.stringify(groups),
+        },
+      })
+        .then((res) => res.data)
+        .catch(typedError)
+  );
+
+/**
+ * Get a file version's metadata based on its file ID and version ID.
+ */
+export const useQueryFileVersionMetadata = (
+  fileId: string,
+  versionId: number
+) =>
+  useQuery(['file', 'version', 'metadata', fileId, versionId], () =>
+    APIClient.get<FileMetadata>(
+      `/api/v1/file/${fileId}/version/${versionId}/metadata`
+    )
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+
+/**
+ * Get the version history of a file.
+ */
+export const useQueryFileVersionHistory = (fileId: string) =>
+  useQuery(['file', 'version', 'history', fileId], () =>
+    APIClient.get<FileMetadata[]>(`/api/v1/file/${fileId}/versions`)
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+
+export type DeleteFileVersionRequest = {
+  file_id: string;
+  version_id: number;
+};
+
+/**
+ * Delete a file version by its ID.
+ */
+export const useMutateDeleteFileVersion = () =>
+  useMutation(({ file_id, version_id }: DeleteFileVersionRequest) =>
+    APIClient.delete<boolean>(`/api/v1/file/${file_id}/version/${version_id}`)
+      .then((res) => res.data)
+      .catch(typedError)
+  );
