@@ -23,12 +23,13 @@ const titleStyle = createStyles(() => ({
     fontSize: '24px',
   },
 }));
+
 export function AdminSettings() {
   const theme = useMantineTheme();
   const { classes } = titleStyle();
   //retrieve from database
   let oldConfigurationSettings = [
-    { name: 'clusterAlerts', setting: true },
+    { name: 'clusterAlerts', setting: false },
     { name: 'sActionAlerts', setting: true },
     { name: 'supiciousAlerts', setting: false },
     { name: 'serverAlerts', setting: true },
@@ -38,14 +39,16 @@ export function AdminSettings() {
   ];
 
   let newConfigurationSettings = [
-    { name: 'clusterAlerts', setting: true },
-    { name: 'sActionAlerts', setting: true },
-    { name: 'supiciousAlerts', setting: false },
-    { name: 'serverAlerts', setting: true },
-    { name: 'sFileAlerts', setting: true },
-    { name: 'BackupLocation', setting: 'C:\\Users\\admin' },
-    { name: 'redundancy', setting: 'Low' },
+    { name: 'clusterAlerts', setting: oldConfigurationSettings[0].setting },
+    { name: 'sActionAlerts', setting: oldConfigurationSettings[1].setting },
+    { name: 'supiciousAlerts', setting: oldConfigurationSettings[2].setting },
+    { name: 'serverAlerts', setting: oldConfigurationSettings[3].setting },
+    { name: 'sFileAlerts', setting: oldConfigurationSettings[4].setting },
+    { name: 'BackupLocation', setting: oldConfigurationSettings[5].setting },
+    { name: 'redundancy', setting: oldConfigurationSettings[6].setting },
   ];
+
+  let [key, setKey] = useState('5q0L5mVB5mUlJjil');
 
   const [disable, setDisable] = useState(true);
   const [saveSettings, setsaveSettings] = useState(true);
@@ -62,46 +65,8 @@ export function AdminSettings() {
     return result;
   }
 
-  function add(item: string) {
-    if (oldConfigurationSettings[0].setting === true) {
-      newConfigurationSettings[0].setting =
-        !newConfigurationSettings[0].setting;
-    } else {
-      newConfigurationSettings[0].setting = true;
-    }
-
-    console.log('using add method');
-    console.log('oldConfigurationSettings ', oldConfigurationSettings);
-    console.log('newConfigurationSettings ', newConfigurationSettings);
-    validate();
-  }
-
-  function remove(item: string) {
-    if (newConfigurationSettings[0].setting === true) {
-      newConfigurationSettings[0].setting = false;
-    } else {
-      newConfigurationSettings[0].setting = true;
-    }
-    console.log('using remove method');
-    console.log('oldConfigurationSettings ', oldConfigurationSettings);
-    console.log('newConfigurationSettings ', newConfigurationSettings);
-
-    validate();
-  }
-
-  function validate() {
-    if (
-      oldConfigurationSettings[0].setting !==
-      newConfigurationSettings[0].setting
-    ) {
-      setDisable(false);
-    } else {
-      setDisable(true);
-    }
-  }
-
   const [backupMod, setBackupMod] = useState(false);
-  const [backupLocation, setBackupLocation] = useState(
+  var [backupLocation, setBackupLocation] = useState(
     oldConfigurationSettings[5].setting.toString()
   );
   const [backupTemp, setBackupTemp] = useState(
@@ -114,7 +79,7 @@ export function AdminSettings() {
   }
 
   const [redundancyMod, setVisible] = useState(false);
-  const [redundancyLevel, setredundancyLevel] = useState(
+  var [redundancyLevel, setredundancyLevel] = useState(
     oldConfigurationSettings[6].setting.toString()
   );
   const [redundancyTemp, setRedundancyTemp] = useState(
@@ -122,18 +87,22 @@ export function AdminSettings() {
   );
 
   function changeRedundancy() {
+    redundancyLevel = redundancyTemp;
+    newConfigurationSettings[6].setting = redundancyLevel;
     setredundancyLevel(redundancyTemp);
+    validateRedundancy();
+    console.log(settings);
     setVisible(false);
   }
-
-  function saveChanges() {}
 
   const [clusterAlerts, setChecked] = useState(() => {
     if (oldConfigurationSettings[0].setting === true) {
       return true;
     }
+
     return false;
   });
+
   const [sActionAlerts, setChecked1] = useState(() => {
     if (oldConfigurationSettings[1].setting === true) {
       return true;
@@ -163,7 +132,303 @@ export function AdminSettings() {
     return false;
   });
 
-  let [key, setKey] = useState('5q0L5mVB5mUlJjil');
+  function changeClusterAlert() {
+    setChecked((clusterAlerts) => !clusterAlerts);
+
+    //detect that the first state is true but the end result is false
+    if (clusterAlerts == true) {
+      newConfigurationSettings[0].setting = false;
+      validateClusterAlert();
+    } else {
+      //detect that the first state is false but the end result is true
+      newConfigurationSettings[0].setting = true;
+      validateClusterAlert();
+    }
+  }
+
+  function changeActionAlerts() {
+    setChecked1((sActionAlerts) => !sActionAlerts);
+    //detect that the first state is true but the end result is false
+    if (sActionAlerts == true) {
+      newConfigurationSettings[1].setting = false;
+      validateActionAlerts();
+    } else {
+      //detect that the first state is false but the end result is true
+      newConfigurationSettings[1].setting = true;
+      validateActionAlerts();
+    }
+  }
+
+  function changeSupiciousAlerts() {
+    setChecked2((supiciousAlerts) => !supiciousAlerts);
+    //detect that the first state is true but the end result is false
+    if (supiciousAlerts == true) {
+      newConfigurationSettings[2].setting = false;
+      validateSupiciousAlerts();
+    } else {
+      //detect that the first state is false but the end result is true
+      newConfigurationSettings[2].setting = true;
+      validateSupiciousAlerts();
+    }
+  }
+
+  function changeServerAlerts() {
+    setChecked3((serverAlerts) => !serverAlerts);
+    //detect that the first state is true but the end result is false
+    if (serverAlerts == true) {
+      newConfigurationSettings[3].setting = false;
+      validateServerAlerts();
+    } else {
+      //detect that the first state is false but the end result is true
+      newConfigurationSettings[3].setting = true;
+      validateServerAlerts();
+    }
+  }
+
+  function changesFileAlerts() {
+    setChecked4((sFileAlerts) => !sFileAlerts);
+    //detect that the first state is true but the end result is false
+    if (sFileAlerts == true) {
+      newConfigurationSettings[4].setting = false;
+      validateFileAlerts();
+    } else {
+      //detect that the first state is false but the end result is true
+      newConfigurationSettings[4].setting = true;
+      validateFileAlerts();
+    }
+  }
+  /* there is 5 checkbox and 2 button, so each setting will bind to each item and if there is changes, 
+     the useState will be false which enable the save button 
+  */
+  var [settingsA, setSettingsA] = useState(true);
+  var [settingsB, setSettingsB] = useState(true);
+  var [settingsC, setSettingsC] = useState(true);
+  var [settingsD, setSettingsD] = useState(true);
+  var [settingsE, setSettingsE] = useState(true);
+  var [settingsF, setSettingsF] = useState(true);
+  var [settingsG, setSettingsG] = useState(true);
+  var settings = [
+    settingsA,
+    settingsB,
+    settingsC,
+    settingsD,
+    settingsE,
+    settingsF,
+    settingsG,
+  ];
+
+  /* all the validation methods is to check if there is any changes, if there is changes 
+     then each setting will be change to false
+
+
+
+  */
+  function validateClusterAlert() {
+    if (
+      oldConfigurationSettings[0].setting !==
+      newConfigurationSettings[0].setting
+    ) {
+      if (settingsA == true) {
+        settingsA = false;
+        settings[0] = false;
+        setSettingsA(false);
+      }
+      if (settings.indexOf(false) > -1) {
+        setDisable(false);
+      } else {
+        setDisable(true);
+      }
+    } else {
+      if (settingsA == false) {
+        settingsA = true;
+        settings[0] = true;
+        setSettingsA(true);
+      }
+
+      if (settings.indexOf(false) > -1) {
+        setDisable(false);
+      } else {
+        setDisable(true);
+      }
+    }
+  }
+
+  function validateActionAlerts() {
+    if (
+      oldConfigurationSettings[1].setting !==
+      newConfigurationSettings[1].setting
+    ) {
+      if (settingsB == true) {
+        settingsB = false;
+        settings[1] = false;
+        setSettingsB(false);
+      }
+      if (settings.indexOf(false) > -1) {
+        setDisable(false);
+      } else {
+        setDisable(true);
+      }
+    } else {
+      if (settingsB == false) {
+        settingsB = true;
+        settings[1] = true;
+        setSettingsB(true);
+      }
+      if (settings.indexOf(false) > -1) {
+        setDisable(false);
+      } else {
+        setDisable(true);
+      }
+    }
+  }
+
+  function validateSupiciousAlerts() {
+    if (
+      oldConfigurationSettings[2].setting !==
+      newConfigurationSettings[2].setting
+    ) {
+      if (settingsC == true) {
+        settingsC = false;
+        settings[2] = false;
+        setSettingsC(false);
+      }
+      if (settings.indexOf(false) > -1) {
+        setDisable(false);
+      } else {
+        setDisable(true);
+      }
+    } else {
+      if (settingsC == false) {
+        settingsC = true;
+        settings[2] = true;
+        setSettingsC(true);
+      }
+      if (settings.indexOf(false) > -1) {
+        setDisable(false);
+      } else {
+        setDisable(true);
+      }
+      console.log(settings);
+    }
+  }
+
+  function validateServerAlerts() {
+    if (
+      oldConfigurationSettings[3].setting !==
+      newConfigurationSettings[3].setting
+    ) {
+      if (settingsD == true) {
+        settingsD = false;
+        settings[3] = false;
+        setSettingsD(false);
+      }
+      if (settings.indexOf(false) > -1) {
+        setDisable(false);
+      } else {
+        setDisable(true);
+      }
+      console.log(settings);
+    } else {
+      if (settingsD == false) {
+        settingsD = true;
+        settings[3] = true;
+        setSettingsD(true);
+      }
+      if (settings.indexOf(false) > -1) {
+        setDisable(false);
+      } else {
+        setDisable(true);
+      }
+    }
+  }
+
+  function validateFileAlerts() {
+    if (
+      oldConfigurationSettings[4].setting !==
+      newConfigurationSettings[4].setting
+    ) {
+      if (settingsE == true) {
+        settingsE = false;
+        settings[4] = false;
+        setSettingsE(false);
+      }
+      if (settings.indexOf(false) > -1) {
+        setDisable(false);
+      } else {
+        setDisable(true);
+      }
+    } else {
+      if (settingsE == false) {
+        settingsE = true;
+        settings[4] = true;
+        setSettingsE(true);
+      }
+      if (settings.indexOf(false) > -1) {
+        setDisable(false);
+      } else {
+        setDisable(true);
+      }
+    }
+  }
+  function validateKey() {
+    if (
+      oldConfigurationSettings[5].setting !==
+      newConfigurationSettings[5].setting
+    ) {
+      if (settingsF == true) {
+        settingsF = false;
+        settings[5] = false;
+        setSettingsF(false);
+      }
+      if (settings.indexOf(false) > -1) {
+        setDisable(false);
+      } else {
+        setDisable(true);
+      }
+      console.log(settings);
+    } else {
+      if (settingsF == false) {
+        settingsF = true;
+        settings[5] = true;
+        setSettingsF(true);
+      }
+      if (settings.indexOf(false) > -1) {
+        setDisable(false);
+      } else {
+        setDisable(true);
+      }
+    }
+  }
+  function validateRedundancy() {
+    if (
+      oldConfigurationSettings[6].setting !==
+      newConfigurationSettings[6].setting
+    ) {
+      if (settingsG == true) {
+        settingsG = false;
+        settings[6] = false;
+        setSettingsG(false);
+      }
+      if (settings.indexOf(false) > -1) {
+        setDisable(false);
+      } else {
+        setDisable(true);
+      }
+      console.log(settings);
+    } else {
+      if (settingsG == false) {
+        settingsG = true;
+        settings[6] = true;
+        setSettingsG(true);
+      }
+      if (settings.indexOf(false) > -1) {
+        setDisable(false);
+      } else {
+        setDisable(true);
+      }
+    }
+  }
+
   let [tempKey, setTempKey] = useState('');
   function generateKeys() {
     setTempKey(generateRandomString());
@@ -172,9 +437,11 @@ export function AdminSettings() {
 
   function saveKey() {
     tempKey == '' ? '' : setKey(tempKey);
-
     backup();
     setsaveSettings(true);
+    backupLocation = backupTemp;
+    newConfigurationSettings[5].setting = backupLocation;
+    validateKey();
     setTempKey('');
     setBackupMod(false);
   }
@@ -186,6 +453,11 @@ export function AdminSettings() {
     link.download = 'logs.txt';
     link.href = url;
     link.click();
+  }
+
+  // function to save all the pending changes
+  function saveChanges() {
+    setDisable(true);
   }
 
   return (
@@ -244,7 +516,7 @@ export function AdminSettings() {
                   />
 
                   <Radio
-                    value="low"
+                    value="Low"
                     label="Low"
                     checked={redundancyTemp === 'Low'}
                   />
@@ -399,6 +671,7 @@ export function AdminSettings() {
               </div>
             </div>
           </Modal>
+
           <Table striped>
             <caption
               style={{
@@ -435,14 +708,8 @@ export function AdminSettings() {
                     style={{
                       marginRight: '50px',
                     }}
-                    id="clusterAlerts"
                     checked={clusterAlerts}
-                    onChange={(event) => [
-                      event.currentTarget.checked
-                        ? add('clusterAlerts')
-                        : remove('clusterAlerts'),
-                      setChecked(event.currentTarget.checked),
-                    ]}
+                    onChange={() => changeClusterAlert()}
                   />
                 </div>
               </tr>
@@ -464,9 +731,7 @@ export function AdminSettings() {
                       marginRight: '50px',
                     }}
                     checked={sActionAlerts}
-                    onChange={(event) => [
-                      setChecked1(event.currentTarget.checked),
-                    ]}
+                    onChange={changeActionAlerts}
                   />
                 </div>
               </tr>
@@ -488,9 +753,7 @@ export function AdminSettings() {
                       marginRight: '50px',
                     }}
                     checked={supiciousAlerts}
-                    onChange={(event) => [
-                      setChecked2(event.currentTarget.checked),
-                    ]}
+                    onChange={changeSupiciousAlerts}
                   />{' '}
                 </div>
               </tr>
@@ -512,9 +775,7 @@ export function AdminSettings() {
                       marginRight: '50px',
                     }}
                     checked={serverAlerts}
-                    onChange={(event) => [
-                      setChecked3(event.currentTarget.checked),
-                    ]}
+                    onChange={changeServerAlerts}
                   />{' '}
                 </div>
               </tr>
@@ -536,9 +797,7 @@ export function AdminSettings() {
                       marginRight: '50px',
                     }}
                     checked={sFileAlerts}
-                    onChange={(event) => [
-                      setChecked4(event.currentTarget.checked),
-                    ]}
+                    onChange={changesFileAlerts}
                   />
                 </div>
               </tr>

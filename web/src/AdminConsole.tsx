@@ -9,6 +9,7 @@ import {
 
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import { group } from 'console';
 
 export interface ConsoleDetails {
   groupList: Array<any>;
@@ -22,19 +23,70 @@ export interface ConsoleDetails {
 
 export function AdminConsole(props: ConsoleDetails) {
   const [CurrentSSOGroups, setValue] = useState(props.groupList);
-  const [Group, addGroup] = useState('');
+  var [Group, addGroup] = useState('');
   function add() {
     setValue(CurrentSSOGroups.concat(Group));
     setOpened(false);
   }
+  var [submitBtn,setSubmitBtn]=useState(true);
   const [openedAddUserModel, setOpened] = useState(false);
   const title = 'Add ' + props.addObjectLabel;
   const textField = 'Name of the ' + props.addObjectLabel;
-
+  var [errorMessage, setErrorMessage] = useState('');
   const deleteGroup = (index: any) => {
     setValue(CurrentSSOGroups.filter((v, i) => i !== index));
   };
 
+  function validate() {
+    if (
+      Group.includes('/') ||
+      Group.includes('[') ||
+      Group.includes('!') ||
+      Group.includes('@') ||
+      Group.includes('#') ||
+      Group.includes('$') ||
+      Group.includes('%') ||
+      Group.includes('^') ||
+      Group.includes('&') ||
+      Group.includes('*') ||
+      Group.includes('(') ||
+      Group.includes(')') ||
+      Group.includes('\\')||
+      Group.includes('=') ||
+      Group.includes('[') ||
+      Group.includes(']') ||
+      Group.includes(';') ||
+      Group.includes(',') ||
+      Group.includes('.') ||
+      Group.includes('<') ||
+      Group.includes('>') ||
+      Group.includes('?') ||
+      Group.includes('`')
+    ) {
+      errorMessage = 'do not include special characters';
+      setErrorMessage('do not include special characters');
+      submitBtn=true;
+      setSubmitBtn(true);
+    } 
+    else if(  Group.includes(' ')){
+      errorMessage = 'No space is allowed';
+      setErrorMessage('No space is allowed');
+      submitBtn=true;
+      setSubmitBtn(true);
+    }
+    else if(  Group==""){
+      errorMessage = 'Details needed';
+      setErrorMessage('Details needed');
+      submitBtn=true;
+      setSubmitBtn(true);
+    }
+    else {
+      errorMessage = '';
+      setErrorMessage('');
+      submitBtn=false;
+      setSubmitBtn(false);
+    }
+  }
   const ths = (
     <tr>
       <th
@@ -111,14 +163,18 @@ export function AdminConsole(props: ConsoleDetails) {
                 name="password"
                 id="password"
                 required
+                error={errorMessage}
                 onChange={(event) => {
-                  addGroup(event.target.value);
+                  addGroup(event.target.value),
+                  (Group = event.target.value),           
+                    validate();
                 }}
               />
               <Button
                 variant="default"
                 color="dark"
                 size="md"
+                disabled={submitBtn}
                 onClick={() => add()}
                 style={{
                   marginLeft: '15px',
