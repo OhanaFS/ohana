@@ -1,18 +1,34 @@
 TARGET = bin/ohana
 
+UNAME_S := $(shell uname -s)
+
+ifeq ($(UNAME_S),Darwin)
+	GOOSNAME := darwin
+	LDFLAGS := " \
+                  -X main.BuildTime=`date -u -I seconds` \
+                  -X main.GitCommit=`git rev-parse HEAD 2>/dev/null` \
+                 "
+else
+	GOOSNAME := linux
+	LDFLAGS := " \
+				-extldflags=-static \
+				-X main.BuildTime=`date -uIs` \
+				-X main.GitCommit=`git rev-parse HEAD 2>/dev/null` \
+				"
+endif
+
+
 .PHONY: all
 all: clean web test $(TARGET) postbuild
 
 $(TARGET): $(shell find . -name '*.go')
 	mkdir -p bin
-	GOOS=linux go build -tags osusergo,netgo \
-		-ldflags " \
-			-extldflags=-static \
-			-X main.BuildTime=`date -uIs` \
-			-X main.GitCommit=`git rev-parse HEAD 2>/dev/null` \
-		" \
+	GOOS=${GOOSNAME} go build -tags osusergo,netgo \
+		-ldflags ${LDFLAGS}\
 		-o $(TARGET) \
 		cmd/ohana/main.go
+
+
 
 .PHONY: postbuild
 postbuild: $(TARGET)
