@@ -198,7 +198,9 @@ export function AdminSettings() {
       validateFileAlerts();
     }
   }
-
+  /* there is 5 checkbox and 2 button, so each setting will bind to each item and if there is changes, 
+     the useState will be false which enable the save button 
+  */
   var [settingsA, setSettingsA] = useState(true);
   var [settingsB, setSettingsB] = useState(true);
   var [settingsC, setSettingsC] = useState(true);
@@ -215,6 +217,13 @@ export function AdminSettings() {
     settingsF,
     settingsG,
   ];
+
+  /* all the validation methods is to check if there is any changes, if there is changes 
+     then each setting will be change to false
+
+
+
+  */
   function validateClusterAlert() {
     if (
       oldConfigurationSettings[0].setting !==
@@ -446,6 +455,8 @@ export function AdminSettings() {
     link.href = url;
     link.click();
   }
+
+  // function to save all the pending changes
   function saveChanges() {
     setDisable(true);
   }
