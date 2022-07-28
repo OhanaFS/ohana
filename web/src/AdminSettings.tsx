@@ -29,14 +29,13 @@ const titleStyle = createStyles(() => ({
 }));
 
 /*
- *  so for the useState right,i notice that if u use the method to change the variable data, it will not 
+ *  so for the useState right,i notice that if u use the method to change the variable data, it will not
  *  immediately change the data but wait until the next time u access the variable then it will show u the updated data.
  *  so no choice i just change the data straight from variable instead of using the method to change the data.
  *  then if u dont use the method to change the state but change straigth from the variable, next time u access the variable, it will use
  *  back the previous state.
  *  so i change the state of variable and also the variable data.
-*/
-
+ */
 
 export function AdminSettings() {
   // variable that will be binded to
@@ -112,7 +111,7 @@ export function AdminSettings() {
   );
 
   // temp location for backuplocation as only when the user save the settings, then it save the changes
-  const [backupTemp, setBackupTemp] = useState(
+  var [backupTemp, setBackupTemp] = useState(
     oldConfigurationSettings[5].setting.toString()
   );
 
@@ -148,12 +147,12 @@ export function AdminSettings() {
 
   // validate and save the key (works the same as how the checkbox is validated)
   function saveKey() {
-    tempKey == '' ? '' : setKey(tempKey),key=tempKey;
+    tempKey == '' ? '' : setKey(tempKey), (key = tempKey);
     backup();
     setsaveSettings(true);
     backupLocation = backupTemp;
     setBackupLocation(backupTemp);
-    newConfigurationSettings[5].setting=backupTemp;
+    newConfigurationSettings[5].setting = backupTemp;
     validateKey();
     //reset temp key to default
     setTempKey('');
@@ -445,7 +444,6 @@ export function AdminSettings() {
     }
   }
   function validateKey() {
-
     if (
       oldConfigurationSettings[5].setting !==
       newConfigurationSettings[5].setting
@@ -460,7 +458,6 @@ export function AdminSettings() {
       } else {
         setDisable(true);
       }
-
     } else {
       if (settingsF == false) {
         settingsF = true;
@@ -475,7 +472,6 @@ export function AdminSettings() {
     }
   }
   function validateRedundancy() {
-
     if (
       oldConfigurationSettings[6].setting !==
       newConfigurationSettings[6].setting
@@ -490,7 +486,6 @@ export function AdminSettings() {
       } else {
         setDisable(true);
       }
-
     } else {
       if (settingsG == false) {
         settingsG = true;
@@ -512,7 +507,6 @@ export function AdminSettings() {
     setTempKey(generateRandomString());
     setsaveSettings(false);
   }
-
 
   //download the key
   function downloadKey() {
@@ -631,33 +625,76 @@ export function AdminSettings() {
 
     //backup
     if (settingsF == false) {
-    
-      oBackupLocation=backupLocation;
+      oBackupLocation = backupLocation;
       setoBackupLocation(backupLocation);
-      oldConfigurationSettings[5].setting=backupLocation;
-      newConfigurationSettings[5].setting=backupLocation;
+      oldConfigurationSettings[5].setting = backupLocation;
+      newConfigurationSettings[5].setting = backupLocation;
       settingsF = true;
       setSettingsF(true);
       settings[5] = true;
       settings = [true, true, true, true, true, true, true];
-
     }
 
     // redunacncy
     if (settingsG == false) {
-      oredundancy=redundancyLevel;
+      oredundancy = redundancyLevel;
       setoredundancy(redundancyLevel);
-      oldConfigurationSettings[6].setting=redundancyLevel;
-      newConfigurationSettings[6].setting=redundancyLevel;
+      oldConfigurationSettings[6].setting = redundancyLevel;
+      newConfigurationSettings[6].setting = redundancyLevel;
       settingsG = true;
       setSettingsG(true);
       settings[5] = true;
       settings = [true, true, true, true, true, true, true];
-
     }
     setDisable(true);
   }
 
+  // Variable that will decide whether the errorMessage will be displayed
+  var [errorMessage, setErrorMessage] = useState('');
+
+  // validate the text field
+  function validateTF() {
+    if (
+      backupTemp.includes('/') ||
+      backupTemp.includes('[') ||
+      backupTemp.includes('!') ||
+      backupTemp.includes('@') ||
+      backupTemp.includes('#') ||
+      backupTemp.includes('$') ||
+      backupTemp.includes('%') ||
+      backupTemp.includes('^') ||
+      backupTemp.includes('&') ||
+      backupTemp.includes('*') ||
+      backupTemp.includes('(') ||
+      backupTemp.includes(')') ||
+      backupTemp.includes('=') ||
+      backupTemp.includes('[') ||
+      backupTemp.includes(']') ||
+      backupTemp.includes(';') ||
+      backupTemp.includes(',') ||
+      backupTemp.includes('.') ||
+      backupTemp.includes('<') ||
+      backupTemp.includes('>') ||
+      backupTemp.includes('?') ||
+      backupTemp.includes('`')
+    ) {
+      errorMessage = 'Do not include special characters';
+      setErrorMessage('Do not include special characters');
+      setsaveSettings(true);
+    } else if (backupTemp.includes(' ')) {
+      errorMessage = 'No space is allowed';
+      setErrorMessage('No space is allowed');
+      setsaveSettings(true);
+    } else if (backupTemp == '') {
+      errorMessage = 'Details needed';
+      setErrorMessage('Details needed');
+      setsaveSettings(true);
+    } else {
+      errorMessage = '';
+      setErrorMessage('');
+      setsaveSettings(false);
+    }
+  }
   return (
     <AppBase userType="admin">
       <div
@@ -701,24 +738,14 @@ export function AdminSettings() {
                   spacing="xl"
                   required
                   value={redundancyTemp}
-                  onChange={(value) => (setRedundancyTemp(value),redundancyTemp="Low")}
+                  onChange={(value) => (
+                    setRedundancyTemp(value), (redundancyTemp = 'Low')
+                  )}
                 >
-                  <Radio
-                    value="High"
-                    label="High"
-               
-                  />
-                  <Radio
-                    value="Medium"
-                    label="Medium"
-                
-                  />
+                  <Radio value="High" label="High" />
+                  <Radio value="Medium" label="Medium" />
 
-                  <Radio
-                    value="Low"
-                    label="Low"
-                
-                  />
+                  <Radio value="Low" label="Low" />
                 </Radio.Group>
               </div>
               <div
@@ -842,10 +869,13 @@ export function AdminSettings() {
                   label="New Location:"
                   radius="md"
                   size="lg"
+                  error={errorMessage}
+                  defaultValue={backupTemp}
                   required
                   onChange={(event) => [
                     setBackupTemp(event.target.value),
-                    setsaveSettings(false),
+                    (backupTemp = event.target.value),
+                    validateTF(),
                   ]}
                 />
                 <div
