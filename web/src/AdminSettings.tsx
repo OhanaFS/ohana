@@ -28,6 +28,16 @@ const titleStyle = createStyles(() => ({
   },
 }));
 
+/*
+ *  so for the useState right,i notice that if u use the method to change the variable data, it will not 
+ *  immediately change the data but wait until the next time u access the variable then it will show u the updated data.
+ *  so no choice i just change the data straight from variable instead of using the method to change the data.
+ *  then if u dont use the method to change the state but change straigth from the variable, next time u access the variable, it will use
+ *  back the previous state.
+ *  so i change the state of variable and also the variable data.
+*/
+
+
 export function AdminSettings() {
   // variable that will be binded to
   const { classes } = titleStyle();
@@ -61,8 +71,14 @@ export function AdminSettings() {
     { name: 'supiciousAlerts', setting: oldConfigurationSettings[2].setting },
     { name: 'serverAlerts', setting: oldConfigurationSettings[3].setting },
     { name: 'sFileAlerts', setting: oldConfigurationSettings[4].setting },
-    { name: 'BackupLocation', setting: oldConfigurationSettings[5].setting.toString() },
-    { name: 'redundancy', setting: oldConfigurationSettings[6].setting.toString() },
+    {
+      name: 'BackupLocation',
+      setting: oldConfigurationSettings[5].setting.toString(),
+    },
+    {
+      name: 'redundancy',
+      setting: oldConfigurationSettings[6].setting.toString(),
+    },
   ];
 
   // key variable
@@ -116,7 +132,7 @@ export function AdminSettings() {
   );
 
   // temp location for redundancy Level as only when the user save the redundancy Level, then it save the changes
-  const [redundancyTemp, setRedundancyTemp] = useState(
+  var [redundancyTemp, setRedundancyTemp] = useState(
     oldConfigurationSettings[6].setting.toString()
   );
 
@@ -124,10 +140,24 @@ export function AdminSettings() {
      sets the redundancyMod visibility to false*/
   function changeRedundancy() {
     redundancyLevel = redundancyTemp;
-    newConfigurationSettings[6].setting = redundancyLevel;
     setredundancyLevel(redundancyTemp);
+    newConfigurationSettings[6].setting = redundancyLevel;
     validateRedundancy();
     setVisible(false);
+  }
+
+  // validate and save the key (works the same as how the checkbox is validated)
+  function saveKey() {
+    tempKey == '' ? '' : setKey(tempKey),key=tempKey;
+    backup();
+    setsaveSettings(true);
+    backupLocation = backupTemp;
+    setBackupLocation(backupTemp);
+    newConfigurationSettings[5].setting=backupTemp;
+    validateKey();
+    //reset temp key to default
+    setTempKey('');
+    setBackupMod(false);
   }
 
   // each of these variable is binded, so if the data retrieve from database is true, the checkbox will be ticked
@@ -166,15 +196,6 @@ export function AdminSettings() {
     }
 
     return false;
-  });
-
-  var [sBackup, setChecked5] = useState(() => {
-    return oldConfigurationSettings[5].setting.toString();
-  });
-
-  var [sRedundancy, setChecked6] = useState(() => {
-    return oldConfigurationSettings[6].setting.toString();
-    
   });
 
   // this function will check if any changes is made to the first checkbox
@@ -277,9 +298,6 @@ export function AdminSettings() {
 
   /* all the validation methods is to check if there is any changes, if there is changes 
      then each setting will be change to false
-
-
-
   */
   function validateClusterAlert() {
     if (
@@ -366,7 +384,6 @@ export function AdminSettings() {
       } else {
         setDisable(true);
       }
-      console.log(settings);
     }
   }
 
@@ -385,7 +402,6 @@ export function AdminSettings() {
       } else {
         setDisable(true);
       }
-      console.log(settings);
     } else {
       if (settingsD == false) {
         settingsD = true;
@@ -429,8 +445,7 @@ export function AdminSettings() {
     }
   }
   function validateKey() {
-    console.log(" oldConfigurationSettings[5].setting ", oldConfigurationSettings[5].setting );
-    console.log(" newConfigurationSettings[5].setting ", newConfigurationSettings[5].setting );
+
     if (
       oldConfigurationSettings[5].setting !==
       newConfigurationSettings[5].setting
@@ -445,7 +460,7 @@ export function AdminSettings() {
       } else {
         setDisable(true);
       }
-      console.log(settings);
+
     } else {
       if (settingsF == false) {
         settingsF = true;
@@ -460,6 +475,7 @@ export function AdminSettings() {
     }
   }
   function validateRedundancy() {
+
     if (
       oldConfigurationSettings[6].setting !==
       newConfigurationSettings[6].setting
@@ -474,7 +490,7 @@ export function AdminSettings() {
       } else {
         setDisable(true);
       }
-      console.log(settings);
+
     } else {
       if (settingsG == false) {
         settingsG = true;
@@ -497,19 +513,6 @@ export function AdminSettings() {
     setsaveSettings(false);
   }
 
-  // validate and save the key (works the same as how the checkbox is validated)
-  function saveKey() {
-    tempKey == '' ? '' : setKey(tempKey);
-    backup();
-    setsaveSettings(true);
-    backupLocation = backupTemp;
-    newConfigurationSettings[5].setting = backupLocation;
-    
-    validateKey();
-    //reset temp key to default
-    setTempKey('');
-    setBackupMod(false);
-  }
 
   //download the key
   function downloadKey() {
@@ -524,7 +527,6 @@ export function AdminSettings() {
 
   // function to save all the pending changes
   function saveChanges() {
-    console.log(settings);
     if (settingsA == false) {
       newConfigurationSettings[0].setting =
         !newConfigurationSettings[0].setting;
@@ -626,46 +628,33 @@ export function AdminSettings() {
         setChecked4(false);
       }
     }
+
+    //backup
     if (settingsF == false) {
-      console.log("asdasd ",newConfigurationSettings[5].setting)
-      console.log("asdasdaa ",oldConfigurationSettings[5].setting)
-      oldConfigurationSettings[5].setting = newConfigurationSettings[5].setting;
+    
+      oBackupLocation=backupLocation;
+      setoBackupLocation(backupLocation);
+      oldConfigurationSettings[5].setting=backupLocation;
+      newConfigurationSettings[5].setting=backupLocation;
       settingsF = true;
       setSettingsF(true);
       settings[5] = true;
       settings = [true, true, true, true, true, true, true];
-      console.log("save", oldConfigurationSettings[5].setting)
-      if (oldConfigurationSettings[5].setting === true) {
-     /*   setoFileAlerts(true);
-        oBackupLocation = true;
-        setChecked5(true);*/
-      } else {
-   /*     setoFileAlerts(false);
-        oBackupLocation = false;
-        setChecked5(false);*/
-      }
-    }
-    if (settingsG == false) {
-      newConfigurationSettings[6].setting =
-        !newConfigurationSettings[6].setting;
 
-      oldConfigurationSettings[6].setting = newConfigurationSettings[6].setting;
+    }
+
+    // redunacncy
+    if (settingsG == false) {
+      oredundancy=redundancyLevel;
+      setoredundancy(redundancyLevel);
+      oldConfigurationSettings[6].setting=redundancyLevel;
+      newConfigurationSettings[6].setting=redundancyLevel;
       settingsG = true;
       setSettingsG(true);
       settings[5] = true;
       settings = [true, true, true, true, true, true, true];
 
-      if (settings[6] === true) {
-     /*   setoredundancy(true);
-        oredundancy = true;
-        setChecked5(true);*/
-      } else {
-   /*     setoredundancy(false);
-        oredundancy = false;
-        setChecked5(false);*/
-      }
     }
-
     setDisable(true);
   }
 
@@ -711,23 +700,24 @@ export function AdminSettings() {
                   }
                   spacing="xl"
                   required
-                  onChange={(value) => setRedundancyTemp(value)}
+                  value={redundancyTemp}
+                  onChange={(value) => (setRedundancyTemp(value),redundancyTemp="Low")}
                 >
                   <Radio
                     value="High"
                     label="High"
-                    checked={redundancyTemp === 'High'}
+               
                   />
                   <Radio
                     value="Medium"
                     label="Medium"
-                    checked={redundancyTemp === 'Medium'}
+                
                   />
 
                   <Radio
                     value="Low"
                     label="Low"
-                    checked={redundancyTemp === 'Low'}
+                
                   />
                 </Radio.Group>
               </div>
