@@ -35,6 +35,8 @@ const titleStyle = createStyles(() => ({
  *  then if u dont use the method to change the state but change straigth from the variable, next time u access the variable, it will use
  *  back the previous state.
  *  so i change the state of variable and also the variable data.
+ * 
+ *  so for the location right, from what i read online, u cant choose the place to download, the location will always be at the downloads
  */
 
 export function AdminSettings() {
@@ -521,6 +523,7 @@ export function AdminSettings() {
 
   // function to save all the pending changes
   function saveChanges() {
+    // Cluster health alerts
     if (settingsA == false) {
       newConfigurationSettings[0].setting =
         !newConfigurationSettings[0].setting;
@@ -528,9 +531,7 @@ export function AdminSettings() {
       oldConfigurationSettings[0].setting = newConfigurationSettings[0].setting;
       settingsA = true;
       setSettingsA(true);
-      settings[0] = true;
-      settings = [true, true, true, true, true, true, true];
-
+    
       if (oldConfigurationSettings[0].setting === true) {
         setClusterAlerts(true);
         oclusterAlerts = true;
@@ -541,6 +542,7 @@ export function AdminSettings() {
         setChecked(false);
       }
     }
+    // server offline alerts
     if (settingsB == false) {
       newConfigurationSettings[1].setting =
         !newConfigurationSettings[1].setting;
@@ -548,8 +550,8 @@ export function AdminSettings() {
       oldConfigurationSettings[1].setting = newConfigurationSettings[1].setting;
       settingsB = true;
       setSettingsB(true);
-      settings[1] = true;
-      settings = [true, true, true, true, true, true, true];
+   
+  
 
       if (oldConfigurationSettings[1].setting === true) {
         setoActionAlerts(true);
@@ -561,6 +563,7 @@ export function AdminSettings() {
         setChecked1(false);
       }
     }
+    //supicious action alerts
     if (settingsC == false) {
       newConfigurationSettings[2].setting =
         !newConfigurationSettings[2].setting;
@@ -568,8 +571,8 @@ export function AdminSettings() {
       oldConfigurationSettings[2].setting = newConfigurationSettings[2].setting;
       settingsC = true;
       setSettingsC(true);
-      settings[2] = true;
-      settings = [true, true, true, true, true, true, true];
+     
+    
 
       if (oldConfigurationSettings[2].setting === true) {
         setoSupiciousAlerts(true);
@@ -581,6 +584,7 @@ export function AdminSettings() {
         setChecked2(false);
       }
     }
+    // server full alert
     if (settingsD == false) {
       newConfigurationSettings[3].setting =
         !newConfigurationSettings[3].setting;
@@ -588,8 +592,8 @@ export function AdminSettings() {
       oldConfigurationSettings[3].setting = newConfigurationSettings[3].setting;
       settingsD = true;
       setSettingsD(true);
-      settings[3] = true;
-      settings = [true, true, true, true, true, true, true];
+    
+   
 
       if (oldConfigurationSettings[3].setting === true) {
         setoServerAlerts(true);
@@ -602,6 +606,7 @@ export function AdminSettings() {
       }
     }
 
+    //supicious file alerts
     if (settingsE == false) {
       newConfigurationSettings[4].setting =
         !newConfigurationSettings[4].setting;
@@ -609,8 +614,8 @@ export function AdminSettings() {
       oldConfigurationSettings[4].setting = newConfigurationSettings[4].setting;
       settingsE = true;
       setSettingsE(true);
-      settings[4] = true;
-      settings = [true, true, true, true, true, true, true];
+     
+    
 
       if (oldConfigurationSettings[4].setting === true) {
         setoFileAlerts(true);
@@ -631,8 +636,8 @@ export function AdminSettings() {
       newConfigurationSettings[5].setting = backupLocation;
       settingsF = true;
       setSettingsF(true);
-      settings[5] = true;
-      settings = [true, true, true, true, true, true, true];
+    
+    
     }
 
     // redunacncy
@@ -643,9 +648,10 @@ export function AdminSettings() {
       newConfigurationSettings[6].setting = redundancyLevel;
       settingsG = true;
       setSettingsG(true);
-      settings[5] = true;
-      settings = [true, true, true, true, true, true, true];
+    
+    
     }
+    settings = [true, true, true, true, true, true, true];
     setDisable(true);
   }
 
