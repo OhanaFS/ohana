@@ -121,8 +121,15 @@ export default function AppBase(props: AppBaseProps) {
           hidden={!opened}
           width={{ sm: 250 }}
           className={classes.navbar}
+          style={{
+            paddingBottom: 0,
+          }}
         >
-          <Navbar.Section grow className={classes.links}>
+          <Navbar.Section
+            style={{ margin: '5px' }}
+            grow
+            className={classes.links}
+          >
             <MainLinks
               links={props.userType === 'user' ? data_user : data_admin}
             />
@@ -140,8 +147,22 @@ export default function AppBase(props: AppBaseProps) {
       header={
         <Header height={70} p="md">
           <div
-            style={{ display: 'flex', alignItems: 'center', height: '100%' }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              height: '100%',
+              justifyContent: 'space-between',
+            }}
           >
+            <Title
+              style={{
+                marginBottom: '-0.5rem',
+                marginLeft: '13px',
+              }}
+              order={2}
+            >
+              Ohana
+            </Title>
             <MediaQuery largerThan="sm" styles={{ display: 'none' }}>
               <Burger
                 opened={opened}
@@ -151,8 +172,6 @@ export default function AppBase(props: AppBaseProps) {
                 mr="xl"
               />
             </MediaQuery>
-
-            <Title order={2}>Ohana</Title>
           </div>
         </Header>
       }
