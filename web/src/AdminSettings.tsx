@@ -32,30 +32,41 @@ export function AdminSettings() {
   // variable that will be binded to
   const { classes } = titleStyle();
 
+  const data = [false, true, false, true, false, 'C:\\Users\\admin', 'Low'];
+
+  // for some reason, you need to use state change to change the data inside the oldConfiguration
+  var [oclusterAlerts, setClusterAlerts] = useState(data[0]);
+  var [oActionAlerts, setoActionAlerts] = useState(data[1]);
+  var [oSupiciousAlerts, setoSupiciousAlerts] = useState(data[2]);
+  var [oServerAlerts, setoServerAlerts] = useState(data[3]);
+  var [oFileAlerts, setoFileAlerts] = useState(data[4]);
+  var [oBackupLocation, setoBackupLocation] = useState(data[5].toString());
+  var [oredundancy, setoredundancy] = useState(data[6].toString());
+
   //retrieve from database
-  let oldConfigurationSettings = [
-    { name: 'clusterAlerts', setting: false },
-    { name: 'sActionAlerts', setting: true },
-    { name: 'supiciousAlerts', setting: false },
-    { name: 'serverAlerts', setting: true },
-    { name: 'sFileAlerts', setting: true },
-    { name: 'BackupLocation', setting: 'C:\\Users\\admin' },
-    { name: 'redundancy', setting: 'Low' },
+  var oldConfigurationSettings = [
+    { name: 'clusterAlerts', setting: oclusterAlerts },
+    { name: 'sActionAlerts', setting: oActionAlerts },
+    { name: 'supiciousAlerts', setting: oSupiciousAlerts },
+    { name: 'serverAlerts', setting: oServerAlerts },
+    { name: 'sFileAlerts', setting: oFileAlerts },
+    { name: 'BackupLocation', setting: oBackupLocation },
+    { name: 'redundancy', setting: oredundancy },
   ];
 
   // bind the default newConfigurationSettings to oldConfigurationSettings
-  let newConfigurationSettings = [
+  var newConfigurationSettings = [
     { name: 'clusterAlerts', setting: oldConfigurationSettings[0].setting },
     { name: 'sActionAlerts', setting: oldConfigurationSettings[1].setting },
     { name: 'supiciousAlerts', setting: oldConfigurationSettings[2].setting },
     { name: 'serverAlerts', setting: oldConfigurationSettings[3].setting },
     { name: 'sFileAlerts', setting: oldConfigurationSettings[4].setting },
-    { name: 'BackupLocation', setting: oldConfigurationSettings[5].setting },
-    { name: 'redundancy', setting: oldConfigurationSettings[6].setting },
+    { name: 'BackupLocation', setting: oldConfigurationSettings[5].setting.toString() },
+    { name: 'redundancy', setting: oldConfigurationSettings[6].setting.toString() },
   ];
 
   // key variable
-  let [key, setKey] = useState('5q0L5mVB5mUlJjil');
+  var [key, setKey] = useState('5q0L5mVB5mUlJjil');
 
   // Variable that will decide whether the save pending changes button is disabled
   const [disable, setDisable] = useState(true);
@@ -116,12 +127,11 @@ export function AdminSettings() {
     newConfigurationSettings[6].setting = redundancyLevel;
     setredundancyLevel(redundancyTemp);
     validateRedundancy();
-    console.log(settings);
     setVisible(false);
   }
 
   // each of these variable is binded, so if the data retrieve from database is true, the checkbox will be ticked
-  const [clusterAlerts, setChecked] = useState(() => {
+  var [clusterAlerts, setChecked] = useState(() => {
     if (oldConfigurationSettings[0].setting === true) {
       return true;
     }
@@ -129,28 +139,28 @@ export function AdminSettings() {
     return false;
   });
 
-  const [sActionAlerts, setChecked1] = useState(() => {
+  var [sActionAlerts, setChecked1] = useState(() => {
     if (oldConfigurationSettings[1].setting === true) {
       return true;
     }
 
     return false;
   });
-  const [supiciousAlerts, setChecked2] = useState(() => {
+  var [supiciousAlerts, setChecked2] = useState(() => {
     if (oldConfigurationSettings[2].setting === true) {
       return true;
     }
 
     return false;
   });
-  const [serverAlerts, setChecked3] = useState(() => {
+  var [serverAlerts, setChecked3] = useState(() => {
     if (oldConfigurationSettings[3].setting === true) {
       return true;
     }
 
     return false;
   });
-  const [sFileAlerts, setChecked4] = useState(() => {
+  var [sFileAlerts, setChecked4] = useState(() => {
     if (oldConfigurationSettings[4].setting === true) {
       return true;
     }
@@ -158,18 +168,26 @@ export function AdminSettings() {
     return false;
   });
 
+  var [sBackup, setChecked5] = useState(() => {
+    return oldConfigurationSettings[5].setting.toString();
+  });
+
+  var [sRedundancy, setChecked6] = useState(() => {
+    return oldConfigurationSettings[6].setting.toString();
+    
+  });
+
   // this function will check if any changes is made to the first checkbox
   function changeClusterAlert() {
     // set whether it is ticked or not, so if the checkbox is ticked, it will untick the checkbox
+    clusterAlerts = !clusterAlerts;
     setChecked((clusterAlerts) => !clusterAlerts);
 
-    //detect that the first state is true but the end result is false
     if (clusterAlerts == true) {
-      newConfigurationSettings[0].setting = false;
+      newConfigurationSettings[0].setting = true;
       validateClusterAlert();
     } else {
-      //detect that the first state is false but the end result is true
-      newConfigurationSettings[0].setting = true;
+      newConfigurationSettings[0].setting = false;
       validateClusterAlert();
     }
   }
@@ -177,14 +195,15 @@ export function AdminSettings() {
   // this function will check if any changes is made to the second checkbox
   function changeActionAlerts() {
     // set whether it is ticked or not, so if the checkbox is ticked, it will untick the checkbox
+    sActionAlerts = !sActionAlerts;
     setChecked1((sActionAlerts) => !sActionAlerts);
     //detect that the first state is true but the end result is false
     if (sActionAlerts == true) {
-      newConfigurationSettings[1].setting = false;
+      newConfigurationSettings[1].setting = true;
       validateActionAlerts();
     } else {
       //detect that the first state is false but the end result is true
-      newConfigurationSettings[1].setting = true;
+      newConfigurationSettings[1].setting = false;
       validateActionAlerts();
     }
   }
@@ -192,14 +211,15 @@ export function AdminSettings() {
   // this function will check if any changes is made to the third checkbox
   function changeSupiciousAlerts() {
     // set whether it is ticked or not, so if the checkbox is ticked, it will untick the checkbox
+    supiciousAlerts = !supiciousAlerts;
     setChecked2((supiciousAlerts) => !supiciousAlerts);
     //detect that the first state is true but the end result is false
     if (supiciousAlerts == true) {
-      newConfigurationSettings[2].setting = false;
+      newConfigurationSettings[2].setting = true;
       validateSupiciousAlerts();
     } else {
       //detect that the first state is false but the end result is true
-      newConfigurationSettings[2].setting = true;
+      newConfigurationSettings[2].setting = false;
       validateSupiciousAlerts();
     }
   }
@@ -207,14 +227,15 @@ export function AdminSettings() {
   // this function will check if any changes is made to the fourth checkbox
   function changeServerAlerts() {
     // set whether it is ticked or not, so if the checkbox is ticked, it will untick the checkbox
+    serverAlerts = !serverAlerts;
     setChecked3((serverAlerts) => !serverAlerts);
     //detect that the first state is true but the end result is false
     if (serverAlerts == true) {
-      newConfigurationSettings[3].setting = false;
+      newConfigurationSettings[3].setting = true;
       validateServerAlerts();
     } else {
       //detect that the first state is false but the end result is true
-      newConfigurationSettings[3].setting = true;
+      newConfigurationSettings[3].setting = false;
       validateServerAlerts();
     }
   }
@@ -222,14 +243,15 @@ export function AdminSettings() {
   // this function will check if any changes is made to the last checkbox
   function changesFileAlerts() {
     // set whether it is ticked or not, so if the checkbox is ticked, it will untick the checkbox
+    sFileAlerts = !sFileAlerts;
     setChecked4((sFileAlerts) => !sFileAlerts);
     //detect that the first state is true but the end result is false
     if (sFileAlerts == true) {
-      newConfigurationSettings[4].setting = false;
+      newConfigurationSettings[4].setting = true;
       validateFileAlerts();
     } else {
       //detect that the first state is false but the end result is true
-      newConfigurationSettings[4].setting = true;
+      newConfigurationSettings[4].setting = false;
       validateFileAlerts();
     }
   }
@@ -407,6 +429,8 @@ export function AdminSettings() {
     }
   }
   function validateKey() {
+    console.log(" oldConfigurationSettings[5].setting ", oldConfigurationSettings[5].setting );
+    console.log(" newConfigurationSettings[5].setting ", newConfigurationSettings[5].setting );
     if (
       oldConfigurationSettings[5].setting !==
       newConfigurationSettings[5].setting
@@ -480,7 +504,9 @@ export function AdminSettings() {
     setsaveSettings(true);
     backupLocation = backupTemp;
     newConfigurationSettings[5].setting = backupLocation;
+    
     validateKey();
+    //reset temp key to default
     setTempKey('');
     setBackupMod(false);
   }
@@ -498,6 +524,148 @@ export function AdminSettings() {
 
   // function to save all the pending changes
   function saveChanges() {
+    console.log(settings);
+    if (settingsA == false) {
+      newConfigurationSettings[0].setting =
+        !newConfigurationSettings[0].setting;
+
+      oldConfigurationSettings[0].setting = newConfigurationSettings[0].setting;
+      settingsA = true;
+      setSettingsA(true);
+      settings[0] = true;
+      settings = [true, true, true, true, true, true, true];
+
+      if (oldConfigurationSettings[0].setting === true) {
+        setClusterAlerts(true);
+        oclusterAlerts = true;
+        setChecked(true);
+      } else {
+        setClusterAlerts(false);
+        oclusterAlerts = false;
+        setChecked(false);
+      }
+    }
+    if (settingsB == false) {
+      newConfigurationSettings[1].setting =
+        !newConfigurationSettings[1].setting;
+
+      oldConfigurationSettings[1].setting = newConfigurationSettings[1].setting;
+      settingsB = true;
+      setSettingsB(true);
+      settings[1] = true;
+      settings = [true, true, true, true, true, true, true];
+
+      if (oldConfigurationSettings[1].setting === true) {
+        setoActionAlerts(true);
+        oActionAlerts = true;
+        setChecked1(true);
+      } else {
+        setoActionAlerts(false);
+        oActionAlerts = false;
+        setChecked1(false);
+      }
+    }
+    if (settingsC == false) {
+      newConfigurationSettings[2].setting =
+        !newConfigurationSettings[2].setting;
+
+      oldConfigurationSettings[2].setting = newConfigurationSettings[2].setting;
+      settingsC = true;
+      setSettingsC(true);
+      settings[2] = true;
+      settings = [true, true, true, true, true, true, true];
+
+      if (oldConfigurationSettings[2].setting === true) {
+        setoSupiciousAlerts(true);
+        oSupiciousAlerts = true;
+        setChecked2(true);
+      } else {
+        setoSupiciousAlerts(false);
+        oSupiciousAlerts = false;
+        setChecked2(false);
+      }
+    }
+    if (settingsD == false) {
+      newConfigurationSettings[3].setting =
+        !newConfigurationSettings[3].setting;
+
+      oldConfigurationSettings[3].setting = newConfigurationSettings[3].setting;
+      settingsD = true;
+      setSettingsD(true);
+      settings[3] = true;
+      settings = [true, true, true, true, true, true, true];
+
+      if (oldConfigurationSettings[3].setting === true) {
+        setoServerAlerts(true);
+        oServerAlerts = true;
+        setChecked3(true);
+      } else {
+        setoServerAlerts(false);
+        oServerAlerts = false;
+        setChecked3(false);
+      }
+    }
+
+    if (settingsE == false) {
+      newConfigurationSettings[4].setting =
+        !newConfigurationSettings[4].setting;
+
+      oldConfigurationSettings[4].setting = newConfigurationSettings[4].setting;
+      settingsE = true;
+      setSettingsE(true);
+      settings[4] = true;
+      settings = [true, true, true, true, true, true, true];
+
+      if (oldConfigurationSettings[4].setting === true) {
+        setoFileAlerts(true);
+        oFileAlerts = true;
+        setChecked4(true);
+      } else {
+        setoFileAlerts(false);
+        oFileAlerts = false;
+        setChecked4(false);
+      }
+    }
+    if (settingsF == false) {
+      console.log("asdasd ",newConfigurationSettings[5].setting)
+      console.log("asdasdaa ",oldConfigurationSettings[5].setting)
+      oldConfigurationSettings[5].setting = newConfigurationSettings[5].setting;
+      settingsF = true;
+      setSettingsF(true);
+      settings[5] = true;
+      settings = [true, true, true, true, true, true, true];
+      console.log("save", oldConfigurationSettings[5].setting)
+      if (oldConfigurationSettings[5].setting === true) {
+     /*   setoFileAlerts(true);
+        oBackupLocation = true;
+        setChecked5(true);*/
+      } else {
+   /*     setoFileAlerts(false);
+        oBackupLocation = false;
+        setChecked5(false);*/
+      }
+    }
+    if (settingsG == false) {
+      newConfigurationSettings[6].setting =
+        !newConfigurationSettings[6].setting;
+
+      oldConfigurationSettings[6].setting = newConfigurationSettings[6].setting;
+      settingsG = true;
+      setSettingsG(true);
+      settings[5] = true;
+      settings = [true, true, true, true, true, true, true];
+
+      if (settings[6] === true) {
+     /*   setoredundancy(true);
+        oredundancy = true;
+        setChecked5(true);*/
+      } else {
+   /*     setoredundancy(false);
+        oredundancy = false;
+        setChecked5(false);*/
+      }
+    }
+
     setDisable(true);
   }
 
