@@ -8,11 +8,6 @@ import (
 
 // ! To be implemented
 
-type Server struct {
-	gorm.Model
-	Name string `gorm:"not null"`
-}
-
 type Role struct {
 	RoleID      int `gorm:"primaryKey;autoIncrement"`
 	RoleMapping string

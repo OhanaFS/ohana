@@ -83,9 +83,7 @@ func TestSelfSign(t *testing.T) {
 
 		hostFile, err := os.Create("certhosts.yaml")
 		Assert.Nil(err)
-		defer func(hostFile *os.File) {
-			_ = hostFile.Close()
-		}(hostFile)
+		defer hostFile.Close()
 
 		encoder := yaml.NewEncoder(hostFile)
 		Assert.Nil(encoder.Encode(fakeHosts))

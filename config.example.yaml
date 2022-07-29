@@ -4,6 +4,12 @@ http:
   base_url: http://localhost:8000
 database:
   connection_string: postgres://ohanaAdmin:ohanaMeansFamily@127.0.0.1:5432/ohana
+  server_name: alpaca # This is the name of the server in the cluster. Must be unique
+  host_name: localhost
+  port: 5555
+  ca_cert:
+  public_cert:
+  private_key:
 redis:
   password: ohanaMeansFamily
   address: localhost:6379

@@ -58,6 +58,7 @@ func main() {
 			controller.RegisterHealth,
 			controller.RegisterAuth,
 			controller.RegisterUpload,
+			controller.NewBackend,
 
 			// DB
 			dbfs.InitDB,

@@ -27,10 +27,10 @@ func TestBackendController(t *testing.T) {
 	assert := assert.New(t)
 
 	//Set up mock Db and session store
-	stichConfig := config.StitchConfig{
+	stitchConfig := config.StitchConfig{
 		ShardsLocation: "shards/",
 	}
-	configFile := &config.Config{Stitch: stichConfig}
+	configFile := &config.Config{Stitch: stitchConfig}
 	logger := config.NewLogger(configFile)
 	db := testutil.NewMockDB(t)
 	err := dbfs.InitDB(db)

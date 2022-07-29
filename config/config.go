@@ -33,6 +33,12 @@ type HttpConfig struct {
 type DatabaseConfig struct {
 	// ConnectionString is the connection string for the database.
 	ConnectionString string `yaml:"connection_string"`
+	ServerName       string `yaml:"server_name"`
+	HostName         string `yaml:"host_name"`
+	Port             string `yaml:"port"`
+	Ca_Cert          string `yaml:"ca_cert"`
+	Public_Cert      string `yaml:"public_cert"`
+	Private_Key      string `yaml:"private_key"`
 }
 
 type AuthConfig struct {

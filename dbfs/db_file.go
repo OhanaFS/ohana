@@ -96,7 +96,7 @@ type FileInterface interface {
 	GetOldVersion(tx *gorm.DB, user *User, versionNo int) (*FileVersion, error)
 
 	// Create Functions (Local)
-	CreateSubFolder(tx *gorm.DB, folderName string, user *User) (*File, error)
+	CreateSubFolder(tx *gorm.DB, folderName string, user *User, server string) (*File, error)
 
 	// Update Functions (Local)
 	UpdateMetaData(tx *gorm.DB, modificationsRequested FileMetadataModification, user *User) error
@@ -285,7 +285,7 @@ func transverseByPath(tx *gorm.DB, fileNames []string, user *User) ([]File, erro
 }
 
 // CreateFolderByPath creates a folder based on the path given and returns the folder (File Object)
-func CreateFolderByPath(tx *gorm.DB, path string, user *User) (*File, error) {
+func CreateFolderByPath(tx *gorm.DB, path string, user *User, server string) (*File, error) {
 
 	paths := pathStringToArray(path, true)
 
@@ -295,7 +295,7 @@ func CreateFolderByPath(tx *gorm.DB, path string, user *User) (*File, error) {
 		return nil, err
 	}
 
-	newFolder, err := CreateFolderByParentId(tx, files[len(files)-1].FileId, paths[len(paths)-1], user)
+	newFolder, err := CreateFolderByParentId(tx, files[len(files)-1].FileId, paths[len(paths)-1], user, server)
 
 	if err != nil {
 		return nil, err
@@ -510,7 +510,7 @@ func CreateInitialFile(tx *gorm.DB, file *File, fileKey, fileIv, dataKey, dataIV
 		EncryptionIv:       newIv,
 		LastChecked:        time.Now(),
 		Status:             FileStatusWriting,
-		HandledServer:      "", // Should be the server Id of the server that is handling the file
+		HandledServer:      file.HandledServer, // Should be the server Id of the server that is handling the file
 	}
 
 	// Create the file
@@ -580,7 +580,7 @@ func FinishFile(tx *gorm.DB, file *File, user *User, actualSize int, checksum st
 }
 
 // CreateFolderByParentId creates a folder based on the id given and returns the folder (File Object)
-func CreateFolderByParentId(tx *gorm.DB, id string, folderName string, user *User) (*File, error) {
+func CreateFolderByParentId(tx *gorm.DB, id string, folderName string, user *User, server string) (*File, error) {
 
 	// Check that the id exists
 
@@ -592,7 +592,7 @@ func CreateFolderByParentId(tx *gorm.DB, id string, folderName string, user *Use
 		return nil, ErrFileNotFound
 	}
 
-	return parentFolder.CreateSubFolder(tx, folderName, user)
+	return parentFolder.CreateSubFolder(tx, folderName, user, server)
 
 }
 
@@ -775,7 +775,7 @@ func (f *File) GetOldVersion(tx *gorm.DB, user *User, versionNo int) (*FileVersi
 }
 
 // CreateSubFolder creates a subfolder of the parent folder
-func (f *File) CreateSubFolder(tx *gorm.DB, folderName string, user *User) (*File, error) {
+func (f *File) CreateSubFolder(tx *gorm.DB, folderName string, user *User, server string) (*File, error) {
 
 	// Check if user has read permission (if not 404)
 
@@ -824,7 +824,7 @@ func (f *File) CreateSubFolder(tx *gorm.DB, folderName string, user *User) (*Fil
 		ModifiedTime:       time.Time{},
 		VersioningMode:     VersioningOff,
 		Status:             1,
-		HandledServer:      "",
+		HandledServer:      server,
 	}
 
 	// Transaction
@@ -1070,7 +1070,7 @@ func (f *File) Move(tx *gorm.DB, newParent *File, user *User) error {
 }
 
 // Copy copies the file to a new folder
-func (f *File) Copy(tx *gorm.DB, newParent *File, user *User) error {
+func (f *File) Copy(tx *gorm.DB, newParent *File, user *User, server string) error {
 
 	// Checking that the user has read permissions on the file and the new parent folder
 	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
@@ -1122,7 +1122,7 @@ func (f *File) Copy(tx *gorm.DB, newParent *File, user *User) error {
 		EncryptionIv:       f.EncryptionIv,
 		LastChecked:        time.Now(),
 		Status:             FileStatusGood,
-		HandledServer:      "", // Should be the server Id of the server that is handling the file
+		HandledServer:      server, // TODO: Should be the server Id of the server that is handling the file
 	}
 
 	// Find the original passwordProtect and duplicate it
@@ -1180,7 +1180,7 @@ func (f *File) Copy(tx *gorm.DB, newParent *File, user *User) error {
 			return err
 		}
 		for _, item := range ls {
-			err = item.Copy(tx, &newFile, user)
+			err = item.Copy(tx, &newFile, user, server)
 			if err != nil {
 				return err
 			}

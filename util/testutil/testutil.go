@@ -14,7 +14,7 @@ import (
 
 func NewMockDB(t *testing.T) *gorm.DB {
 	assert := assert.New(t)
-	appDB, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	appDB, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
 	assert.NoError(err)
 	assert.NoError(dbfs.InitDB(appDB))
 	t.Log("Migrated in-memory database")

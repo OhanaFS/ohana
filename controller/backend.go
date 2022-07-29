@@ -21,9 +21,10 @@ import (
 )
 
 type BackendController struct {
-	Db     *gorm.DB
-	Logger *zap.Logger
-	Path   string
+	Db         *gorm.DB
+	Logger     *zap.Logger
+	Path       string
+	ServerName string
 }
 
 // NewBackend takes in config, dbfs, loggers, and middleware and registers the backend
@@ -32,18 +33,19 @@ func NewBackend(
 	router *mux.Router,
 	logger *zap.Logger,
 	db *gorm.DB,
-	mw middleware.Middlewares,
+	mw *middleware.Middlewares,
 	config *config.Config,
 ) error {
 
 	bc := &BackendController{
-		Db:     db,
-		Logger: logger,
-		Path:   config.Stitch.ShardsLocation,
+		Db:         db,
+		Logger:     logger,
+		Path:       config.Stitch.ShardsLocation,
+		ServerName: config.Database.ServerName,
 	}
 
 	bc.InitialiseShardsFolder()
-	
+
 	// Register routes
 	r := router.NewRoute().Subrouter()
 
@@ -83,11 +85,13 @@ func NewBackend(
 }
 
 func (bc *BackendController) InitialiseShardsFolder() {
-	if _, err := os.Stat(bc.Path); os.IsNotExist(err) {
+	if w, err := os.Stat(bc.Path); os.IsNotExist(err) {
 		err := os.MkdirAll(bc.Path, 0755)
 		if err != nil {
 			panic("ERROR. CANNOT CREATE SHARDS FOLDER.")
 		}
+	} else if !w.IsDir() {
+		panic("ERROR. SHARDS FOLDER IS NOT A DIRECTORY.")
 	}
 }
 
@@ -176,7 +180,7 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 		ParityShards:       parityShards,
 		KeyThreshold:       keyThreshold,
 		PasswordProtected:  false,
-		HandledServer:      "ThisServer",
+		HandledServer:      bc.ServerName,
 	}
 
 	passwordProtect := dbfs.PasswordProtect{
@@ -621,7 +625,7 @@ func (bc *BackendController) CopyFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Copy file (Permission check will be done by dbfs)
-	err = file.Copy(bc.Db, destFolder, user)
+	err = file.Copy(bc.Db, destFolder, user, bc.ServerName)
 	if errors.Is(err, dbfs.ErrNoPermission) {
 		util.HttpError(w, http.StatusForbidden, "No write permisison on destination folder")
 		return
@@ -1429,7 +1433,7 @@ func (bc *BackendController) CreateFolder(w http.ResponseWriter, r *http.Request
 	}
 
 	// attempt to create folder (permisison check here as well)
-	newFolder, err := parentFolder.CreateSubFolder(bc.Db, folderName, user)
+	newFolder, err := parentFolder.CreateSubFolder(bc.Db, folderName, user, bc.ServerName)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
