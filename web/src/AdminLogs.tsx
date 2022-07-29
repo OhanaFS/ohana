@@ -4,19 +4,25 @@ import { useState } from 'react';
 import './assets/styles.css';
 
 export interface LogsDetails {
+  // all the data needed from database
   groupList: Array<any>;
   tableHeader: Array<[string]>;
   tableBody: Array<[string]>;
   caption: string;
+  //whether the group can be press
   pointerEvents: boolean;
 }
 
 export function AdminLogs(props: LogsDetails) {
+  // variable that show all the logs inside the props.groupList
   let [logs, setValue] = useState(props.groupList);
+
+  // display table header that is from props
   const ths = props.tableHeader.map((items) => (
     <th style={{ fontWeight: '600' }}>{items}</th>
   ));
 
+  // display all the rows that is from props
   const rows = logs.map((items) => (
     <tr>
       <td>{items['Maintenance date']}</td>

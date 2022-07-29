@@ -23,10 +23,7 @@ export function AdminRunMaintenance() {
     { name: 'DBCheck', setting: 'true' },
   ];
 
-  const [openedMaintenanceSettingsModal, setOpened] = useState(false);
-
   // Maintenance settings that will be run
-
   var [firstCheck, setFirstCheck] = useState(() => {
     if (MaintenanceSettings[0].setting === 'true') {
       return true;
@@ -78,13 +75,14 @@ export function AdminRunMaintenance() {
     return false;
   });
 
-  // maintenance settings
+  // Variable that will decide whether the openedMaintenanceSettingsModal visibility is true or false
+  const [openedMaintenanceSettingsModal, setOpened] = useState(false);
 
+  // maintenance settings
   var [sFirstCheck, setsFirstCheck] = useState(() => {
     if (MaintenanceSettings[0].setting === 'true') {
       return true;
     }
-
     return false;
   });
 
@@ -131,6 +129,7 @@ export function AdminRunMaintenance() {
     return false;
   });
 
+  // save the settings and set the maintenance settings modal visibility to false
   function saveSettings() {
     setFirstCheck(sFirstCheck);
     setSecondCheck(sSecondCheck);

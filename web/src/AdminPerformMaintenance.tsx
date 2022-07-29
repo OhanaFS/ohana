@@ -39,8 +39,8 @@ export function AdminPerformMaintenance() {
 
   //get total maintenance of time needed based on how much steps
   const time = steps.length;
-  const minuteSeconds = time;
 
+  const minuteSeconds = time;
   const [pauseBtn, setPauseBtn] = useState(false);
   const [stopBtn, setStopBtn] = useState(false);
   const getTimeSeconds = (time: number) => (minuteSeconds - time) | 0;
