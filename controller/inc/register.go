@@ -2,7 +2,6 @@ package inc
 
 import (
 	"fmt"
-	"github.com/OhanaFS/ohana/config"
 	"github.com/OhanaFS/ohana/dbfs"
 	"github.com/OhanaFS/ohana/util"
 	"golang.org/x/sys/unix"
@@ -15,7 +14,7 @@ import (
 // RegisterServer registers a server as online in the database.
 // If server already exists, it will update the hostname and status.
 // Will attempt to connect to every node in the cluster.
-func RegisterServer(tx *gorm.DB, config *config.Config, initalRun bool) error {
+func (i Inc) RegisterServer(initialRun bool) error {
 
 	// Race conditions to ensure no other server is registering atm.
 
@@ -25,7 +24,7 @@ func RegisterServer(tx *gorm.DB, config *config.Config, initalRun bool) error {
 	for serverNotReady {
 
 		var server dbfs.Server
-		err := tx.Model(&dbfs.Server{}).Where("status = ?", dbfs.ServerStarting).First(&server).Error
+		err := i.db.Model(&dbfs.Server{}).Where("status = ?", dbfs.ServerStarting).First(&server).Error
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				serverNotReady = false
@@ -40,13 +39,13 @@ func RegisterServer(tx *gorm.DB, config *config.Config, initalRun bool) error {
 
 	}
 
-	spaceFree := getFreeSpace(config.Stitch.ShardsLocation)
+	spaceFree := getFreeSpace(i.ShardsLocation)
 
 	// Register as Starting
 
 	// Check if server exists.
 	var server dbfs.Server
-	err := tx.First(&server, "name = ?", config.Database.ServerName).Error
+	err := i.db.First(&server, "name = ?", i.ServerName).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			fmt.Println("Registering as new server...")
@@ -56,33 +55,33 @@ func RegisterServer(tx *gorm.DB, config *config.Config, initalRun bool) error {
 	}
 
 	server = dbfs.Server{
-		Name:      config.Database.ServerName,
-		HostName:  config.Database.HostName,
-		Port:      config.Database.Port,
+		Name:      i.ServerName,
+		HostName:  i.HostName,
+		Port:      i.Port,
 		Status:    dbfs.ServerStarting,
 		FreeSpace: spaceFree,
 	}
 
-	if err := tx.Save(&server).Error; err != nil {
+	if err := i.db.Save(&server).Error; err != nil {
 		return err
 	}
 
-	// TODO: Check if server can ping every node in the cluster.
+	// Check if server can ping every node in the cluster.
 	// If it can't, it will be marked as offline.
 
-	if initalRun {
+	if initialRun {
 		fmt.Println("Checking if server can ping every node in the cluster...")
 	}
 
 	var servers []dbfs.Server
-	tx.Find(&servers).Where("status = ? ", dbfs.ServerOnline)
+	i.db.Find(&servers).Where("status = ? ", dbfs.ServerOnline)
 
 	for _, server := range servers {
 		if !Ping(server.HostName, server.Port) {
 			fmt.Println("Server", server.HostName, "is unreachable.")
-			err := MarkServerOffline(tx, config, server.HostName)
+			err := MarkServerOffline(i.db, i.HostName, server.HostName)
 			if err != nil {
-				tx.Delete(&server)
+				i.db.Delete(&server)
 				return err
 			}
 		}
@@ -92,16 +91,16 @@ func RegisterServer(tx *gorm.DB, config *config.Config, initalRun bool) error {
 
 	server.Status = dbfs.ServerOnline
 
-	if initalRun {
+	if initialRun {
 		fmt.Println("Registering server as online...")
 	}
 
-	err = tx.Save(&server).Error
+	err = i.db.Save(&server).Error
 	if err != nil {
 		return err
 	}
 
-	if initalRun {
+	if initialRun {
 		fmt.Println("Updated. Server registered.")
 	}
 
@@ -131,9 +130,10 @@ func getFreeSpace(path string) uint64 {
 	return stat.Bavail * uint64(stat.Bsize)
 }
 
-func MarkServerOffline(tx *gorm.DB, config *config.Config, server string) error {
+// MarkServerOffline marks a server as offline in the database.
+func MarkServerOffline(tx *gorm.DB, requestServer, destServer string) error {
 
-	err := dbfs.MarkServerOffline(tx, server)
+	err := dbfs.MarkServerOffline(tx, destServer)
 	if err != nil {
 		return err
 	}
@@ -143,6 +143,7 @@ func MarkServerOffline(tx *gorm.DB, config *config.Config, server string) error 
 	return err
 }
 
+// Ping returns true if the server is online.
 func Ping(hostname, port string) bool {
 
 	client := &http.Client{} // TODO: Put TLS config here. Need to configure holding object.
@@ -156,6 +157,7 @@ func Ping(hostname, port string) bool {
 }
 
 // Pong returns true if the server is online.
+// This function needs to be attached to a http server.
 func Pong(w http.ResponseWriter, r *http.Request) {
 	util.HttpJson(w, http.StatusOK, map[string]string{"status": "online"})
 }

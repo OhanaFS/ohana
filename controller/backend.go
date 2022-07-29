@@ -41,7 +41,7 @@ func NewBackend(
 		Db:         db,
 		Logger:     logger,
 		Path:       config.Stitch.ShardsLocation,
-		ServerName: config.Database.ServerName,
+		ServerName: config.Inc.ServerName,
 	}
 
 	bc.InitialiseShardsFolder()

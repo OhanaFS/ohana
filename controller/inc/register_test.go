@@ -43,20 +43,23 @@ func TestRegisterServer(t *testing.T) {
 	encoder := yaml.NewEncoder(hostFile)
 	Assert.Nil(encoder.Encode(fakeHosts))
 
-	//err = selfsign.ProcessFlags(ogc)
+	err = selfsign.ProcessFlags(ogc)
 	Assert.Nil(err)
 
 	configFile := &config.Config{Stitch: stitchConfig,
-		Database: config.DatabaseConfig{
-			ConnectionString: "ItShouldn'tUseThisBecauseSQLiteInTesting",
-			ServerName:       "testServer",
-			HostName:         "localhost",
-			Port:             "5555",
-			Ca_Cert:          "certificates/main_GLOBAL_CERTIFICATE.pem",
-			Public_Cert:      "certificates/output_cert.pem",
-			Private_Key:      "certificates/output_key.pem",
+		Inc: config.IncConfig{
+			ServerName: "testServer",
+			HostName:   "localhost",
+			Port:       "5555",
+			CaCert:     "certificates/main_GLOBAL_CERTIFICATE.pem",
+			PublicCert: "certificates/output_cert.pem",
+			PrivateKey: "certificates/output_key.pem",
 		},
 	}
+
+	var incServer *inc.Inc
+
+	// Create inc server
 
 	t.Run("Running a Server for ping test", func(t *testing.T) {
 
@@ -64,7 +67,7 @@ func TestRegisterServer(t *testing.T) {
 		mux.HandleFunc("/inc/ping", inc.Pong)
 
 		server := &http.Server{
-			Addr:    ":" + configFile.Database.Port,
+			Addr:    ":" + configFile.Inc.Port,
 			Handler: mux,
 		}
 
@@ -83,7 +86,7 @@ func TestRegisterServer(t *testing.T) {
 
 		Assert := assert.New(t)
 
-		Assert.Equal(inc.Ping(configFile.Database.HostName, configFile.Database.Port), true)
+		Assert.Equal(inc.Ping(configFile.Inc.HostName, configFile.Inc.Port), true)
 
 	})
 
@@ -91,7 +94,9 @@ func TestRegisterServer(t *testing.T) {
 
 		Assert := assert.New(t)
 
-		err := inc.RegisterServer(db, configFile, true)
+		incServer = inc.NewInc(configFile, db)
+
+		err := incServer.RegisterServer(true)
 		Assert.NoError(err)
 
 		// Check if the server is in the database
@@ -143,7 +148,7 @@ func TestRegisterServer(t *testing.T) {
 			you the error "Table not found" which drove me nuts. (googling fixed it ofc but I was stubborn)
 		*/
 		time.Sleep(time.Second * 1)
-		err := inc.RegisterServer(db, configFile, true)
+		err := incServer.RegisterServer(true)
 		Assert.NoError(err)
 
 	})
@@ -152,7 +157,7 @@ func TestRegisterServer(t *testing.T) {
 
 		Assert := assert.New(t)
 
-		err := inc.MarkServerOffline(db, configFile, "server3")
+		err := inc.MarkServerOffline(db, incServer.ServerName, "server3")
 		Assert.NoError(err)
 
 		// Check if the server is in the database
