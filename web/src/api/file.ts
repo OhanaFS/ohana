@@ -9,11 +9,19 @@ export type FileUploadRequest = {
   parity_count: number;
 };
 
-export type FileMetadata = {
+/**
+ * The type of the entry. Folder is `1`, File is `2`.
+ */
+export enum EntryType {
+  Folder = 1,
+  File = 2,
+}
+
+export type FileMetadata<T = EntryType> = {
   file_id: string;
   file_name: string;
-  mime_type: string;
-  entry_type: number;
+  mime_type: T extends EntryType.File ? string : never;
+  entry_type: T;
   parent_folder_id: string;
   version_no: number;
   data_version_no: number;
@@ -23,9 +31,9 @@ export type FileMetadata = {
   modified_user_user_id: string;
   modified_time: string; // date
   versioning_mode: number;
-  checksum: string;
-  frag_count: number;
-  parity_count: number;
+  checksum: T extends EntryType.File ? string : never;
+  frag_count: T extends EntryType.File ? number : never;
+  parity_count: T extends EntryType.File ? number : never;
   password_protected: boolean;
   link_file_id: string;
   last_checked: string; // date
@@ -36,9 +44,9 @@ export type FileMetadata = {
  * Uploads a file to a folder.
  */
 export const useMutateUploadFile = () =>
-  useMutation(({ file, ...headers }: FileUploadRequest) => {
+  useMutation(async ({ file, ...headers }: FileUploadRequest) => {
     if (!headers.file_name) headers.file_name = file.name;
-    return APIClient.post<FileMetadata>('/api/v1/file', file, {
+    return APIClient.post<FileMetadata<EntryType.File>>('/api/v1/file', file, {
       headers: { ...headers },
     })
       .then((res) => res.data)
@@ -56,8 +64,8 @@ export type FileUpdateRequest = {
  * Upload a newer version of a file.
  */
 export const useMutateUpdateFile = () =>
-  useMutation(({ file, file_id, ...headers }: FileUpdateRequest) => {
-    return APIClient.post<FileMetadata>(
+  useMutation(async ({ file, file_id, ...headers }: FileUpdateRequest) => {
+    return APIClient.post<FileMetadata<EntryType.File>>(
       `/api/v1/file/${file_id}/update`,
       file,
       { headers: { ...headers } }
@@ -71,7 +79,9 @@ export const useMutateUpdateFile = () =>
  */
 export const useQueryFileMetadata = (fileId: string) =>
   useQuery(['file', 'metadata', fileId], () =>
-    APIClient.get<FileMetadata>(`/api/v1/file/${fileId}/metadata`)
+    APIClient.get<FileMetadata<EntryType.File>>(
+      `/api/v1/file/${fileId}/metadata`
+    )
       .then((res) => res.data)
       .catch(typedError)
   );
@@ -93,7 +103,10 @@ export type FileMetadataUpdateRequest = {
  */
 export const useMutateUpdateFileMetadata = () =>
   useMutation(({ file_id, ...body }: FileMetadataUpdateRequest) =>
-    APIClient.patch<FileMetadata>(`/api/v1/file/${file_id}/metadata`, body)
+    APIClient.patch<FileMetadata<EntryType.File>>(
+      `/api/v1/file/${file_id}/metadata`,
+      body
+    )
       .then((res) => res.data)
       .catch(typedError)
   );
@@ -149,7 +162,6 @@ export type Permission = {
   can_write: boolean;
   can_execute: boolean;
   can_share: boolean;
-  can_audit: boolean;
 };
 
 export type FilePermission = Permission & {
@@ -222,7 +234,7 @@ export const useQueryFileVersionMetadata = (
   versionId: number
 ) =>
   useQuery(['file', 'version', 'metadata', fileId, versionId], () =>
-    APIClient.get<FileMetadata>(
+    APIClient.get<FileMetadata<EntryType.File>>(
       `/api/v1/file/${fileId}/version/${versionId}/metadata`
     )
       .then((res) => res.data)
@@ -234,7 +246,9 @@ export const useQueryFileVersionMetadata = (
  */
 export const useQueryFileVersionHistory = (fileId: string) =>
   useQuery(['file', 'version', 'history', fileId], () =>
-    APIClient.get<FileMetadata[]>(`/api/v1/file/${fileId}/versions`)
+    APIClient.get<FileMetadata<EntryType.File>[]>(
+      `/api/v1/file/${fileId}/versions`
+    )
       .then((res) => res.data)
       .catch(typedError)
   );
