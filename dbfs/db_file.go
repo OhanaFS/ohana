@@ -152,7 +152,7 @@ func GetFileByPath(tx *gorm.DB, path string, user *User, fromHome bool) (*File, 
 
 	paths := pathStringToArray(path, true)
 
-	folderTree, err := transverseByPath(tx, paths[0:len(paths)-1], user, fromHome)
+	folderTree, err := traverseByPath(tx, paths[0:len(paths)-1], user, fromHome)
 
 	if err != nil {
 		return nil, err
@@ -205,7 +205,7 @@ func ListFilesByPath(tx *gorm.DB, path string, user *User, fromHome bool) ([]Fil
 
 	paths := pathStringToArray(path, true)
 
-	folderTree, err := transverseByPath(tx, paths, user, fromHome)
+	folderTree, err := traverseByPath(tx, paths, user, fromHome)
 
 	if err != nil {
 		return nil, err
@@ -262,9 +262,9 @@ func pathStringToArray(path string, fromRoot bool) []string {
 
 }
 
-// transverseByPath Returns an array of FileIds based on the transversal path of pathStringToArray()
+// traverseByPath Returns an array of FileIds based on the transversal path of pathStringToArray()
 // For Example, passing in ["foo", "bar"] will return ["root FileId", "foo FileId", "bar FileId"]
-func transverseByPath(tx *gorm.DB, fileNames []string, user *User, fromHome bool) ([]File, error) {
+func traverseByPath(tx *gorm.DB, fileNames []string, user *User, fromHome bool) ([]File, error) {
 
 	files := make([]File, len(fileNames)+1)
 
@@ -315,7 +315,7 @@ func CreateFolderByPath(tx *gorm.DB, path string, user *User, fromHome bool) (*F
 
 	paths := pathStringToArray(path, true)
 
-	files, err := transverseByPath(tx, paths[0:(len(paths)-1)], user, fromHome)
+	files, err := traverseByPath(tx, paths[0:(len(paths)-1)], user, fromHome)
 
 	if err != nil {
 		return nil, err
