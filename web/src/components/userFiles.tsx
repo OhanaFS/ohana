@@ -9,7 +9,7 @@ import {
   FileHelper,
   FullFileBrowser,
 } from 'chonky';
-import { Modal, FileInput, FileButton, Button } from '@mantine/core';
+import { Modal, FileInput, FileButton, Button, Loader } from '@mantine/core';
 import React, {
   useCallback,
   useEffect,
@@ -342,7 +342,6 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   return (
     <AppBase userType="user">
       <div style={{ height: '100%' }}>
-        {JSON.stringify(qFilesList.data)}
         <FullFileBrowser
           files={ohanaFiles}
           folderChain={folderChain}
@@ -359,27 +358,36 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
         onClose={() => setFuOpened(false)}
         title="Upload a File"
       >
-        <FileButton
-          onChange={(item) => {
-            console.log('we going in');
-            if (!item) {
-              return;
-            }
-            console.log('uploading', item);
-            mUploadFile.mutate({
-              file: item,
-              folder_id: tempFolderID,
-              frag_count: 1,
-              parity_count: 1,
-            });
-          }}
-        >
-          {(props) => (
-            <Button className="bg-cyan-500" color="cyan" {...props}>
-              Upload image
-            </Button>
-          )}
-        </FileButton>
+        <div className="flex">
+          {mUploadFile.isLoading ? <Loader className="mr-5" /> : null}
+          <FileButton
+            onChange={(item) => {
+              console.log('we going in');
+              if (!item) {
+                return;
+              }
+              mUploadFile
+                .mutateAsync({
+                  file: item,
+                  folder_id: tempFolderID,
+                  frag_count: 1,
+                  parity_count: 1,
+                })
+                .then(() => setFuOpened(false));
+            }}
+          >
+            {(props) => (
+              <Button
+                disabled={mUploadFile.isLoading}
+                className="bg-cyan-500"
+                color="cyan"
+                {...props}
+              >
+                Upload a File
+              </Button>
+            )}
+          </FileButton>
+        </div>
       </Modal>
     </AppBase>
   );

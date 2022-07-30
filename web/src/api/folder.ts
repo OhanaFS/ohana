@@ -6,12 +6,17 @@ import { EntryType, FileMetadata, FilePermission, Permission } from './file';
  * Get contents of a folder by ID.
  */
 export const useQueryFolderContents = (folderId: string) =>
-  useQuery(['folder', 'contents', 'id', folderId], () =>
-    APIClient.get<FileMetadata<EntryType.Folder>[]>(
-      `/api/v1/folder/${folderId}`
-    )
-      .then((res) => res.data)
-      .catch(typedError)
+  useQuery(
+    ['folder', 'contents', 'id', folderId],
+    () =>
+      APIClient.get<FileMetadata<EntryType.Folder>[]>(
+        `/api/v1/folder/${folderId}`
+      )
+        .then((res) => res.data)
+        .catch(typedError),
+    {
+      refetchInterval: 1000,
+    }
   );
 
 /**
@@ -57,7 +62,7 @@ export const useMutateDeleteFolder = () => {
         .then((res) => res.data)
         .catch(typedError),
     {
-      onSuccess: (_, params) => {
+      onSuccess: () => {
         queryClient.clear();
       },
     }
