@@ -2,14 +2,15 @@ package dbfs
 
 import (
 	"errors"
-	"github.com/google/uuid"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 	"mime"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const (
@@ -28,6 +29,8 @@ const (
 	VersioningOff            = int8(1)
 	VersioningOnVersions     = int8(2)
 	VersioningOnDeltas       = int8(3)
+	UsersFolderId            = "00000000-0000-0000-0000-000000000001"
+	GroupsFolderId           = "00000000-0000-0000-0000-000000000002"
 )
 
 var (
@@ -128,12 +131,29 @@ func GetRootFolder(tx *gorm.DB) (*File, error) {
 	return &file, nil
 }
 
+// GetHomeFolder Returns the user's home folder as a File Object.
+func GetHomeFolder(tx *gorm.DB, user *User) (*File, error) {
+
+	file, err := GetFileById(tx, user.HomeFolderId, user)
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
+
+}
+
+// LsHomeFolder returns the contents of the user's home folder as a list of File objects
+func LsHomeFolder(tx *gorm.DB, user *User) ([]File, error) {
+	return ListFilesByFolderId(tx, user.HomeFolderId, user)
+}
+
 // GetFileByPath returns a File object based on the path given
-func GetFileByPath(tx *gorm.DB, path string, user *User) (*File, error) {
+func GetFileByPath(tx *gorm.DB, path string, user *User, fromHome bool) (*File, error) {
 
 	paths := pathStringToArray(path, true)
 
-	folderTree, err := transverseByPath(tx, paths[0:len(paths)-1], user)
+	folderTree, err := traverseByPath(tx, paths[0:len(paths)-1], user, fromHome)
 
 	if err != nil {
 		return nil, err
@@ -182,11 +202,11 @@ func GetFileById(tx *gorm.DB, id string, user *User) (*File, error) {
 }
 
 // ListFilesByPath returns an array of File objects based on the path given
-func ListFilesByPath(tx *gorm.DB, path string, user *User) ([]File, error) {
+func ListFilesByPath(tx *gorm.DB, path string, user *User, fromHome bool) ([]File, error) {
 
 	paths := pathStringToArray(path, true)
 
-	folderTree, err := transverseByPath(tx, paths, user)
+	folderTree, err := traverseByPath(tx, paths, user, fromHome)
 
 	if err != nil {
 		return nil, err
@@ -243,13 +263,20 @@ func pathStringToArray(path string, fromRoot bool) []string {
 
 }
 
-// transverseByPath Returns an array of FileIds based on the transversal path of pathStringToArray()
+// traverseByPath Returns an array of FileIds based on the transversal path of pathStringToArray()
 // For Example, passing in ["foo", "bar"] will return ["root FileId", "foo FileId", "bar FileId"]
-func transverseByPath(tx *gorm.DB, fileNames []string, user *User) ([]File, error) {
+func traverseByPath(tx *gorm.DB, fileNames []string, user *User, fromHome bool) ([]File, error) {
 
 	files := make([]File, len(fileNames)+1)
 
-	parentFolder, err := GetRootFolder(tx)
+	var parentFolder *File
+	var err error
+
+	if fromHome {
+		parentFolder, err = GetHomeFolder(tx, user)
+	} else {
+		parentFolder, err = GetRootFolder(tx)
+	}
 
 	if err != nil {
 		return nil, err
@@ -285,11 +312,11 @@ func transverseByPath(tx *gorm.DB, fileNames []string, user *User) ([]File, erro
 }
 
 // CreateFolderByPath creates a folder based on the path given and returns the folder (File Object)
-func CreateFolderByPath(tx *gorm.DB, path string, user *User, server string) (*File, error) {
+func CreateFolderByPath(tx *gorm.DB, path string, user *User, server string, fromHome bool) (*File, error) {
 
 	paths := pathStringToArray(path, true)
 
-	files, err := transverseByPath(tx, paths[0:(len(paths)-1)], user)
+	files, err := traverseByPath(tx, paths[0:(len(paths)-1)], user, fromHome)
 
 	if err != nil {
 		return nil, err

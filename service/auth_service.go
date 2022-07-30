@@ -127,7 +127,7 @@ func (a *auth) Callback(ctx context.Context, code string, checkState string) (*c
 		// User doesn't exist, create
 		if user, err = dbfs.CreateNewUser(tx,
 			idTokenClaims.Email, idTokenClaims.Name, dbfs.AccountTypeEndUser,
-			idTokenClaims.Subject, "TODO", accessToken.AccessToken, rawIDToken,
+			idTokenClaims.Subject, "TODO", accessToken.AccessToken, rawIDToken, "server",
 		); err != nil {
 			return nil, fmt.Errorf("Failed to create new user: %w", err)
 		}
