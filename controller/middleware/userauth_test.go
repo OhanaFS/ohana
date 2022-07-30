@@ -62,7 +62,7 @@ func TestUserAuth(t *testing.T) {
 		db, "test@email.co", "John",
 		dbfs.AccountTypeEndUser,
 		"some-id", "refresh token",
-		"access token", "id token",
+		"access token", "id token", "server",
 	)
 
 	// Create new session

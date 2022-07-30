@@ -54,7 +54,7 @@ func TestBackendController(t *testing.T) {
 
 	// Creating a user with no permisisons
 	noPermUser, err := dbfs.CreateNewUser(db, "noPermUser", "noPermUser", dbfs.AccountTypeEndUser, "noPermUser",
-		"noPermUser", "noPermUser", "noPermUser")
+		"noPermUser", "noPermUser", "noPermUser", "server")
 
 	// Create new session
 	sessionId, err := session.Create(nil, "superuser", time.Hour)
@@ -152,13 +152,17 @@ func TestBackendController(t *testing.T) {
 		body = w.Body.String()
 		err = json.Unmarshal([]byte(body), &files)
 
-		assert.Equal(2, len(files))
-		assert.Equal("test.txt", files[1].FileName)
+		assert.Equal(4, len(files))
 
 		// Getting file ID
-
-		newFolderID = files[0].FileId
-		newFileID = files[1].FileId
+		for _, file := range files {
+			if file.FileName == "test.txt" {
+				newFileID = file.FileId
+			}
+			if file.FileName == "new_folder_name" {
+				newFolderID = file.FileId
+			}
+		}
 
 		// Download File
 		req = httptest.NewRequest("GET", "/api/v1/file/", nil).WithContext(
@@ -404,7 +408,7 @@ func TestBackendController(t *testing.T) {
 		body = w.Body.String()
 
 		err = json.Unmarshal([]byte(body), &lsFiles)
-		assert.Equal(2, len(lsFiles))
+		assert.Equal(4, len(lsFiles))
 
 		// ensure the inner folder is there
 		for _, file := range lsFiles {
@@ -442,7 +446,7 @@ func TestBackendController(t *testing.T) {
 		body = w.Body.String()
 
 		err = json.Unmarshal([]byte(body), &lsFiles)
-		assert.Equal(2, len(lsFiles))
+		assert.Equal(4, len(lsFiles))
 
 		foundFile := false
 		// ensure the inner folder is there
@@ -585,7 +589,7 @@ func TestBackendController(t *testing.T) {
 	})
 
 	user1, err := dbfs.CreateNewUser(bc.Db, "testuser1", "testuser1", dbfs.AccountTypeEndUser,
-		"testuser1", "testuser1", "testuser1", "testuseer1")
+		"testuser1", "testuser1", "testuser1", "testuser1", "server")
 	assert.NoError(err)
 
 	t.Run("Permissions Check", func(t *testing.T) {
@@ -636,10 +640,10 @@ func TestBackendController(t *testing.T) {
 	t.Run("Group Check", func(t *testing.T) {
 
 		user2, err := dbfs.CreateNewUser(bc.Db, "testuser2", "testuser2", dbfs.AccountTypeEndUser,
-			"testuser2", "testuser2", "testuser2", "testuseer2")
+			"testuser2", "testuser2", "testuser2", "testuseer2", "server")
 		assert.NoError(err)
 		user3, err := dbfs.CreateNewUser(bc.Db, "testuser3", "testuser3", dbfs.AccountTypeEndUser,
-			"testuser3", "testuser3", "testuser3", "testuseer3")
+			"testuser3", "testuser3", "testuser3", "testuseer3", "server")
 		assert.NoError(err)
 
 		group1, err := dbfs.CreateNewGroup(bc.Db, "testGroup1", "testGroup1")

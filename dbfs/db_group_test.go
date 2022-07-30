@@ -23,23 +23,28 @@ func TestGroups(t *testing.T) {
 
 	// Creating Users to test with
 	user1, err := dbfs.CreateNewUser(db, "test1",
-		"Test1", dbfs.AccountTypeAdmin, "BLAH1", "refreshToken", "accessToken", "idToken")
+		"Test1", dbfs.AccountTypeAdmin, "BLAH1", "refreshToken", "accessToken",
+		"idToken", "server")
 	assert.Nil(t, err)
 
 	user2, err := dbfs.CreateNewUser(db, "test2",
-		"Test2", dbfs.AccountTypeEndUser, "BLAH2", "refreshToken", "accessToken", "idToken")
+		"Test2", dbfs.AccountTypeEndUser, "BLAH2", "refreshToken", "accessToken",
+		"idToken", "server")
 	assert.Nil(t, err)
 
 	user3, err := dbfs.CreateNewUser(db, "test3",
-		"Test3", dbfs.AccountTypeAdmin, "BLAH3", "refreshToken", "accessToken", "idToken")
+		"Test3", dbfs.AccountTypeAdmin, "BLAH3", "refreshToken", "accessToken",
+		"idToken", "server")
 	assert.Nil(t, err)
 
 	user4, err := dbfs.CreateNewUser(db, "test4",
-		"Test4", dbfs.AccountTypeEndUser, "BLAH4", "refreshToken", "accessToken", "idToken")
+		"Test4", dbfs.AccountTypeEndUser, "BLAH4", "refreshToken", "accessToken",
+		"idToken", "server")
 	assert.Nil(t, err)
 
 	_, err = dbfs.CreateNewUser(db, "test5",
-		"Test5", dbfs.AccountTypeEndUser, "BLAH5", "refreshToken", "accessToken", "idToken")
+		"Test5", dbfs.AccountTypeEndUser, "BLAH5", "refreshToken", "accessToken",
+		"idToken", "server")
 	assert.Nil(t, err)
 
 	var testGroupId string

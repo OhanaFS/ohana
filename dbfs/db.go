@@ -1,9 +1,9 @@
 package dbfs
 
 import (
-	"time"
-
+	"github.com/mattn/go-sqlite3"
 	"gorm.io/gorm"
+	"time"
 )
 
 // InitDB Initiates the DB with gorm.db.AutoMigrate
@@ -23,9 +23,25 @@ func InitDB(db *gorm.DB) error {
 		err = db.Where("email = ?", "superuser").First(&superUser).Error
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
-				superUser, err = CreateNewUser(db, "superuser", "Super User", 2, "1", "refreshToken", "accessToken", "idToken")
-				if err != nil {
-					return err
+				userAccount := &User{
+					UserId:       "00000000-0000-0000-0000-000000000000",
+					Name:         "Super User",
+					Email:        "superuser",
+					MappedId:     "",
+					RefreshToken: "",
+					AccessToken:  "",
+					Activated:    true,
+					AccountType:  AccountTypeAdmin,
+				}
+				result := db.Create(&userAccount)
+				superUser = userAccount
+
+				if result.Error != nil {
+					if err, ok := result.Error.(sqlite3.Error); ok &&
+						err.Code == sqlite3.ErrConstraint {
+						return ErrUsernameExists
+					}
+					return result.Error
 				}
 			} else {
 				return err
@@ -54,6 +70,83 @@ func InitDB(db *gorm.DB) error {
 				}
 				permission := Permission{
 					FileId:     rootFolder.FileId,
+					UserId:     &superUser.UserId,
+					CanRead:    true,
+					CanWrite:   true,
+					CanExecute: true,
+					CanShare:   true,
+					VersionNo:  0,
+					Audit:      false,
+					CreatedAt:  time.Time{},
+					UpdatedAt:  time.Time{},
+					Status:     1,
+				}
+				if err = db.Save(&permission).Error; err != nil {
+					return err
+				}
+
+				// Create usersFolder
+
+				usersFolder := &File{
+					FileId:             "00000000-0000-0000-0000-000000000001",
+					FileName:           "users",
+					EntryType:          IsFolder,
+					ParentFolderFileId: &rootFolder.FileId,
+					VersionNo:          0,
+					Size:               0,
+					ActualSize:         0,
+					CreatedTime:        time.Time{},
+					ModifiedUserUserId: &superUser.UserId,
+					ModifiedTime:       time.Time{},
+					Status:             1,
+					HandledServer:      "",
+				}
+
+				if err = db.Save(usersFolder).Error; err != nil {
+					return err
+				}
+
+				permission = Permission{
+					FileId:     usersFolder.FileId,
+					UserId:     &superUser.UserId,
+					CanRead:    true,
+					CanWrite:   true,
+					CanExecute: true,
+					CanShare:   true,
+					VersionNo:  0,
+					Audit:      false,
+					CreatedAt:  time.Time{},
+					UpdatedAt:  time.Time{},
+					Status:     1,
+				}
+
+				if err = db.Save(&permission).Error; err != nil {
+					return err
+				}
+
+				// Create groupsFolder
+
+				groupsFolder := &File{
+					FileId:             "00000000-0000-0000-0000-000000000002",
+					FileName:           "groups",
+					EntryType:          IsFolder,
+					ParentFolderFileId: &rootFolder.FileId,
+					VersionNo:          0,
+					Size:               0,
+					ActualSize:         0,
+					CreatedTime:        time.Time{},
+					ModifiedUserUserId: &superUser.UserId,
+					ModifiedTime:       time.Time{},
+					Status:             1,
+					HandledServer:      "",
+				}
+
+				if err = db.Save(groupsFolder).Error; err != nil {
+					return err
+				}
+
+				permission = Permission{
+					FileId:     groupsFolder.FileId,
 					User:       *superUser,
 					UserId:     &superUser.UserId,
 					CanRead:    true,
