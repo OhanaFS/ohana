@@ -15,10 +15,10 @@ authentication:
   redirect_url: http://localhost:8000/auth/callback
 stitch:
   shards_location: shards/
-internode_communications:
+node:
   server_name: alpaca # This is the name of the server in the cluster. Must be unique
   host_name: localhost
   port: 5555
-  ca_cert:
-  public_cert:
-  private_key:
+  ca_cert: certificates/main_GLOBAL_CERTIFICATE.pem
+  public_cert: output_cert.pem
+  private_key: output_key.pem

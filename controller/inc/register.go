@@ -1,6 +1,7 @@
 package inc
 
 import (
+	"errors"
 	"fmt"
 	"github.com/OhanaFS/ohana/dbfs"
 	"github.com/OhanaFS/ohana/util"
@@ -43,11 +44,14 @@ func (i Inc) RegisterServer(initialRun bool) error {
 
 	// Register as Starting
 
+	isNewServer := false
+
 	// Check if server exists.
 	var server dbfs.Server
 	err := i.db.First(&server, "name = ?", i.ServerName).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
+			isNewServer = true
 			fmt.Println("Registering as new server...")
 		} else {
 			return err
@@ -81,7 +85,17 @@ func (i Inc) RegisterServer(initialRun bool) error {
 			fmt.Println("Server", server.HostName, "is unreachable.")
 			err := MarkServerOffline(i.db, i.HostName, server.HostName)
 			if err != nil {
-				i.db.Delete(&server)
+				if isNewServer {
+					if i.db.Delete(&server).Error != nil {
+						return errors.New("ERROR. CANNOT DELETE SERVER FROM DATABASE. " + err.Error())
+					}
+				} else {
+					// mark server as offline instead
+					server.Status = dbfs.ServerOfflineError
+					if i.db.Save(&server).Error != nil {
+						return errors.New("ERROR. CANNOT UPDATE SERVER FROM DATABASE. " + err.Error())
+					}
+				}
 				return err
 			}
 		}

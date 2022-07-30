@@ -6,12 +6,13 @@ import (
 )
 
 const (
-	ServerOnline   = int8(1)
-	ServerOffline  = int8(2)
-	ServerStarting = int8(3)
-	ServerStopping = int8(4)
-	ServerWarning  = int8(5)
-	ServerError    = int8(6)
+	ServerOnline       = int8(1)
+	ServerOffline      = int8(2)
+	ServerStarting     = int8(3)
+	ServerStopping     = int8(4)
+	ServerWarning      = int8(5)
+	ServerError        = int8(6)
+	ServerOfflineError = int8(7)
 )
 
 var (

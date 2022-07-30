@@ -21,7 +21,7 @@ type Config struct {
 	Redis          RedisConfig    `yaml:"redis"`
 	Stitch         StitchConfig   `yaml:"stitch"`
 	SPA            SPAConfig      `yaml:"-"`
-	Inc            IncConfig      `yaml:"internode_communications"`
+	Inc            IncConfig      `yaml:"node"`
 }
 
 type HttpConfig struct {

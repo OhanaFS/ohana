@@ -57,12 +57,12 @@ func GenCA(pathName string) error {
 	}
 	fmt.Print("Enter your organization [Ohana]: ")
 	organization, _ := reader.ReadString('\n')
-	if strings.Trim(organization, "/n") == "" {
+	if strings.Trim(organization, "\n") == "" {
 		organization = "Ohana"
 	}
 	fmt.Print("Enter your organization unit [Ohana]: ")
 	organizationalUnit, _ := reader.ReadString('\n')
-	if strings.Trim(organizationalUnit, "/n") == "" {
+	if strings.Trim(organizationalUnit, "\n") == "" {
 		organizationalUnit = "Ohana"
 	}
 

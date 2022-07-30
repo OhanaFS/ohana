@@ -1,14 +1,17 @@
 package inc_test
 
 import (
+	"context"
 	"fmt"
 	"github.com/OhanaFS/ohana/config"
 	"github.com/OhanaFS/ohana/controller/inc"
 	"github.com/OhanaFS/ohana/dbfs"
 	"github.com/OhanaFS/ohana/selfsign"
+	"github.com/OhanaFS/ohana/util/ctxutil"
 	"github.com/OhanaFS/ohana/util/testutil"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
@@ -46,14 +49,18 @@ func TestRegisterServer(t *testing.T) {
 	err = selfsign.ProcessFlags(ogc)
 	Assert.Nil(err)
 
+	tempdir, err := ioutil.TempDir("", "ohana-test")
+	Assert.Nil(err)
+	defer os.RemoveAll(tempdir)
+
 	configFile := &config.Config{Stitch: stitchConfig,
 		Inc: config.IncConfig{
 			ServerName: "testServer",
 			HostName:   "localhost",
 			Port:       "5555",
-			CaCert:     "certificates/main_GLOBAL_CERTIFICATE.pem",
-			PublicCert: "certificates/output_cert.pem",
-			PrivateKey: "certificates/output_key.pem",
+			CaCert:     tempdir + "/certificates/main_GLOBAL_CERTIFICATE.pem",
+			PublicCert: tempdir + "/certificates/output_cert.pem",
+			PrivateKey: tempdir + "/certificates/output_key.pem",
 		},
 	}
 
@@ -119,6 +126,9 @@ func TestRegisterServer(t *testing.T) {
 
 		//manually registering a server. setting it as "in process" for 10 sec
 		go func() {
+
+			db := ctxutil.GetTransaction(context.Background(), db)
+
 			testServer := dbfs.Server{
 				Name:      "server3",
 				HostName:  "127.0.0.1",
@@ -167,10 +177,7 @@ func TestRegisterServer(t *testing.T) {
 	})
 
 	t.Run("Cert Cleanup", func(t *testing.T) {
-		err = os.RemoveAll("certificates")
-		Assert.NoError(err)
-		err = os.RemoveAll("certhosts.yaml")
-		Assert.NoError(err)
+		os.RemoveAll(tempdir)
 
 	})
 
