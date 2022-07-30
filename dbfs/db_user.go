@@ -36,6 +36,7 @@ type User struct {
 	UpdatedAt    time.Time      `gorm:"autoUpdateTime" json:"-"`
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
 	Groups       []*Group       `gorm:"many2many:user_groups;" json:"-"`
+	HomeFileId   string         `json:"-"`
 	//Roles        []*Role        `gorm:"many2many:user_roles;" json:"-"`
 }
 
@@ -60,7 +61,7 @@ var _ UserInterface = &User{}
 // CreateNewUser creates a new user with a DB provided.
 // Requires username, name, AccountType, MappedId
 func CreateNewUser(tx *gorm.DB, email string, name string, accountType int8,
-	mappedId, refreshToken, accessToken, idToken string) (*User, error) {
+	mappedId, refreshToken, accessToken, idToken, server string) (*User, error) {
 
 	// Validate account type
 	if !(accountType >= 1 || accountType <= 2) {
@@ -77,6 +78,7 @@ func CreateNewUser(tx *gorm.DB, email string, name string, accountType int8,
 		AccessToken:  accessToken,
 		Activated:    true,
 		AccountType:  accountType,
+		HomeFileId:   uuid.New().String(),
 	}
 	result := tx.Create(&userAccount)
 
@@ -86,6 +88,59 @@ func CreateNewUser(tx *gorm.DB, email string, name string, accountType int8,
 			return nil, ErrUsernameExists
 		}
 		return nil, result.Error
+	}
+
+	// Create folder for new users
+	err := tx.Transaction(func(tx *gorm.DB) error {
+
+		var UserFolderIDVar string
+		UserFolderIDVar = UsersFolderId
+
+		newFolder := &File{
+			FileId:             userAccount.HomeFileId,
+			FileName:           userAccount.UserId,
+			MIMEType:           "",
+			EntryType:          IsFolder,
+			ParentFolderFileId: &UserFolderIDVar,
+			VersionNo:          0,
+			DataId:             "",
+			DataIdVersion:      0,
+			Size:               0,
+			ActualSize:         0,
+			CreatedTime:        time.Time{},
+			ModifiedTime:       time.Time{},
+			VersioningMode:     VersioningOff,
+			Status:             1,
+			HandledServer:      server,
+		}
+
+		if err := tx.Create(&newFolder).Error; err != nil {
+			return err
+		}
+
+		newPermission := Permission{
+			FileId:     newFolder.FileId,
+			User:       *userAccount,
+			UserId:     &userAccount.UserId,
+			CanRead:    true,
+			CanWrite:   true,
+			CanExecute: true,
+			CanShare:   true,
+			VersionNo:  0,
+			Audit:      false,
+			CreatedAt:  time.Time{},
+			UpdatedAt:  time.Time{},
+			Status:     1,
+		}
+
+		return tx.Save(&newPermission).Error
+	},
+	)
+	if err != nil {
+		// Delete the userAccount and return the error
+
+		tx.Delete(&userAccount)
+		return nil, err
 	}
 
 	return userAccount, nil

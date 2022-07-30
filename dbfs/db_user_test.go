@@ -13,15 +13,18 @@ func TestUsers(t *testing.T) {
 	db := testutil.NewMockDB(t)
 
 	user1, err := dbfs.CreateNewUser(db, "test1",
-		"Test1", dbfs.AccountTypeAdmin, "BLAH1", "refreshToken", "accessToken", "idToken")
+		"Test1", dbfs.AccountTypeAdmin, "BLAH1", "refreshToken", "accessToken",
+		"idToken", "server")
 	assert.Nil(t, err)
 
 	user2, err := dbfs.CreateNewUser(db, "test2",
-		"Test2", dbfs.AccountTypeEndUser, "BLAH2", "refreshToken", "accessToken", "idToken")
+		"Test2", dbfs.AccountTypeEndUser, "BLAH2", "refreshToken", "accessToken",
+		"idToken", "server")
 	assert.Nil(t, err)
 
 	user3, err := dbfs.CreateNewUser(db, "test3",
-		"Test3", dbfs.AccountTypeAdmin, "BLAH3", "refreshToken", "accessToken", "idToken")
+		"Test3", dbfs.AccountTypeAdmin, "BLAH3", "refreshToken", "accessToken",
+		"idToken", "server")
 	assert.Nil(t, err)
 
 	t.Run("Verifying newly created users", func(t *testing.T) {
@@ -47,7 +50,8 @@ func TestUsers(t *testing.T) {
 		assert := assert.New(t)
 
 		_, err := dbfs.CreateNewUser(db, "test1",
-			"Test1", dbfs.AccountTypeAdmin, "BLAH1", "refreshToken", "accessToken", "idToken")
+			"Test1", dbfs.AccountTypeAdmin, "BLAH1", "refreshToken", "accessToken",
+			"idToken", "server")
 
 		assert.Equal(dbfs.ErrUsernameExists, err)
 

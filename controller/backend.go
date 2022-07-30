@@ -1364,7 +1364,7 @@ func (bc *BackendController) GetFolderIDFromPath(w http.ResponseWriter, r *http.
 	}
 
 	// get folder
-	folder, err := dbfs.GetFileByPath(bc.Db, folderPath, user)
+	folder, err := dbfs.GetFileByPath(bc.Db, folderPath, user, true)
 	if errors.Is(err, dbfs.ErrFileNotFound) {
 		util.HttpError(w, http.StatusNotFound, err.Error())
 		return
@@ -1417,7 +1417,7 @@ func (bc *BackendController) CreateFolder(w http.ResponseWriter, r *http.Request
 			return
 		}
 	} else {
-		parentFolder, err = dbfs.GetFileByPath(bc.Db, parentFolderPath, user)
+		parentFolder, err = dbfs.GetFileByPath(bc.Db, parentFolderPath, user, true)
 		if errors.Is(err, dbfs.ErrFileNotFound) {
 			util.HttpError(w, http.StatusNotFound, err.Error())
 			return
