@@ -1,8 +1,9 @@
 package dbfs
 
 import (
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 // InitDB Initiates the DB with gorm.db.AutoMigrate
@@ -22,7 +23,7 @@ func InitDB(db *gorm.DB) error {
 		err = db.Where("email = ?", "superuser").First(&superUser).Error
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
-				superUser, err = CreateNewUser(db, "superuser", "Super User", 2, "", "refreshToken", "accessToken", "idToken")
+				superUser, err = CreateNewUser(db, "superuser", "Super User", 2, "1", "refreshToken", "accessToken", "idToken")
 				if err != nil {
 					return err
 				}
