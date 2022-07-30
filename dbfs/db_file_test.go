@@ -228,8 +228,7 @@ func TestFile(t *testing.T) {
 
 		// Creating folders for next test
 
-
-		_, err = dbfs.CreateFolderByPath(db, "/Test3", &superUser, "testserver, false)
+		_, err = dbfs.CreateFolderByPath(db, "/Test3", &superUser, "testserver", false)
 		Assert.Nil(err)
 		_, err = dbfs.CreateFolderByPath(db, "/Test3/TestA", &superUser, "testserver", false)
 		Assert.Nil(err)
@@ -282,7 +281,7 @@ func TestFile(t *testing.T) {
 		parentFolder, err := dbfs.CreateFolderByPath(db, "/TestPerms", &superUser, "testserver", false)
 		Assert.Nil(err)
 
-		subFolder1, err := dbfs.CreateFolderByPath(db, "/TestPerms/perm1", &superUser, "testserver", false)	
+		subFolder1, err := dbfs.CreateFolderByPath(db, "/TestPerms/perm1", &superUser, "testserver", false)
 		Assert.Nil(err)
 
 		subFolder2, err := dbfs.CreateFolderByPath(db, "/TestPerms/perm2", &superUser, "testserver", false)
