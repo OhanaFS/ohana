@@ -29,11 +29,9 @@ $(TARGET): $(shell find . -name '*.go')
 		cmd/ohana/main.go
 
 
-
 .PHONY: postbuild
 postbuild: $(TARGET)
 	strip $(TARGET)
-	upx $(TARGET)
 
 .PHONY: web
 web: deps

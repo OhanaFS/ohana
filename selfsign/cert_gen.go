@@ -42,27 +42,27 @@ func GenCA(pathName string) error {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Enter your country [SG]: ")
 	country, _ := reader.ReadString('\n')
-	if country == "" {
+	if strings.Trim(country, "\n") == "" {
 		country = "SG"
 	}
 	fmt.Print("Enter your state [Singapore]: ")
 	state, _ := reader.ReadString('\n')
-	if state == "" {
+	if strings.Trim(state, "\n") == "" {
 		state = "Singapore"
 	}
 	fmt.Print("Enter your locality [Singapore]: ")
 	locality, _ := reader.ReadString('\n')
-	if locality == "" {
+	if strings.Trim(locality, "\n") == "" {
 		locality = "Singapore"
 	}
 	fmt.Print("Enter your organization [Ohana]: ")
 	organization, _ := reader.ReadString('\n')
-	if organization == "" {
+	if strings.Trim(organization, "/n") == "" {
 		organization = "Ohana"
 	}
 	fmt.Print("Enter your organization unit [Ohana]: ")
 	organizationalUnit, _ := reader.ReadString('\n')
-	if organizationalUnit == "" {
+	if strings.Trim(organizationalUnit, "/n") == "" {
 		organizationalUnit = "Ohana"
 	}
 
