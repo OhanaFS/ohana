@@ -4,6 +4,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"io"
+	"net/http"
+	"os"
+	"strconv"
+
 	"github.com/OhanaFS/ohana/config"
 	"github.com/OhanaFS/ohana/controller/middleware"
 	"github.com/OhanaFS/ohana/dbfs"
@@ -14,10 +19,6 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"io"
-	"net/http"
-	"os"
-	"strconv"
 )
 
 type BackendController struct {
@@ -32,7 +33,7 @@ func NewBackend(
 	router *mux.Router,
 	logger *zap.Logger,
 	db *gorm.DB,
-	mw middleware.Middlewares,
+	mw *middleware.Middlewares,
 	config *config.Config,
 ) error {
 
@@ -43,7 +44,7 @@ func NewBackend(
 	}
 
 	bc.InitialiseShardsFolder()
-	
+
 	// Register routes
 	r := router.NewRoute().Subrouter()
 
@@ -1126,8 +1127,9 @@ func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", file.MIMEType)
+	w.Header().Set("Content-Disposition", "attachment; filename="+file.FileName)
+	w.WriteHeader(http.StatusOK)
 
 	_, err = io.Copy(w, reader)
 	if err != nil {

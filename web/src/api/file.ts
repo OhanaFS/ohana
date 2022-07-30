@@ -1,5 +1,5 @@
 import { APIClient, typedError } from './api';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export type FileUploadRequest = {
   file: File;
@@ -43,15 +43,35 @@ export type FileMetadata<T = EntryType> = {
 /**
  * Uploads a file to a folder.
  */
-export const useMutateUploadFile = () =>
-  useMutation(async ({ file, ...headers }: FileUploadRequest) => {
-    if (!headers.file_name) headers.file_name = file.name;
-    return APIClient.post<FileMetadata<EntryType.File>>('/api/v1/file', file, {
-      headers: { ...headers },
-    })
-      .then((res) => res.data)
-      .catch(typedError);
-  });
+export const useMutateUploadFile = () => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    async ({ file, ...headers }: FileUploadRequest) => {
+      if (!headers.file_name) headers.file_name = file.name;
+      const form = new FormData();
+      form.append('file', file);
+      return APIClient.post<FileMetadata<EntryType.File>>(
+        '/api/v1/file',
+        form,
+        {
+          headers: { ...headers },
+        }
+      )
+        .then((res) => res.data)
+        .catch(typedError);
+    },
+    {
+      onSuccess: (_, params) => {
+        queryClient.invalidateQueries([
+          'folder',
+          'contents',
+          'id',
+          params.folder_id,
+        ]);
+      },
+    }
+  );
+};
 
 export type FileUpdateRequest = {
   file: File;

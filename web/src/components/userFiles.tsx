@@ -9,7 +9,7 @@ import {
   FileHelper,
   FullFileBrowser,
 } from 'chonky';
-import { Modal, FileInput } from '@mantine/core';
+import { Modal, FileInput, FileButton, Button, Loader } from '@mantine/core';
 import React, {
   useCallback,
   useEffect,
@@ -19,7 +19,20 @@ import React, {
 } from 'react';
 import DemoFsMap from '../assets/demo_fs.json';
 
-import { useMutateUploadFile } from '../api/file';
+import {
+  EntryType,
+  getFileDownloadURL,
+  useMutateDeleteFile,
+  useMutateUpdateFile,
+  useMutateUploadFile,
+} from '../api/file';
+import {
+  useMutateCreateFolder,
+  useMutateDeleteFolder,
+  useQueryFolderContents,
+  useQueryFolderContentsByPath,
+} from '../api/folder';
+import { IconUpload } from '@tabler/icons';
 
 // We define a custom interface for file data because we want to add some custom fields
 // to Chonky's built-in `FileData` interface.
@@ -279,14 +292,28 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
 
   const handleFileAction: FileActionHandler = (data) => {
     if (data.action === ChonkyActions.UploadFiles) {
-      console.log('Upload a file');
       setFuOpened(true);
-    } else {
-      useFileActionHandler(
-        setCurrentFolderId,
-        deleteFiles,
-        moveFiles,
-        createFolder
+    } else if (data.action === ChonkyActions.CreateFolder) {
+      let name = window.prompt('Enter new folder name: ');
+      if (!name) {
+        return;
+      }
+      mCreateFolder.mutate({
+        folder_name: name,
+        parent_folder_id: '00000000-0000-0000-0000-000000000000',
+      });
+    } else if (data.id === ChonkyActions.DeleteFiles.id) {
+      for (const selectedItem of data.state.selectedFilesForAction) {
+        if (selectedItem.isDir) {
+          mDeleteFolder.mutate(selectedItem.id);
+        } else {
+          mDeleteFile.mutate(selectedItem.id);
+        }
+      }
+    } else if (data.id === ChonkyActions.DownloadFiles.id) {
+      // @ts-ignore
+      window.location = getFileDownloadURL(
+        data.state.selectedFilesForAction[0].id
       );
     }
   };
@@ -306,11 +333,27 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
     []
   );
 
+  const tempFolderID: string = '00000000-0000-0000-0000-000000000000';
+
+  const qFilesList = useQueryFolderContents(tempFolderID);
+
+  const mCreateFolder = useMutateCreateFolder();
+  const mDeleteFolder = useMutateDeleteFolder();
+  const mUploadFile = useMutateUploadFile();
+  const mDeleteFile = useMutateDeleteFile();
+
+  const ohanaFiles =
+    qFilesList.data?.map((file) => ({
+      id: file.file_id,
+      name: file.file_name,
+      isDir: file.entry_type === EntryType.Folder,
+    })) || [];
+
   return (
     <AppBase userType="user">
       <div style={{ height: '100%' }}>
         <FullFileBrowser
-          files={files}
+          files={ohanaFiles}
           folderChain={folderChain}
           fileActions={fileActions}
           onFileAction={handleFileAction}
@@ -318,16 +361,44 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
           {...props}
         />
         {/* Upload file modal */}
-        <Modal
-          centered
-          opened={fuOpened}
-          onClose={() => setFuOpened(false)}
-          title="Upload a File"
-        >
-          <FileInput placeholder="Upload a  file" radius="md" required />
-        </Modal>
-        ;
       </div>
+      <Modal
+        centered
+        opened={fuOpened}
+        onClose={() => setFuOpened(false)}
+        title="Upload a File"
+      >
+        <div className="flex">
+          {mUploadFile.isLoading ? <Loader className="mr-5" /> : null}
+          <FileButton
+            onChange={(item) => {
+              console.log('we going in');
+              if (!item) {
+                return;
+              }
+              mUploadFile
+                .mutateAsync({
+                  file: item,
+                  folder_id: tempFolderID,
+                  frag_count: 1,
+                  parity_count: 1,
+                })
+                .then(() => setFuOpened(false));
+            }}
+          >
+            {(props) => (
+              <Button
+                disabled={mUploadFile.isLoading}
+                className="bg-cyan-500"
+                color="cyan"
+                {...props}
+              >
+                Upload a File
+              </Button>
+            )}
+          </FileButton>
+        </div>
+      </Modal>
     </AppBase>
   );
 });

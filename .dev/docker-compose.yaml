@@ -50,7 +50,7 @@ services:
               },
               {
                 "Type": "email",
-                "Value": "ohana@ohanais.live"
+                "Value": "superuser"
               },
               {
                 "Type": "custom-claim",
