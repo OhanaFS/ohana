@@ -21,6 +21,8 @@ import DemoFsMap from '../assets/demo_fs.json';
 
 import {
   EntryType,
+  getFileDownloadURL,
+  useMutateDeleteFile,
   useMutateUpdateFile,
   useMutateUploadFile,
 } from '../api/file';
@@ -304,8 +306,15 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
       for (const selectedItem of data.state.selectedFilesForAction) {
         if (selectedItem.isDir) {
           mDeleteFolder.mutate(selectedItem.id);
+        } else {
+          mDeleteFile.mutate(selectedItem.id);
         }
       }
+    } else if (data.id === ChonkyActions.DownloadFiles.id) {
+      // @ts-ignore
+      window.location = getFileDownloadURL(
+        data.state.selectedFilesForAction[0].id
+      );
     }
   };
 
@@ -331,6 +340,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   const mCreateFolder = useMutateCreateFolder();
   const mDeleteFolder = useMutateDeleteFolder();
   const mUploadFile = useMutateUploadFile();
+  const mDeleteFile = useMutateDeleteFile();
 
   const ohanaFiles =
     qFilesList.data?.map((file) => ({
