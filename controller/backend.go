@@ -32,7 +32,7 @@ func NewBackend(
 	router *mux.Router,
 	logger *zap.Logger,
 	db *gorm.DB,
-	mw middleware.Middlewares,
+	mw *middleware.Middlewares,
 	config *config.Config,
 ) error {
 

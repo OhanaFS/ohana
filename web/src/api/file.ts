@@ -46,7 +46,9 @@ export type FileMetadata<T = EntryType> = {
 export const useMutateUploadFile = () =>
   useMutation(async ({ file, ...headers }: FileUploadRequest) => {
     if (!headers.file_name) headers.file_name = file.name;
-    return APIClient.post<FileMetadata<EntryType.File>>('/api/v1/file', file, {
+    const form = new FormData();
+    form.append('file', file);
+    return APIClient.post<FileMetadata<EntryType.File>>('/api/v1/file', form, {
       headers: { ...headers },
     })
       .then((res) => res.data)

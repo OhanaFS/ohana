@@ -33,7 +33,6 @@ $(TARGET): $(shell find . -name '*.go')
 .PHONY: postbuild
 postbuild: $(TARGET)
 	strip $(TARGET)
-	upx $(TARGET)
 
 .PHONY: web
 web: deps

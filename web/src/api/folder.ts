@@ -1,5 +1,5 @@
 import { APIClient, typedError } from './api';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { EntryType, FileMetadata, FilePermission, Permission } from './file';
 
 /**
@@ -20,7 +20,7 @@ export const useQueryFolderContents = (folderId: string) =>
 export const useQueryFolderContentsByPath = (path: string) =>
   useQuery(['folder', 'contents', 'path', path], () =>
     APIClient.get<FileMetadata<EntryType.Folder>[]>(`/api/v1/folder`, {
-      headers: { path },
+      headers: { folder_path: path },
     })
       .then((res) => res.data)
       .catch(typedError)
@@ -49,12 +49,20 @@ export const useMutateUpdateFolderMetadata = () =>
 /**
  * Delete a folder
  */
-export const useMutateDeleteFolder = () =>
-  useMutation((folderId: string) =>
-    APIClient.delete<boolean>(`/api/v1/folder/${folderId}`)
-      .then((res) => res.data)
-      .catch(typedError)
+export const useMutateDeleteFolder = () => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (folderId: string) =>
+      APIClient.delete<boolean>(`/api/v1/folder/${folderId}`)
+        .then((res) => res.data)
+        .catch(typedError),
+    {
+      onSuccess: (_, params) => {
+        queryClient.clear();
+      },
+    }
   );
+};
 
 export type CreateFolderRequest = {
   folder_name: string;
@@ -63,14 +71,29 @@ export type CreateFolderRequest = {
 /**
  * Create a new folder
  */
-export const useMutateCreateFolder = () =>
-  useMutation((params: CreateFolderRequest) =>
-    APIClient.post<{ file_id: string }>(`/api/v1/folder`, null, {
-      headers: { ...params },
-    })
-      .then((res) => res.data)
-      .catch(typedError)
+export const useMutateCreateFolder = () => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (params: CreateFolderRequest) =>
+      APIClient.post<{ file_id: string }>(`/api/v1/folder`, null, {
+        headers: { ...params },
+      })
+        .then((res) => res.data)
+        .catch(typedError),
+    {
+      onSuccess: (_, params) => {
+        if ('parent_folder_id' in params)
+          queryClient.invalidateQueries([
+            'folder',
+            'contents',
+            'id',
+            params.parent_folder_id,
+          ]);
+        else queryClient.clear();
+      },
+    }
   );
+};
 
 /**
  * View folder permissions
