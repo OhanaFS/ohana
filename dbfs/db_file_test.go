@@ -323,6 +323,11 @@ func TestFile(t *testing.T) {
 		Assert.Equal(true, hasPermission)
 		Assert.Nil(err)
 
+		// See if the user has his own folder created.
+		userFolder, err := dbfs.GetHomeFolder(db, user1)
+		Assert.Nil(err)
+		Assert.Equal(userFolder.FileId, user1.HomeFolderId)
+
 	})
 
 	// Creating fake files

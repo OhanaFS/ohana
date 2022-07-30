@@ -133,7 +133,7 @@ func GetRootFolder(tx *gorm.DB) (*File, error) {
 // GetHomeFolder Returns the user's home folder as a File Object.
 func GetHomeFolder(tx *gorm.DB, user *User) (*File, error) {
 
-	file, err := GetFileById(tx, user.HomeFileId, user)
+	file, err := GetFileById(tx, user.HomeFolderId, user)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ func GetHomeFolder(tx *gorm.DB, user *User) (*File, error) {
 
 // LsHomeFolder returns the contents of the user's home folder as a list of File objects
 func LsHomeFolder(tx *gorm.DB, user *User) ([]File, error) {
-	return ListFilesByFolderId(tx, user.HomeFileId, user)
+	return ListFilesByFolderId(tx, user.HomeFolderId, user)
 }
 
 // GetFileByPath returns a File object based on the path given

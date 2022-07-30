@@ -36,7 +36,7 @@ type User struct {
 	UpdatedAt    time.Time      `gorm:"autoUpdateTime" json:"-"`
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
 	Groups       []*Group       `gorm:"many2many:user_groups;" json:"-"`
-	HomeFileId   string         `json:"-"`
+	HomeFolderId string         `json:"-"`
 	//Roles        []*Role        `gorm:"many2many:user_roles;" json:"-"`
 }
 
@@ -78,7 +78,7 @@ func CreateNewUser(tx *gorm.DB, email string, name string, accountType int8,
 		AccessToken:  accessToken,
 		Activated:    true,
 		AccountType:  accountType,
-		HomeFileId:   uuid.New().String(),
+		HomeFolderId: uuid.New().String(),
 	}
 	result := tx.Create(&userAccount)
 
@@ -97,7 +97,7 @@ func CreateNewUser(tx *gorm.DB, email string, name string, accountType int8,
 		UserFolderIDVar = UsersFolderId
 
 		newFolder := &File{
-			FileId:             userAccount.HomeFileId,
+			FileId:             userAccount.HomeFolderId,
 			FileName:           userAccount.UserId,
 			MIMEType:           "",
 			EntryType:          IsFolder,
