@@ -50,7 +50,7 @@ func TestFile(t *testing.T) {
 
 		// Folder 1
 
-		newFolder1, err := dbfs.CreateFolderByParentId(db, rootFolder.FileId, "Test1", &superUser)
+		newFolder1, err := dbfs.CreateFolderByParentId(db, rootFolder.FileId, "Test1", &superUser, "testserver")
 
 		Assert.Nil(err)
 
@@ -58,7 +58,7 @@ func TestFile(t *testing.T) {
 
 		// Folder 2
 
-		newFolder2, err := dbfs.CreateFolderByParentId(db, rootFolder.FileId, "Test2", &superUser)
+		newFolder2, err := dbfs.CreateFolderByParentId(db, rootFolder.FileId, "Test2", &superUser, "testserver")
 
 		Assert.Nil(err)
 
@@ -66,7 +66,7 @@ func TestFile(t *testing.T) {
 
 		// Folder 3
 
-		newFolder3, err := dbfs.CreateFolderByParentId(db, rootFolder.FileId, "Test3", &superUser)
+		newFolder3, err := dbfs.CreateFolderByParentId(db, rootFolder.FileId, "Test3", &superUser, "testserver")
 
 		Assert.Nil(err)
 
@@ -74,7 +74,7 @@ func TestFile(t *testing.T) {
 
 		// Folder 4 (nested inside Folder 3)
 
-		newFolder4, err := dbfs.CreateFolderByParentId(db, newFolder3.FileId, "Test4", &superUser)
+		newFolder4, err := dbfs.CreateFolderByParentId(db, newFolder3.FileId, "Test4", &superUser, "testserver")
 
 		Assert.Nil(err)
 
@@ -82,7 +82,7 @@ func TestFile(t *testing.T) {
 
 		// Folder 5 (same name as Folder 2, should fail due to existing folder)
 
-		_, err = dbfs.CreateFolderByParentId(db, rootFolder.FileId, "Test3", &superUser)
+		_, err = dbfs.CreateFolderByParentId(db, rootFolder.FileId, "Test3", &superUser, "testserver")
 
 		Assert.Error(dbfs.ErrFileFolderExists, err)
 
@@ -170,7 +170,7 @@ func TestFile(t *testing.T) {
 		Assert.Nil(err)
 		Assert.Equal(0, len(ls))
 
-		innerFolder, err := dbfs.CreateFolderByPath(db, "/Test2/Test_2", &superUser, false)
+		innerFolder, err := dbfs.CreateFolderByPath(db, "/Test2/Test_2", &superUser, "testserver", false)
 		Assert.Nil(err)
 		Assert.Equal("Test_2", innerFolder.FileName)
 
@@ -199,9 +199,10 @@ func TestFile(t *testing.T) {
 
 		// Creating /Test2/Test2_2
 
-		folder, err := dbfs.CreateFolderByPath(db, "/Test2", &superUser, false)
+		folder, err := dbfs.CreateFolderByPath(db, "/Test2", &superUser, "testserver", false)
 		Assert.Nil(err)
-		folder, err = dbfs.CreateFolderByPath(db, "/Test2/Test_2", &superUser, false)
+		folder, err = dbfs.CreateFolderByPath(db, "/Test2/Test_2", &superUser, "testserver", false)
+
 		Assert.Nil(err)
 
 		// Delete single folder.
@@ -227,23 +228,24 @@ func TestFile(t *testing.T) {
 
 		// Creating folders for next test
 
-		_, err = dbfs.CreateFolderByPath(db, "/Test3", &superUser, false)
+		_, err = dbfs.CreateFolderByPath(db, "/Test3", &superUser, "testserver", false)
 		Assert.Nil(err)
-		_, err = dbfs.CreateFolderByPath(db, "/Test3/TestA", &superUser, false)
+		_, err = dbfs.CreateFolderByPath(db, "/Test3/TestA", &superUser, "testserver", false)
 		Assert.Nil(err)
-		_, err = dbfs.CreateFolderByPath(db, "/Test3/TestA/TestA_1", &superUser, false)
+		_, err = dbfs.CreateFolderByPath(db, "/Test3/TestA/TestA_1", &superUser, "testserver", false)
 		Assert.Nil(err)
-		_, err = dbfs.CreateFolderByPath(db, "/Test3/TestA/TestA_2", &superUser, false)
+		_, err = dbfs.CreateFolderByPath(db, "/Test3/TestA/TestA_2", &superUser, "testserver", false)
 		Assert.Nil(err)
-		_, err = dbfs.CreateFolderByPath(db, "/Test3/TestA/TestA_1/POG", &superUser, false)
+		_, err = dbfs.CreateFolderByPath(db, "/Test3/TestA/TestA_1/POG", &superUser, "testserver", false)
 		Assert.Nil(err)
-		_, err = dbfs.CreateFolderByPath(db, "/Test3/TestB", &superUser, false)
+		_, err = dbfs.CreateFolderByPath(db, "/Test3/TestB", &superUser, "testserver", false)
 		Assert.Nil(err)
-		_, err = dbfs.CreateFolderByPath(db, "/Test3/TestB/TestB_1", &superUser, false)
+		_, err = dbfs.CreateFolderByPath(db, "/Test3/TestB/TestB_1", &superUser, "testserver", false)
 		Assert.Nil(err)
-		_, err = dbfs.CreateFolderByPath(db, "/Test3/TestB/TestB_2", &superUser, false)
+		_, err = dbfs.CreateFolderByPath(db, "/Test3/TestB/TestB_2", &superUser, "testserver", false)
 		Assert.Nil(err)
-		_, err = dbfs.CreateFolderByPath(db, "/Test3/TestC", &superUser, false)
+		_, err = dbfs.CreateFolderByPath(db, "/Test3/TestC", &superUser, "testserver", false)
+
 		Assert.Nil(err)
 
 		// Delete Folder that has contents inside "/Test3"
@@ -276,13 +278,14 @@ func TestFile(t *testing.T) {
 
 		// Making folders
 
-		parentFolder, err := dbfs.CreateFolderByPath(db, "/TestPerms", &superUser, false)
+		parentFolder, err := dbfs.CreateFolderByPath(db, "/TestPerms", &superUser, "testserver", false)
 		Assert.Nil(err)
 
-		subFolder1, err := dbfs.CreateFolderByPath(db, "/TestPerms/perm1", &superUser, false)
+		subFolder1, err := dbfs.CreateFolderByPath(db, "/TestPerms/perm1", &superUser, "testserver", false)
 		Assert.Nil(err)
 
-		subFolder2, err := dbfs.CreateFolderByPath(db, "/TestPerms/perm2", &superUser, false)
+		subFolder2, err := dbfs.CreateFolderByPath(db, "/TestPerms/perm2", &superUser, "testserver", false)
+
 		Assert.Nil(err)
 
 		// Creating a user
@@ -310,9 +313,9 @@ func TestFile(t *testing.T) {
 
 		// Creating a folder under /TestPerms/perm1
 
-		subFolder3, err := dbfs.CreateFolderByPath(db, "/TestPerms/perm1/perm3", user1, false)
+		subFolder3, err := dbfs.CreateFolderByPath(db, "/TestPerms/perm1/perm3", user1, "testserver", false)
 		Assert.Error(err, dbfs.ErrNoPermission)
-		subFolder3, err = dbfs.CreateFolderByPath(db, "/TestPerms/perm1/perm3", &superUser, false)
+		subFolder3, err = dbfs.CreateFolderByPath(db, "/TestPerms/perm1/perm3", &superUser, "testserver", false)
 		Assert.Nil(err)
 
 		// Check that user has permissions to /TestPerms/perm1/perm3
@@ -336,7 +339,7 @@ func TestFile(t *testing.T) {
 		Assert := assert.New(t)
 
 		// Making folders
-		newFolder, err := dbfs.CreateFolderByPath(db, "/TestFakeFiles", &superUser, false)
+		newFolder, err := dbfs.CreateFolderByPath(db, "/TestFakeFiles", &superUser, "testserver", false)
 		Assert.Nil(err)
 
 		// Creating fake files

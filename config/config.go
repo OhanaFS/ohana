@@ -21,6 +21,7 @@ type Config struct {
 	Redis          RedisConfig    `yaml:"redis"`
 	Stitch         StitchConfig   `yaml:"stitch"`
 	SPA            SPAConfig      `yaml:"-"`
+	Inc            IncConfig      `yaml:"node"`
 }
 
 type HttpConfig struct {
@@ -65,6 +66,15 @@ type SPAConfig struct {
 // It contains the path of where the shards are located on the server
 type StitchConfig struct {
 	ShardsLocation string `yaml:"shards_location"`
+}
+
+type IncConfig struct {
+	ServerName string `yaml:"server_name"`
+	HostName   string `yaml:"host_name"`
+	Port       string `yaml:"port"`
+	CaCert     string `yaml:"ca_cert"`
+	PublicCert string `yaml:"public_cert"`
+	PrivateKey string `yaml:"private_key"`
 }
 
 // CertsConfig is the configuration for the certs, stored via flags

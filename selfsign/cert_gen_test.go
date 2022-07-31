@@ -83,9 +83,7 @@ func TestSelfSign(t *testing.T) {
 
 		hostFile, err := os.Create("certhosts.yaml")
 		Assert.Nil(err)
-		defer func(hostFile *os.File) {
-			_ = hostFile.Close()
-		}(hostFile)
+		defer hostFile.Close()
 
 		encoder := yaml.NewEncoder(hostFile)
 		Assert.Nil(encoder.Encode(fakeHosts))
@@ -140,7 +138,7 @@ func TestSelfSign(t *testing.T) {
 			ClientAuth: tls.RequireAndVerifyClientCert,
 		}
 
-		srv := NewServer("5555", tlsConfig)
+		srv := NewServer("5556", tlsConfig)
 		go srv.ListenAndServeTLS(*ogc.GenCertsPath+"_cert.pem", *ogc.GenCertsPath+"_key.pem")
 		defer srv.Close()
 
@@ -161,7 +159,7 @@ func TestSelfSign(t *testing.T) {
 			},
 		}
 
-		res, err := client.Get("https://localhost:5555")
+		res, err := client.Get("https://localhost:5556")
 		Assert.NoError(err)
 
 		defer res.Body.Close()
@@ -193,7 +191,7 @@ func TestSelfSign(t *testing.T) {
 			},
 		}
 
-		res, err = client2.Get("https://localhost:5555")
+		res, err = client2.Get("https://localhost:5556")
 		Assert.IsType(err, &url.Error{}) // should be  x509.UnknownAuthorityError{}
 
 	})
