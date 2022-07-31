@@ -20,7 +20,7 @@ type Fragment struct {
 	FileVersionVersionNo     int         `gorm:"primaryKey"`
 	FileVersionDataIdVersion int
 	FragId                   int `gorm:"primaryKey"`
-	ServerId                 string
+	ServerName               string
 	FileFragmentPath         string
 	LastChecked              time.Time
 	TotalShards              int `gorm:"not null"`

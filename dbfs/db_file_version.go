@@ -178,6 +178,14 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 		return err
 	}
 
+	var status int8
+
+	if file.EntryType == IsFolder {
+		status = FileStatusDeleted
+	} else {
+		status = FileStatusToBeDeleted
+	}
+
 	fileVersion := FileVersion{
 		FileId:                file.FileId,
 		VersionNo:             file.VersionNo + 1,
@@ -204,7 +212,7 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 		//LinkFileFileId:        "GET LINKED FOLDER", // NOT READY
 		//LinkFileVersionNo:     0,                   // NOT READY
 		LastChecked:   file.LastChecked,
-		Status:        FileStatusDeleted,
+		Status:        status,
 		HandledServer: file.HandledServer,
 	}
 
@@ -215,7 +223,7 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 
 	// Next, we'll mark everything as deleted.
 
-	err = tx.Model(&FileVersion{}).Where("file_id = ?", file.FileId).Update("status", FileStatusDeleted).Error
+	err = tx.Model(&FileVersion{}).Where("file_id = ?", file.FileId).Update("status", FileStatusToBeDeleted).Error
 	if err != nil {
 		return err
 	}

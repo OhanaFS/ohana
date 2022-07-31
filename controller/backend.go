@@ -262,9 +262,8 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 	for i := 1; i <= int(dbfsFile.TotalShards); i++ {
 		fragId := int(i)
 		fragmentPath := shardNames[i-1]
-		serverId := "Server" + strconv.Itoa(i)
 
-		err = dbfs.CreateFragment(bc.Db, dbfsFile.FileId, dbfsFile.DataId, dbfsFile.VersionNo, fragId, serverId, fragmentPath)
+		err = dbfs.CreateFragment(bc.Db, dbfsFile.FileId, dbfsFile.DataId, dbfsFile.VersionNo, fragId, bc.ServerName, fragmentPath)
 		if err != nil {
 			err2 := dbfsFile.Delete(bc.Db, user)
 			if err2 != nil {
@@ -412,10 +411,11 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 	for i := 1; i <= int(dbfsFile.TotalShards); i++ {
 		fragId := int(i)
 		fragmentPath := shardNames[i-1]
-		serverId := "Server" + strconv.Itoa(i)
+
+		// TODO: Figure out checksum
 		fragChecksum := "CHECKSUM" + strconv.Itoa(i)
 
-		err = dbfsFile.UpdateFragment(bc.Db, fragId, fragmentPath, fragChecksum, serverId)
+		err = dbfsFile.UpdateFragment(bc.Db, fragId, fragmentPath, fragChecksum, bc.ServerName)
 		if err != nil {
 			err2 := dbfsFile.RevertFileToVersion(bc.Db, dbfsFile.VersionNo-1, user)
 			if err2 != nil {

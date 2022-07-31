@@ -5,8 +5,18 @@ import (
 	"fmt"
 	"github.com/OhanaFS/ohana/dbfs"
 	"github.com/OhanaFS/ohana/util/testutil"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"gorm.io/gorm"
+	"strconv"
 	"testing"
+)
+
+const (
+	ExampleTotalShards  = 5
+	ExampleDataShards   = 3
+	ExampleParityShards = 2
+	ExampleKeyThreshold = 2
 )
 
 func TestFile(t *testing.T) {
@@ -343,7 +353,7 @@ func TestFile(t *testing.T) {
 		Assert.Nil(err)
 
 		// Creating fake files
-		file, err := dbfs.EXAMPLECreateFile(db, &superUser, "somefile.txt", newFolder.FileId)
+		file, err := EXAMPLECreateFile(db, &superUser, "somefile.txt", newFolder.FileId)
 
 		Assert.Nil(err)
 		// Check if you can get da fragments
@@ -355,7 +365,7 @@ func TestFile(t *testing.T) {
 			fmt.Println(fragments)
 		}
 
-		file2, err := dbfs.EXAMPLECreateFile(db, &superUser, "somefile2.txt", newFolder.FileId)
+		file2, err := EXAMPLECreateFile(db, &superUser, "somefile2.txt", newFolder.FileId)
 		Assert.Nil(err)
 		// Check if you can get da fragments
 		fragments, err = file2.GetFileFragments(db, &superUser)
@@ -366,7 +376,7 @@ func TestFile(t *testing.T) {
 			fmt.Println(fragments)
 		}
 
-		file, err = dbfs.EXAMPLECreateFile(db, &superUser, "somefile2.txt", newFolder.FileId)
+		file, err = EXAMPLECreateFile(db, &superUser, "somefile2.txt", newFolder.FileId)
 		Assert.Error(dbfs.ErrFileFolderExists, err)
 
 		err = dbfs.DeleteFileById(db, file2.FileId, &superUser)
@@ -447,7 +457,7 @@ func TestFile(t *testing.T) {
 		Assert.Equal(8, len(files))
 
 		// Assuming updating pogfile.txt
-		err = dbfs.EXAMPLEUpdateFile(db, newFile, "", &superUser)
+		err = EXAMPLEUpdateFile(db, newFile, "", &superUser)
 		Assert.Nil(err)
 		newFile, err = dbfs.GetFileByPath(db, "/pogfile.txt", &superUser, false)
 		Assert.Nil(err)
@@ -515,5 +525,150 @@ func TestFile(t *testing.T) {
 		assert.Equal(t, ivToEncrypt, plaintext)
 
 	})
+
+}
+
+// EXAMPLECreateFile is an example driver for creating a File.
+func EXAMPLECreateFile(tx *gorm.DB, user *dbfs.User, filename string, parentFolderId string) (*dbfs.File, error) {
+
+	// This is an example script to show how the process should work.
+
+	// First, the system receives the whole file from the user
+	// Then, the system creates the record in the system
+
+	file := dbfs.File{
+		FileId:             uuid.New().String(),
+		FileName:           filename,
+		MIMEType:           "",
+		ParentFolderFileId: &parentFolderId, // root folder for now
+		Size:               512,
+		VersioningMode:     dbfs.VersioningOff,
+		Checksum:           "CHECKSUM",
+		TotalShards:        ExampleTotalShards,
+		DataShards:         ExampleDataShards,
+		ParityShards:       ExampleParityShards,
+		KeyThreshold:       ExampleKeyThreshold,
+		PasswordProtected:  false,
+		HandledServer:      "ThisServer",
+	}
+
+	fileKey, fileIv, err := dbfs.GenerateKeyIV()
+	if err != nil {
+		return nil, err
+	}
+
+	passwordProtect := dbfs.PasswordProtect{
+		FileId:         file.FileId,
+		FileKey:        fileKey,
+		FileIv:         fileIv,
+		PasswordActive: false,
+	}
+
+	// This is the key and IV from the pipeline
+	dataKey, dataIv, err := dbfs.GenerateKeyIV()
+	if err != nil {
+		return nil, err
+	}
+
+	// Encrypt dataKey and dataIv with the fileKey and fileIv
+	dataKey, err = dbfs.EncryptWithKeyIV(dataKey, fileKey, fileIv)
+	if err != nil {
+		return nil, err
+	}
+	dataIv, err = dbfs.EncryptWithKeyIV(dataIv, fileKey, fileIv)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Transaction(func(tx *gorm.DB) error {
+
+		err := dbfs.CreateInitialFile(tx, &file, fileKey, fileIv, dataKey, dataIv, user)
+		if err != nil {
+			return err
+		}
+
+		err = tx.Create(&passwordProtect).Error
+		if err != nil {
+			return err
+		}
+
+		err = dbfs.CreatePermissions(tx, &file)
+		if err != nil {
+			// By right, there should be no error possible? If any error happens, it's likely a system error.
+			// However, in the case there is an error, we will revert the transaction (thus deleting the file entry)
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// If no error, file is created. Now the system need to process the file in the pipeline and send it to each server
+	// Pipeline can get the amount of parity bits based on the Parity Count, and get the amount of shards based on the amount of servers
+
+	// Then, the system splits the files accordingly
+
+	// Then, the system send each shard to each server, and once it's sent successfully
+
+	for i := 1; i <= int(file.TotalShards); i++ {
+		fragId := int(i)
+		fragmentPath := uuid.New().String()
+		serverId := "Server" + strconv.Itoa(i)
+
+		err = dbfs.CreateFragment(tx, file.FileId, file.DataId, file.VersionNo, fragId, serverId, fragmentPath)
+		if err != nil {
+			// Not sure how to handle this multiple error situation that is possible.
+			// Don't necessarily want to put it in a transaction because I'm worried it'll be too long?
+			// or does that make no sense?
+			err2 := file.Delete(tx, user)
+			if err2 != nil {
+				return nil, err2
+			}
+
+			return nil, err
+			// If fails, delete File record and return error.
+		}
+	}
+
+	// Now we can update it to indicate that it has been saved successfully.
+
+	err = dbfs.FinishFile(tx, &file, user, 412, "checksum")
+	if err != nil {
+		// If fails, delete File record and return error.
+	}
+
+	err = dbfs.CreateFileVersionFromFile(tx, &file, user)
+	if err != nil {
+		// If fails, delete File record and return error.
+	}
+
+	return &file, nil
+
+}
+
+func EXAMPLEUpdateFile(tx *gorm.DB, file *dbfs.File, password string, user *dbfs.User) error {
+
+	// Key and IV from pipeline
+	dataKey, dataIv, err := dbfs.GenerateKeyIV()
+	if err != nil {
+		return err
+	}
+
+	err = file.UpdateFile(tx, 2020, 2020, "wowKey", "wowServer", dataKey, dataIv, password, user)
+	if err != nil {
+		return err
+	}
+
+	// As each fragment is uploaded, each fragment is added to the database.
+	for i := 1; i <= int(file.TotalShards); i++ {
+		err = file.UpdateFragment(tx, int(i), "wowFragmentPath", "wowChecksum", "wowServerId")
+		if err != nil {
+			return err
+		}
+	}
+
+	// Once all fragments are uploaded, the file is marked as finished.
+	return file.FinishUpdateFile(tx, "")
 
 }

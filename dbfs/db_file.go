@@ -4,7 +4,6 @@ import (
 	"errors"
 	"mime"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -23,7 +22,8 @@ const (
 	FileStatusOffline        = int8(3)
 	FileStatusBad            = int8(4)
 	FileStatusReBuilding     = int8(5)
-	FileStatusDeleted        = int8(6)
+	FileStatusToBeDeleted    = int8(6)
+	FileStatusDeleted        = int8(7)
 	DefaultDataShardsCount   = 5 //EXAMPLE ONLY. REPLACE LATER.
 	DefaultParityShardsCount = 2 //EXAMPLE ONLY. REPLACE LATER.
 	VersioningOff            = int8(1)
@@ -331,125 +331,6 @@ func CreateFolderByPath(tx *gorm.DB, path string, user *User, server string, fro
 	return newFolder, nil
 }
 
-// EXAMPLECreateFile is an example driver for creating a File.
-func EXAMPLECreateFile(tx *gorm.DB, user *User, filename string, parentFolderId string) (*File, error) {
-
-	// This is an example script to show how the process should work.
-
-	// First, the system receives the whole file from the user
-	// Then, the system creates the record in the system
-
-	file := File{
-		FileId:             uuid.New().String(),
-		FileName:           filename,
-		MIMEType:           "",
-		ParentFolderFileId: &parentFolderId, // root folder for now
-		Size:               512,
-		VersioningMode:     VersioningOff,
-		Checksum:           "CHECKSUM",
-		TotalShards:        5,
-		DataShards:         3,
-		ParityShards:       2,
-		KeyThreshold:       2,
-		PasswordProtected:  false,
-		HandledServer:      "ThisServer",
-	}
-
-	fileKey, fileIv, err := GenerateKeyIV()
-	if err != nil {
-		return nil, err
-	}
-
-	passwordProtect := PasswordProtect{
-		FileId:         file.FileId,
-		FileKey:        fileKey,
-		FileIv:         fileIv,
-		PasswordActive: false,
-	}
-
-	// This is the key and IV from the pipeline
-	dataKey, dataIv, err := GenerateKeyIV()
-	if err != nil {
-		return nil, err
-	}
-
-	// Encrypt dataKey and dataIv with the fileKey and fileIv
-	dataKey, err = EncryptWithKeyIV(dataKey, fileKey, fileIv)
-	if err != nil {
-		return nil, err
-	}
-	dataIv, err = EncryptWithKeyIV(dataIv, fileKey, fileIv)
-	if err != nil {
-		return nil, err
-	}
-
-	err = tx.Transaction(func(tx *gorm.DB) error {
-
-		err := CreateInitialFile(tx, &file, fileKey, fileIv, dataKey, dataIv, user)
-		if err != nil {
-			return err
-		}
-
-		err = tx.Create(&passwordProtect).Error
-		if err != nil {
-			return err
-		}
-
-		err = CreatePermissions(tx, &file)
-		if err != nil {
-			// By right, there should be no error possible? If any error happens, it's likely a system error.
-			// However, in the case there is an error, we will revert the transaction (thus deleting the file entry)
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// If no error, file is created. Now the system need to process the file in the pipeline and send it to each server
-	// Pipeline can get the amount of parity bits based on the Parity Count, and get the amount of shards based on the amount of servers
-
-	// Then, the system splits the files accordingly
-
-	// Then, the system send each shard to each server, and once it's sent successfully
-
-	for i := 1; i <= int(file.TotalShards); i++ {
-		fragId := int(i)
-		fragmentPath := uuid.New().String()
-		serverId := "Server" + strconv.Itoa(i)
-
-		err = CreateFragment(tx, file.FileId, file.DataId, file.VersionNo, fragId, serverId, fragmentPath)
-		if err != nil {
-			// Not sure how to handle this multiple error situation that is possible.
-			// Don't necesarrily want to put it in a transaction because I'm worried it'll be too long?
-			// or does that make no sense?
-			err2 := file.Delete(tx, user)
-			if err2 != nil {
-				return nil, err2
-			}
-
-			return nil, err
-			// If fails, delete File record and return error.
-		}
-	}
-
-	// Now we can update it to indicate that it has been saved successfully.
-
-	err = FinishFile(tx, &file, user, 412, "checksum")
-	if err != nil {
-		// If fails, delete File record and return error.
-	}
-
-	err = CreateFileVersionFromFile(tx, &file, user)
-	if err != nil {
-		// If fails, delete File record and return error.
-	}
-
-	return &file, nil
-
-}
-
 // CreateInitialFile if no error, will continue to call create Fragment for each and update
 func CreateInitialFile(tx *gorm.DB, file *File, fileKey, fileIv, dataKey, dataIV string,
 	user *User) error {
@@ -566,7 +447,7 @@ func CreateFragment(tx *gorm.DB, fileId string, dataId string, versionNo int, fr
 		FileVersionDataId:    dataId,
 		FileVersionVersionNo: versionNo,
 		FragId:               fragId,
-		ServerId:             serverId,
+		ServerName:           serverId,
 		FileFragmentPath:     fragmentPath,
 		LastChecked:          time.Now(),
 		Status:               FragmentStatusGood,
@@ -1186,8 +1067,15 @@ func (f *File) Copy(tx *gorm.DB, newParent *File, user *User, server string) err
 			return err2
 		}
 		err2 = CreateFileVersionFromFile(tx2, &newFile, user)
-		return err2
+		if err2 != nil {
+			return err2
+		}
 
+		dc := DataCopies{
+			DataId: newFile.DataId,
+		}
+
+		return tx2.Save(&dc).Error
 	})
 
 	if err != nil {
@@ -1512,6 +1400,7 @@ func (f *File) UpdateFile(tx *gorm.DB, newSize int, newActualSize int,
 }
 
 // UpdateFragment Called on each fragment to be created.
+// TODO: Update this to call CreateFragment instead.
 func (f *File) UpdateFragment(tx *gorm.DB, fragmentId int, fileFragmentPath string, checksum string, serverId string) error {
 	frag := Fragment{
 		FileVersionFileId:        f.FileId,
@@ -1519,7 +1408,7 @@ func (f *File) UpdateFragment(tx *gorm.DB, fragmentId int, fileFragmentPath stri
 		FileVersionVersionNo:     f.VersionNo,
 		FileVersionDataIdVersion: f.DataIdVersion,
 		FragId:                   fragmentId,
-		ServerId:                 serverId,
+		ServerName:               serverId,
 		FileFragmentPath:         fileFragmentPath,
 		LastChecked:              time.Now(),
 		TotalShards:              f.TotalShards,
@@ -1566,7 +1455,7 @@ func (f *File) FinishUpdateFile(tx *gorm.DB, checksum string) error {
 
 	if f.VersioningMode == VersioningOff {
 		// Mark previous fragment as to be deleted.
-		err = tx.Model(&FileVersion{}).Where("file_id = ? AND versioning_mode = ?", f.FileId, VersioningOff).Update("status", FileStatusDeleted).Error
+		err = tx.Model(&FileVersion{}).Where("file_id = ? AND versioning_mode = ?", f.FileId, VersioningOff).Update("status", FileStatusToBeDeleted).Error
 
 	} else if f.VersioningMode == VersioningOnVersions {
 		err = nil
@@ -1575,32 +1464,6 @@ func (f *File) FinishUpdateFile(tx *gorm.DB, checksum string) error {
 	}
 
 	return err
-
-}
-
-func EXAMPLEUpdateFile(tx *gorm.DB, file *File, password string, user *User) error {
-
-	// Key and IV from pipeline
-	dataKey, dataIv, err := GenerateKeyIV()
-	if err != nil {
-		return err
-	}
-
-	err = file.UpdateFile(tx, 2020, 2020, "wowKey", "wowServer", dataKey, dataIv, password, user)
-	if err != nil {
-		return err
-	}
-
-	// As each fragment is uploaded, each fragment is added to the database.
-	for i := 1; i <= int(file.TotalShards); i++ {
-		err = file.UpdateFragment(tx, int(i), "wowFragmentPath", "wowChecksum", "wowServerId")
-		if err != nil {
-			return err
-		}
-	}
-
-	// Once all fragments are uploaded, the file is marked as finished.
-	return file.FinishUpdateFile(tx, "")
 
 }
 
@@ -1701,7 +1564,7 @@ func (f *File) GetDecryptionKey(tx *gorm.DB, user *User, password string) (strin
 
 }
 
-// GetAllVersins returns all versions of a file
+// GetAllVersions returns all versions of a file
 func (f *File) GetAllVersions(tx *gorm.DB, user *User) ([]FileVersion, error) {
 
 	// Check if user has read permission (if not 404)
@@ -1714,7 +1577,7 @@ func (f *File) GetAllVersions(tx *gorm.DB, user *User) ([]FileVersion, error) {
 
 	var fileVersions []FileVersion
 
-	err = tx.Model(&FileVersion{}).Where("file_id = ? AND status <> ?", f.FileId, FileStatusDeleted).Find(&fileVersions).Error
+	err = tx.Model(&FileVersion{}).Where("file_id = ? AND status <> ?", f.FileId, FileStatusToBeDeleted).Find(&fileVersions).Error
 
 	if err != nil {
 		return nil, err
@@ -1752,6 +1615,6 @@ func (f *File) DeleteFileVersion(tx *gorm.DB, user *User, versionNo int) error {
 
 	// Mark version for deletion
 	return tx.Model(&FileVersion{}).Where("file_id = ? AND version_no = ?",
-		f.FileId, versionNo).Update("status", FileStatusDeleted).Error
+		f.FileId, versionNo).Update("status", FileStatusToBeDeleted).Error
 
 }
