@@ -39,9 +39,10 @@ func TestBackendController(t *testing.T) {
 
 	// Setting up controller
 	bc := &controller.BackendController{
-		Db:     db,
-		Logger: logger,
-		Path:   configFile.Stitch.ShardsLocation,
+		Db:         db,
+		Logger:     logger,
+		Path:       configFile.Stitch.ShardsLocation,
+		ServerName: "localhost",
 	}
 
 	bc.InitialiseShardsFolder()

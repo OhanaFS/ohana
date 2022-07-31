@@ -1075,7 +1075,7 @@ func (f *File) Copy(tx *gorm.DB, newParent *File, user *User, server string) err
 			DataId: newFile.DataId,
 		}
 
-		return tx2.Save(&dc).Error
+		return tx2.Clauses(clause.OnConflict{DoNothing: true}).Save(&dc).Error
 	})
 
 	if err != nil {
