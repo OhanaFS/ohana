@@ -2,27 +2,9 @@ package dbfs
 
 import (
 	"errors"
+	"github.com/OhanaFS/ohana/util"
 	"gorm.io/gorm"
 )
-
-// Set Type
-type dataIdSet map[string]struct{}
-
-// Adds a dataId to the set
-func (d dataIdSet) add(dataId string) {
-	d[dataId] = struct{}{}
-}
-
-// Removes a dataId from the set
-func (d dataIdSet) remove(dataId string) {
-	delete(d, dataId)
-}
-
-// Returns a boolean value describing if the dataId exists in the set
-func (d dataIdSet) has(dataId string) bool {
-	_, ok := d[dataId]
-	return ok
-}
 
 func GetToBeDeletedFragments(tx *gorm.DB) ([]Fragment, error) {
 
@@ -42,47 +24,44 @@ func GetToBeDeletedFragments(tx *gorm.DB) ([]Fragment, error) {
 
 	// Get Fragments that are marked as to be deleted
 
-	dataIdSeen := dataIdSet{}
+	dataIdSeen := util.NewSet[string]()
 
 	for _, fileVersion := range fileVersions {
 
-		if dataIdSeen.has(fileVersion.DataId) {
+		if dataIdSeen.Has(fileVersion.DataId) {
 			continue
 		}
 
 		// Check if any of the file version's data fragments are still being used
 
-		var dataCopies DataCopies
-		err2 := tx.First(&dataCopies, fileVersion.FileId).Error
+		var copiesOfData int64
+		err2 := tx.Model(&DataCopies{}).Where("data_id = ?", fileVersion.DataId).Count(&copiesOfData).Error
 		if err2 != nil {
-			if !errors.Is(err2, gorm.ErrRecordNotFound) {
-				// There are still data copies of this file
-				// Thus, search in the DB to verify that another file is still using it
+			return nil, err2
+		}
+		if copiesOfData >= 1 {
+			// There are still data copies of this file
+			// Thus, search in the DB to verify that another file is still using it
 
-				var dupFileVersions []FileVersion
-				err3 := tx.Where("data_id = ? AND status = ?", fileVersion.DataId, FileStatusGood).Find(&dupFileVersions).Error
+			var copiesOfDataUsing int64
+			err2 = tx.Model(&FileVersion{}).Where("data_id = ? AND status = ?", fileVersion.DataId, FileStatusGood).
+				Count(&copiesOfDataUsing).Error
+
+			if copiesOfDataUsing >= 1 {
+				continue
+			} else {
+				// There are no other files using this data fragment
+				// Thus, we can delete it.
+				err3 := tx.Delete(&DataCopies{}, "data_id = ?", fileVersion.DataId).Error
 				if err3 != nil {
 					return nil, err3
 				}
-
-				if len(dupFileVersions) >= 1 {
-					// There are still other files using this data fragment
-					// Thus, don't delete it
-					continue
-				} else {
-					// There are no other files using this data fragment
-					// Thus, we can delete it.
-					tx.Delete(&dataCopies)
-				}
-
-			} else {
-				return nil, err2
 			}
+
 		}
 
 		// There are no data copies of this file
 		// Thus, we can get the fragments and append to fragment.
-
 		var tempFragments []Fragment
 
 		err3 := tx.Where("file_version_data_id = ?", fileVersion.DataId).Find(&tempFragments).Error
@@ -95,7 +74,7 @@ func GetToBeDeletedFragments(tx *gorm.DB) ([]Fragment, error) {
 
 		fragments = append(fragments, tempFragments...)
 
-		dataIdSeen.add(fileVersion.DataId)
+		dataIdSeen.Add(fileVersion.DataId)
 	}
 
 	return fragments, err
