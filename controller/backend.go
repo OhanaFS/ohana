@@ -265,7 +265,7 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 
 		err = dbfs.CreateFragment(bc.Db, dbfsFile.FileId, dbfsFile.DataId, dbfsFile.VersionNo, fragId, bc.ServerName, fragmentPath)
 		if err != nil {
-			err2 := dbfsFile.Delete(bc.Db, user)
+			err2 := dbfsFile.Delete(bc.Db, user, bc.ServerName)
 			if err2 != nil {
 				util.HttpError(w, http.StatusInternalServerError, err.Error())
 				return
@@ -281,7 +281,7 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 
 	err = dbfs.FinishFile(bc.Db, &dbfsFile, user, 412, checksum)
 	if err != nil {
-		err2 := dbfsFile.Delete(bc.Db, user)
+		err2 := dbfsFile.Delete(bc.Db, user, bc.ServerName)
 		errorText := "Error finishing file: " + err.Error()
 		if err2 != nil {
 			errorText += " Error deleting file: " + err2.Error()
@@ -664,7 +664,7 @@ func (bc *BackendController) DeleteFile(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Delete file
-	err = file.Delete(bc.Db, user)
+	err = file.Delete(bc.Db, user, bc.ServerName)
 	if errors.Is(err, dbfs.ErrNoPermission) {
 		util.HttpError(w, http.StatusForbidden, "No write permisison on destination folder")
 		return
@@ -1339,7 +1339,7 @@ func (bc *BackendController) DeleteFolder(w http.ResponseWriter, r *http.Request
 	}
 
 	// attempt to delete folder
-	err = folder.Delete(bc.Db, user)
+	err = folder.Delete(bc.Db, user, bc.ServerName)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return

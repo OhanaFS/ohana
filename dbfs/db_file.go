@@ -107,7 +107,7 @@ type FileInterface interface {
 	PasswordProtect(tx *gorm.DB, oldPassword string, newPassword string, hint string, user *User) error
 	PasswordUnprotect(tx *gorm.DB, password string, user *User) error
 	Move(tx *gorm.DB, newParent *File, user *User) error
-	Delete(tx *gorm.DB, user *User) error
+	Delete(tx *gorm.DB, user *User, server string) error
 	AddPermissionUsers(tx *gorm.DB, permission *PermissionNeeded, requestUser *User, users ...User) error
 	AddPermissionGroups(tx *gorm.DB, permission *PermissionNeeded, requestUser *User, groups ...Group) error
 	RemovePermission(tx *gorm.DB, permission *Permission, user *User) error
@@ -505,13 +505,13 @@ func CreateFolderByParentId(tx *gorm.DB, id string, folderName string, user *Use
 }
 
 // DeleteFileById deletes a file based on the FileId given.
-func DeleteFileById(tx *gorm.DB, id string, user *User) error {
+func DeleteFileById(tx *gorm.DB, id string, user *User, server string) error {
 	file, err := GetFileById(tx, id, user)
 	if err != nil {
 		return err
 	}
 
-	return file.Delete(tx, user)
+	return file.Delete(tx, user, server)
 
 }
 
@@ -552,7 +552,7 @@ func DeleteFolderById(tx *gorm.DB, id string, user *User) error {
 
 // DeleteFolderByIdCascade deletes a folder based on the FileId given.
 // Will delete all inner contents.
-func DeleteFolderByIdCascade(tx *gorm.DB, id string, user *User) error {
+func DeleteFolderByIdCascade(tx *gorm.DB, id string, user *User, server string) error {
 
 	// Checking if the user has permissions
 
@@ -572,7 +572,7 @@ func DeleteFolderByIdCascade(tx *gorm.DB, id string, user *User) error {
 
 			for _, file := range files {
 				err := tx.Transaction(func(tx2 *gorm.DB) error {
-					return deleteSubFoldersCascade(tx, &file, user)
+					return deleteSubFoldersCascade(tx, &file, user, server)
 				})
 				if err != nil {
 					return err
@@ -591,7 +591,7 @@ func DeleteFolderByIdCascade(tx *gorm.DB, id string, user *User) error {
 
 // deleteSubFoldersCascade - supporter function for DeleteFolderByIdCascade
 // Recursively goes through all folders and deletes them.
-func deleteSubFoldersCascade(tx *gorm.DB, file *File, user *User) error {
+func deleteSubFoldersCascade(tx *gorm.DB, file *File, user *User, server string) error {
 
 	// Checking for user permission is currently OFF as the way the DB is designed
 	// where subdirectories must contain the same permissions at the parent
@@ -611,7 +611,7 @@ func deleteSubFoldersCascade(tx *gorm.DB, file *File, user *User) error {
 
 		for _, file := range files {
 			err = tx.Transaction(func(tx *gorm.DB) error {
-				return deleteSubFoldersCascade(tx, &file, user)
+				return deleteSubFoldersCascade(tx, &file, user, server)
 			})
 			if err != nil {
 				return err
@@ -619,11 +619,22 @@ func deleteSubFoldersCascade(tx *gorm.DB, file *File, user *User) error {
 		}
 	}
 
-	if err := deleteFilePermissions(tx, file); err != nil {
-		return err
-	}
+	err := tx.Transaction(
+		func(tx *gorm.DB) error {
+			if err2 := deleteFileVersionFromFile(tx, file, server); err2 != nil {
+				return err2
+			}
+			if err2 := deleteFilePermissions(tx, file); err2 != nil {
+				return err2
+			}
+			if err2 := tx.Delete(file).Error; err2 != nil {
+				return err2
+			}
+			return nil
+		},
+	)
 
-	return tx.Delete(&file).Error
+	return err
 
 }
 
@@ -1030,7 +1041,7 @@ func (f *File) Copy(tx *gorm.DB, newParent *File, user *User, server string) err
 		EncryptionIv:       f.EncryptionIv,
 		LastChecked:        time.Now(),
 		Status:             FileStatusGood,
-		HandledServer:      server, // TODO: Should be the server Id of the server that is handling the file
+		HandledServer:      server,
 	}
 
 	// Find the original passwordProtect and duplicate it
@@ -1107,7 +1118,7 @@ func (f *File) Copy(tx *gorm.DB, newParent *File, user *User, server string) err
 }
 
 // Delete deletes a file or folder and all of its contents
-func (f *File) Delete(tx *gorm.DB, user *User) error {
+func (f *File) Delete(tx *gorm.DB, user *User, server string) error {
 
 	// Check if user has read permission (if not 404)
 	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
@@ -1146,7 +1157,7 @@ func (f *File) Delete(tx *gorm.DB, user *User) error {
 
 			for _, file := range files {
 				err := tx.Transaction(func(tx2 *gorm.DB) error {
-					return deleteSubFoldersCascade(tx, &file, user)
+					return deleteSubFoldersCascade(tx, &file, user, server)
 				})
 				if err != nil {
 					return err
@@ -1159,7 +1170,7 @@ func (f *File) Delete(tx *gorm.DB, user *User) error {
 	// Delete Versions, Permissions, Delete File
 
 	err = tx.Transaction(func(tx *gorm.DB) error {
-		err2 := deleteFileVersionFromFile(tx, f)
+		err2 := deleteFileVersionFromFile(tx, f, server)
 		if err2 != nil {
 			return err2
 		}

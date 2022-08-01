@@ -164,7 +164,7 @@ func InitDB(db *gorm.DB) error {
 			}
 		}
 
-		return nil
+		return createCronJobKeyValues(db)
 
 	})
 

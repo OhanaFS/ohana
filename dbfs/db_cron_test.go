@@ -1,10 +1,8 @@
 package dbfs_test
 
 import (
-	"context"
 	"fmt"
 	"github.com/OhanaFS/ohana/dbfs"
-	"github.com/OhanaFS/ohana/util/ctxutil"
 	"github.com/OhanaFS/ohana/util/testutil"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
@@ -76,11 +74,11 @@ func TestDeletion(t *testing.T) {
 		Assert.NoError(err)
 
 		// Deletion on file2 copy
-		err := file1.Delete(db, &superUser)
+		err := file1.Delete(db, &superUser, "deleteServer")
 		Assert.NoError(err)
-		err = file2.Delete(db, &superUser)
+		err = file2.Delete(db, &superUser, "deleteServer")
 		Assert.NoError(err)
-		err = file3.Delete(db, &superUser)
+		err = file3.Delete(db, &superUser, "deleteServer")
 		Assert.NoError(err)
 
 		if debugPrint {
@@ -103,7 +101,7 @@ func TestDeletion(t *testing.T) {
 
 		// Let's try deleting file2 copy
 
-		err = file2Copy.Delete(db, &superUser)
+		err = file2Copy.Delete(db, &superUser, "deleteServer")
 		Assert.NoError(err)
 
 		// We should expect totalShards to be 3 x default
@@ -117,9 +115,6 @@ func TestDeletion(t *testing.T) {
 
 		Assert := assert.New(t)
 
-		// This doesn't work with multiple goroutines still :/
-		db := ctxutil.GetTransaction(context.Background(), db)
-
 		fragments, err := dbfs.GetToBeDeletedFragments(db)
 		Assert.NoError(err)
 
@@ -131,50 +126,33 @@ func TestDeletion(t *testing.T) {
 
 		// "Deletion Code"
 
-		// dataWg is the wait group for all the goroutines / threads
-		var dataWg sync.WaitGroup
+		const maxGoroutines = 10
+		input := make(chan string, len(dataIdFragmentMap))
+		output := make(chan string, len(dataIdFragmentMap))
 
-		// each dataId has its own goroutine
-		for dataId, dataIdFragments := range dataIdFragmentMap {
-			dataWg.Add(1)
+		// Worker function
 
-			go func(dataId2 string, dataIdFragments2 []dbfs.Fragment, db2 *gorm.DB) {
-
-				defer dataWg.Done()
-
-				// fragWg is the waitgroup for the dataId
-				var fragWg sync.WaitGroup
-
-				// each fragment has its own goroutine
-				for _, fragment := range dataIdFragments2 {
-					fragWg.Add(1)
-					go func(path, server, dataId string) {
-						// Assume this is a delete fragment call.
-						fmt.Println("Deleting fragment:", path, server, dataId)
-						defer fragWg.Done()
-					}(fragment.FileFragmentPath, fragment.ServerName, fragment.FileVersionDataId)
-				}
-				fragWg.Wait()
-
-				fmt.Println("Deleted fragments for dataId:", dataId2)
-
-				// This doesn't work. Table gets locked still and returns no such table.
-				/*
-					db3 := ctxutil.GetTransaction(context.Background(), db2)
-					err = dbfs.FinishDeleteDataId(db3, dataId2)
-					Assert.NoError(err)
-
-				*/
-
-			}(dataId, dataIdFragments, db)
+		for i := 0; i < maxGoroutines; i++ {
+			go deleteWorker(dataIdFragmentMap, input, output)
 		}
 
-		dataWg.Wait()
-
-		// THIS IS HERE BECAUSE IT GETS LOCKED IN THE GOROUTINES AND IDK WHY.
 		for dataId, _ := range dataIdFragmentMap {
-			err = dbfs.FinishDeleteDataId(db, dataId)
+			input <- dataId
 		}
+		close(input)
+
+		err = db.Transaction(func(tx *gorm.DB) error {
+
+			for i := 0; i < len(dataIdFragmentMap); i++ {
+				dataIdProcessed := <-output
+
+				// Create transaction
+				err2 := dbfs.FinishDeleteDataId(tx, dataIdProcessed)
+				Assert.NoError(err2)
+			}
+			return nil
+		})
+		Assert.NoError(err)
 
 		// Checking to ensure that no other fragments are left
 
@@ -183,5 +161,25 @@ func TestDeletion(t *testing.T) {
 		Assert.Equal(0, len(fragments))
 
 	})
+
+}
+
+func deleteWorker(dataIdFragmentMap map[string][]dbfs.Fragment, input <-chan string, output chan<- string) {
+
+	for j := range input {
+		var fragWg sync.WaitGroup
+
+		for _, fragment := range dataIdFragmentMap[j] {
+			fragWg.Add(1)
+			go func(path, server, dataId string) {
+				// Assume this is a delete fragment call.
+				fmt.Println("Deleting fragment:", path, server, dataId)
+				defer fragWg.Done()
+			}(fragment.FileFragmentPath, fragment.ServerName, fragment.FileVersionDataId)
+		}
+
+		fragWg.Wait()
+		output <- j
+	}
 
 }

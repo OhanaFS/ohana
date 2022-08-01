@@ -4,6 +4,29 @@ import (
 	"errors"
 	"github.com/OhanaFS/ohana/util"
 	"gorm.io/gorm"
+	"strconv"
+	"time"
+)
+
+// Key: CronJobDeleteFragmentsInProgress
+// Value: 1 or 0
+// If job is 1 and CronJobDeleteFragmentsLastStart is longer than 1 hour ago, then send a warning to the sysadmin.
+// as it seems like the job is stuck.
+
+// Key: CronJobDeleteFragmentsHandledServer
+// Value (string): The server that handled the job last time.
+
+// Key: CronJobDeleteFragmentsLastStart
+// Value (string): Unix timestamp
+
+// Key: CronJobDeleteFragmentsLastEnd
+// Value (string): Unix timestamp
+// If the timestamp is older than 1 hour, the job is ran. Unless manually ran.
+const (
+	CronJobDeleteFragmentsInProgress    = "CronJobDeleteFragmentsInProgress"
+	CronJobDeleteFragmentsHandledServer = "CronJobDeleteFragmentsHandledServer"
+	CronJobDeleteFragmentsLastStart     = "CronJobDeleteFragmentsLastStart"
+	CronJobDeleteFragmentsLastEnd       = "CronJobDeleteFragmentsLastEnd"
 )
 
 func GetToBeDeletedFragments(tx *gorm.DB) ([]Fragment, error) {
@@ -12,7 +35,6 @@ func GetToBeDeletedFragments(tx *gorm.DB) ([]Fragment, error) {
 	var fileVersions []FileVersion
 
 	// Get FileVersions that are marked as to be deleted
-	// TODO: Delete needs to have a handled server string.
 	err := tx.Where("status = ?", FileStatusToBeDeleted).Find(&fileVersions).Error
 	if err != nil {
 		return nil, err
@@ -88,7 +110,6 @@ func FinishDeleteDataId(tx *gorm.DB, dataId string) error {
 		return err
 	}
 
-	// TODO: Maybe this should just delete. Yeah I don't see a reason to have FileStatusDeleted.
 	// In that case, deleting a folder should just go ahead and delete everything else as well.
 	return tx.Model(&FileVersion{}).Where("data_id = ?", dataId).Update("status", FileStatusDeleted).Error
 }
@@ -97,4 +118,94 @@ func FinishDeleteDataId(tx *gorm.DB, dataId string) error {
 func MarkOldFileVersions(tx *gorm.DB) int {
 
 	return 0
+}
+
+func ClearFileStatusDeletedEntries(tx *gorm.DB) error {
+	return tx.Model(&FileVersion{}).Where("status = ? AND modified_time < ?", FileStatusDeleted,
+		time.Now()).Delete(&FileVersion{}).Error
+}
+
+func createCronJobKeyValues(tx *gorm.DB) error {
+	keyValueCronJobs := []string{CronJobDeleteFragmentsInProgress,
+		CronJobDeleteFragmentsHandledServer,
+		CronJobDeleteFragmentsLastStart,
+		CronJobDeleteFragmentsLastEnd,
+	}
+
+	return tx.Transaction(func(tx *gorm.DB) error {
+		for _, keyValueCronJob := range keyValueCronJobs {
+			var keyValue KeyValueDBPair
+			err := tx.Where("key = ?", keyValueCronJob).First(&keyValue).Error
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					keyValue = KeyValueDBPair{Key: keyValueCronJob}
+					err = tx.Create(&keyValue).Error
+					if err != nil {
+						return err
+					}
+				} else {
+					return err
+				}
+			}
+		}
+
+		return nil
+	})
+}
+
+func IsCronDeleteRunning(tx *gorm.DB) (string, time.Time, error) {
+	var cronDeleteRunning KeyValueDBPair
+	err := tx.Model(&KeyValueDBPair{}).Where("key = ?", CronJobDeleteFragmentsInProgress).
+		First(&cronDeleteRunning).Error
+	if err != nil {
+		return "", time.Unix(0, 0), err
+	}
+
+	if cronDeleteRunning.ValueInt == 0 {
+
+		// get the last time it finished
+		var cronDeleteLastEnd KeyValueDBPair
+		err = tx.Model(&KeyValueDBPair{}).Where("key = ?", CronJobDeleteFragmentsLastEnd).
+			First(&cronDeleteLastEnd).Error
+		if err != nil {
+			return "", time.Unix(0, 0), err
+		}
+
+		// string unix timestamp to time.Time
+		if cronDeleteLastEnd.ValueString == "" {
+			cronDeleteLastEnd.ValueString = "0"
+		}
+		int64Timestamp, err := strconv.ParseInt(cronDeleteLastEnd.ValueString, 10, 64)
+		if err != nil {
+			return "", time.Unix(0, 0), err
+		}
+		return "", time.Unix(int64Timestamp, 0), nil
+
+	} else {
+		// get the server that is running it
+
+		var cronDeleteRunningServer KeyValueDBPair
+		err = tx.Model(&KeyValueDBPair{}).Where("key = ?", CronJobDeleteFragmentsHandledServer).
+			First(&cronDeleteRunningServer).Error
+
+		// get the last time it started
+		var cronDeleteLastStart KeyValueDBPair
+		err = tx.Model(&KeyValueDBPair{}).Where("key = ?", CronJobDeleteFragmentsLastStart).
+			First(&cronDeleteLastStart).Error
+		if err != nil {
+			return "", time.Unix(0, 0), err
+		}
+
+		// string unix timestamp to time.Time
+		if cronDeleteLastStart.ValueString == "" {
+			cronDeleteLastStart.ValueString = "0"
+		}
+		int64Timestamp, err := strconv.ParseInt(cronDeleteLastStart.ValueString, 10, 64)
+		if err != nil {
+			return "", time.Unix(0, 0), err
+		}
+
+		return cronDeleteRunningServer.ValueString, time.Unix(int64Timestamp, 0), nil
+	}
+
 }

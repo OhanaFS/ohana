@@ -167,7 +167,7 @@ func (fv *FileVersion) ListFiles(tx *gorm.DB, user *User) ([]FileVersion, error)
 
 //deleteFileVersionFromFile will mark all versions as to be deleted, but will not delete
 // till the system clears it up as a chron job.
-func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
+func deleteFileVersionFromFile(tx *gorm.DB, file *File, server string) error {
 
 	// First, we'll create a new history entry to show when the file was deleted with timestamp
 
@@ -200,7 +200,7 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 		ActualSize:            file.ActualSize,
 		CreatedTime:           file.CreatedTime,
 		ModifiedUserUserId:    file.ModifiedUserUserId,
-		ModifiedTime:          file.ModifiedTime,
+		ModifiedTime:          time.Now(),
 		VersioningMode:        file.VersioningMode,
 		Checksum:              file.Checksum,
 		TotalShards:           file.TotalShards,
@@ -213,7 +213,7 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 		//LinkFileVersionNo:     0,                   // NOT READY
 		LastChecked:   file.LastChecked,
 		Status:        status,
-		HandledServer: file.HandledServer,
+		HandledServer: server,
 	}
 
 	err = tx.Save(&fileVersion).Error

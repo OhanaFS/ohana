@@ -273,7 +273,7 @@ func TestFile(t *testing.T) {
 
 		// DeleteFolderByIdCascade
 
-		err = dbfs.DeleteFolderByIdCascade(db, parentFolder.FileId, &superUser)
+		err = dbfs.DeleteFolderByIdCascade(db, parentFolder.FileId, &superUser, "deleteServer")
 		Assert.Nil(err)
 
 		ls, err = dbfs.ListFilesByPath(db, "/Test3", &superUser, false)
@@ -379,7 +379,7 @@ func TestFile(t *testing.T) {
 		file, err = EXAMPLECreateFile(db, &superUser, "somefile2.txt", newFolder.FileId)
 		Assert.Error(dbfs.ErrFileFolderExists, err)
 
-		err = dbfs.DeleteFileById(db, file2.FileId, &superUser)
+		err = dbfs.DeleteFileById(db, file2.FileId, &superUser, "deleteServer")
 		Assert.Nil(err)
 
 		fragments, err = file2.GetFileFragments(db, &superUser)
@@ -611,8 +611,8 @@ func EXAMPLECreateFile(tx *gorm.DB, user *dbfs.User, filename string, parentFold
 
 	// Then, the system send each shard to each server, and once it's sent successfully
 
-	for i := 1; i <= int(file.TotalShards); i++ {
-		fragId := int(i)
+	for i := 1; i <= file.TotalShards; i++ {
+		fragId := i
 		fragmentPath := uuid.New().String()
 		serverId := "Server" + strconv.Itoa(i)
 
@@ -621,7 +621,7 @@ func EXAMPLECreateFile(tx *gorm.DB, user *dbfs.User, filename string, parentFold
 			// Not sure how to handle this multiple error situation that is possible.
 			// Don't necessarily want to put it in a transaction because I'm worried it'll be too long?
 			// or does that make no sense?
-			err2 := file.Delete(tx, user)
+			err2 := file.Delete(tx, user, "deleteServer")
 			if err2 != nil {
 				return nil, err2
 			}
@@ -661,8 +661,8 @@ func EXAMPLEUpdateFile(tx *gorm.DB, file *dbfs.File, password string, user *dbfs
 	}
 
 	// As each fragment is uploaded, each fragment is added to the database.
-	for i := 1; i <= int(file.TotalShards); i++ {
-		err = file.UpdateFragment(tx, int(i), "wowFragmentPath", "wowChecksum", "wowServerId")
+	for i := 1; i <= file.TotalShards; i++ {
+		err = file.UpdateFragment(tx, i, "wowFragmentPath", "wowChecksum", "wowServerId")
 		if err != nil {
 			return err
 		}
