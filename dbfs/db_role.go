@@ -42,3 +42,13 @@ func GetRoleByName(tx *gorm.DB, name string) (*Role, error) {
 	}
 	return &role, nil
 }
+
+// GetRolesByNames returns a list of roles matching a list of names
+func GetRolesByNames(tx *gorm.DB, names []string) ([]Role, error) {
+	var roles []Role
+	if err := tx.Preload(clause.Associations).
+		Where("role_name IN ?", names).Find(&roles).Error; err != nil {
+		return nil, err
+	}
+	return roles, nil
+}

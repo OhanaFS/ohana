@@ -1,15 +1,18 @@
 package dbfs
 
 import (
+	"time"
+
 	"github.com/mattn/go-sqlite3"
 	"gorm.io/gorm"
-	"time"
 )
 
 // InitDB Initiates the DB with gorm.db.AutoMigrate
 func InitDB(db *gorm.DB) error {
-	err := db.AutoMigrate(&User{}, &Group{}, &File{}, &FileVersion{}, &Fragment{}, &Permission{}, &PermissionHistory{},
-		&PasswordProtect{}, &Server{}, KeyValueDBPair{})
+	err := db.AutoMigrate(
+		&User{}, &Group{}, &File{}, &FileVersion{}, &Fragment{}, &Permission{},
+		&PermissionHistory{}, &PasswordProtect{}, &Server{}, KeyValueDBPair{}, &Role{},
+	)
 
 	if err != nil {
 		return err
