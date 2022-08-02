@@ -19,7 +19,6 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import DemoFsMap from '../assets/demo_fs.json';
 
 import { useNavigate, useParams } from 'react-router-dom';
 
