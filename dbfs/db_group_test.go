@@ -1,10 +1,15 @@
 package dbfs_test
 
 import (
+	"fmt"
+	"testing"
+
 	"github.com/OhanaFS/ohana/dbfs"
+	"github.com/OhanaFS/ohana/util/slice"
 	"github.com/OhanaFS/ohana/util/testutil"
 	"github.com/stretchr/testify/assert"
-	"testing"
+	"golang.org/x/exp/slices"
+	"gorm.io/gorm"
 )
 
 func TestGroups(t *testing.T) {
@@ -112,6 +117,35 @@ func TestGroups(t *testing.T) {
 			assert.Contains(UserIds, u.UserId)
 		}
 
+	})
+
+	t.Run("Verifying group replacement works", func(t *testing.T) {
+		assert := assert.New(t)
+
+		test := func(user *dbfs.User, groups []dbfs.Group) {
+			db.Transaction(func(tx *gorm.DB) error {
+				groupIds := slice.Map(groups, func(g dbfs.Group) string { return g.GroupId })
+
+				// Set user's groups
+				err := user1.SetGroups(tx, groups)
+				assert.Nil(err)
+
+				// Verify
+				newGroups, err := user1.GetGroupsWithUser(tx)
+				assert.Nil(err)
+				assert.EqualValues(len(groups), len(newGroups), "Group lengths differ")
+				for _, newGroup := range newGroups {
+					assert.True(slices.Contains(groupIds, newGroup.GroupId), "User has groups outside the replacement set")
+				}
+
+				// Cancel the transaction
+				return fmt.Errorf("OK")
+			})
+		}
+
+		test(user1, []dbfs.Group{})
+		test(user1, []dbfs.Group{*group3, *group1, *group2})
+		test(user1, []dbfs.Group{*group1, *group2})
 	})
 
 	// It's presumed at this stage User 1 is already associated with group 1

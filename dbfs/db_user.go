@@ -53,6 +53,7 @@ type UserInterface interface {
 	ActivateUser(tx *gorm.DB) error
 	HasPermission(tx *gorm.DB, file *File, needed *PermissionNeeded) (bool, error)
 	AddToGroup(tx *gorm.DB, group *Group) error
+	SetGroups(tx *gorm.DB, groups []Group) error
 }
 
 // Compile time assertion to ensure that User follows UserInterface interface.
@@ -298,4 +299,9 @@ func (user *User) AddToGroup(tx *gorm.DB, group *Group) error {
 func (user *User) RefreshGroups(tx *gorm.DB) error {
 
 	panic("Not implemented")
+}
+
+// SetGroups replaces the user's groups with a new list of groups
+func (user *User) SetGroups(tx *gorm.DB, groups []Group) error {
+	return tx.Model(&user).Association("Groups").Replace(groups)
 }

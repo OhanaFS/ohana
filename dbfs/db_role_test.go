@@ -15,15 +15,19 @@ func TestRoles(t *testing.T) {
 	db := testutil.NewMockDB(t)
 
 	// Create dummy data
-	// group1, err := dbfs.CreateNewGroup(db, "Water", "melon")
-	// assert.Nil(t, err)
-	// group2, err := dbfs.CreateNewGroup(db, "Bana", "na")
-	// assert.Nil(t, err)
+	group1, err := dbfs.CreateNewGroup(db, "Water", "melon")
+	assert.Nil(t, err)
+	group2, err := dbfs.CreateNewGroup(db, "Bana", "na")
+	assert.Nil(t, err)
 
 	role1, err := dbfs.CreateNewRole(db, "Neko", "nyan")
 	assert.Nil(t, err)
 	role2, err := dbfs.CreateNewRole(db, "Cute", "kawaii")
 	assert.Nil(t, err)
+
+	group1.AddMappedRole(db, role1)
+	group1.AddMappedRole(db, role2)
+	group2.AddMappedRole(db, role2)
 
 	// Get the roles
 	t.Run("GetRoleByID", func(t *testing.T) {
@@ -46,5 +50,16 @@ func TestRoles(t *testing.T) {
 		})
 		assert.True(t, slices.Contains(roleNames, role1.RoleName))
 		assert.True(t, slices.Contains(roleNames, role2.RoleName))
+	})
+
+	// Get all groups by role name
+	t.Run("GetGroupsByRoleNames", func(t *testing.T) {
+		groups, err := dbfs.GetGroupsByRoleNames(db, []string{"Neko", "Cute"})
+		assert.Nil(t, err)
+		assert.EqualValues(t, 2, len(groups))
+
+		groups, err = dbfs.GetGroupsByRoleNames(db, []string{"Neko"})
+		assert.Nil(t, err)
+		assert.EqualValues(t, 1, len(groups))
 	})
 }

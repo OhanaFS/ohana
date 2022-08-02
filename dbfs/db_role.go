@@ -52,3 +52,22 @@ func GetRolesByNames(tx *gorm.DB, names []string) ([]Role, error) {
 	}
 	return roles, nil
 }
+
+// GetGroupsByRoleNames returns a list of groups that are assigned to a list of
+// role names.
+func GetGroupsByRoleNames(tx *gorm.DB, names []string) ([]Group, error) {
+	var groups []Group
+	if err := tx.Model(&Group{}).
+		Distinct("group_id").
+		Joins(`
+			JOIN  group_roles
+				ON  group_roles.group_group_id = groups.group_id
+				AND group_roles.role_role_id IN (?)`,
+			tx.Model(&Role{}).
+				Select("role_id").
+				Where("role_name IN ?", names),
+		).Find(&groups).Error; err != nil {
+		return nil, err
+	}
+	return groups, nil
+}

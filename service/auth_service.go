@@ -136,18 +136,32 @@ func (a *auth) Callback(ctx context.Context, code string, checkState string) (*c
 
 	// Create user in DBFS if not exists
 	var user *dbfs.User
-	tx := ctxutil.GetTransaction(ctx, a.db)
-	if user, err = dbfs.GetUserByMappedId(tx, idTokenClaims.Subject); err != nil {
-		// User doesn't exist, create
-		if user, err = dbfs.CreateNewUser(tx,
-			idTokenClaims.Email, idTokenClaims.Name, dbfs.AccountTypeEndUser,
-			idTokenClaims.Subject, "TODO", accessToken.AccessToken, rawIDToken, "server",
-		); err != nil {
-			return nil, fmt.Errorf("Failed to create new user: %w", err)
+	err = ctxutil.GetTransaction(ctx, a.db).Transaction(func(tx *gorm.DB) error {
+		if user, err = dbfs.GetUserByMappedId(tx, idTokenClaims.Subject); err != nil {
+			// User doesn't exist, create
+			if user, err = dbfs.CreateNewUser(tx,
+				idTokenClaims.Email, idTokenClaims.Name, dbfs.AccountTypeEndUser,
+				idTokenClaims.Subject, "TODO", accessToken.AccessToken, rawIDToken, "server",
+			); err != nil {
+				return fmt.Errorf("Failed to create new user: %w", err)
+			}
 		}
-	}
 
-	// TODO: Map roles to groups, and assign user to groups
+		// Fetch and reassign user's groups
+		groups, err := dbfs.GetGroupsByRoleNames(tx, idTokenClaims.Roles)
+		if err != nil {
+			return fmt.Errorf("Failed to fetch groups: %w", err)
+		}
+
+		if err := user.SetGroups(tx, groups); err != nil {
+			return fmt.Errorf("Failed to assign groups: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	// Create session ID from user ID
 	sessionId, err := a.sess.Create(ctx, user.UserId, time.Hour*24*7)
