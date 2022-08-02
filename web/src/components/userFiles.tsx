@@ -26,6 +26,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   EntryType,
   getFileDownloadURL,
+  useMutateCopyFile,
   useMutateDeleteFile,
   useMutateMoveFile,
   useMutateUpdateFile,
@@ -54,8 +55,20 @@ const RenameFiles = defineFileAction({
   },
 } as const);
 
+const PasteFiles = defineFileAction({
+  id: 'paste_files',
+  button: {
+    name: 'Paste',
+    toolbar: true,
+    contextMenu: true,
+    group: 'Actions',
+    icon: ChonkyIconName.paste,
+  },
+} as const);
+
 export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   const [fuOpened, setFuOpened] = useState(false);
+  const [clipboardIds, setClipboardsIds] = useState<string[]>([]);
   const params = useParams();
   const navigate = useNavigate();
 
@@ -68,7 +81,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
 
   const folderID = params.id || '';
 
-  const handleFileAction: FileActionHandler = (data) => {
+  const handleFileAction: FileActionHandler = async (data) => {
     if (data.action === ChonkyActions.UploadFiles) {
       setFuOpened(true);
     } else if (data.action === ChonkyActions.CreateFolder) {
@@ -111,6 +124,18 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
         file_id: data.payload.draggedFile.id,
         folder_id: data.payload.destination.id,
       });
+    } else if (data.id === ChonkyActions.CopyFiles.id) {
+      console.log(data);
+      setClipboardsIds(
+        data.state.selectedFilesForAction.map((file) => file.id)
+      );
+    } else if ((data.id as string) === PasteFiles.id) {
+      for (const item of clipboardIds) {
+        await mCopyFile.mutateAsync({
+          file_id: item,
+          folder_id: folderID,
+        });
+      }
     }
   };
 
@@ -123,6 +148,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
       ChonkyActions.MoveFiles,
       ChonkyActions.CopyFiles,
       RenameFiles,
+      PasteFiles,
     ],
     []
   );
@@ -140,6 +166,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   const mDeleteFile = useMutateDeleteFile();
   const mUpdateFileMetadata = useMutateUpdateFileMetadata();
   const mMoveFile = useMutateMoveFile();
+  const mCopyFile = useMutateCopyFile();
 
   const ohanaFiles =
     qFilesList.data?.map((file) => ({

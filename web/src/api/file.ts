@@ -163,7 +163,9 @@ export const useMutateMoveFile = () =>
  */
 export const useMutateCopyFile = () =>
   useMutation(({ file_id, folder_id }: MoveFileRequest) =>
-    APIClient.post<boolean>(`/api/v1/file/${file_id}/copy`, { folder_id })
+    APIClient.post<boolean>(`/api/v1/file/${file_id}/copy`, null, {
+      headers: { folder_id },
+    })
       .then((res) => res.data)
       .catch(typedError)
   );
