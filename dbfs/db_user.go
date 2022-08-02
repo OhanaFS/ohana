@@ -36,7 +36,7 @@ type User struct {
 	UpdatedAt    time.Time      `gorm:"autoUpdateTime" json:"-"`
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
 	Groups       []*Group       `gorm:"many2many:user_groups;" json:"-"`
-	HomeFolderId string         `json:"-"`
+	HomeFolderId string         `json:"home_folder_id"`
 	//Roles        []*Role        `gorm:"many2many:user_roles;" json:"-"`
 }
 

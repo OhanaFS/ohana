@@ -108,28 +108,36 @@ export const useQueryFileMetadata = (fileId: string) =>
 
 export type FileMetadataUpdateRequest = {
   file_id: string;
-  file_name: string;
-  mime_type: string;
-  versioning_mode: number;
-  password_modification: boolean;
-  password_protected: boolean;
-  password_hint: string;
-  old_password: string;
-  new_password: string;
+  file_name?: string;
+  mime_type?: string;
+  versioning_mode?: number;
+  password_modification?: boolean;
+  password_protected?: boolean;
+  password_hint?: string;
+  old_password?: string;
+  new_password?: string;
 };
 
 /**
  * Update a file's metadata.
  */
-export const useMutateUpdateFileMetadata = () =>
-  useMutation(({ file_id, ...body }: FileMetadataUpdateRequest) =>
-    APIClient.patch<FileMetadata<EntryType.File>>(
-      `/api/v1/file/${file_id}/metadata`,
-      body
-    )
-      .then((res) => res.data)
-      .catch(typedError)
+export const useMutateUpdateFileMetadata = () => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ file_id, ...body }: FileMetadataUpdateRequest) =>
+      APIClient.patch<FileMetadata<EntryType.File>>(
+        `/api/v1/file/${file_id}/metadata`,
+        body
+      )
+        .then((res) => res.data)
+        .catch(typedError),
+    {
+      onSuccess: () => {
+        queryClient.clear();
+      },
+    }
   );
+};
 
 export type MoveFileRequest = {
   /** The ID of the file to move */
@@ -143,7 +151,9 @@ export type MoveFileRequest = {
  */
 export const useMutateMoveFile = () =>
   useMutation(({ file_id, folder_id }: MoveFileRequest) =>
-    APIClient.post<boolean>(`/api/v1/file/${file_id}/move`, { folder_id })
+    APIClient.post<boolean>(`/api/v1/file/${file_id}/move`, null, {
+      headers: { folder_id },
+    })
       .then((res) => res.data)
       .catch(typedError)
   );
@@ -153,7 +163,9 @@ export const useMutateMoveFile = () =>
  */
 export const useMutateCopyFile = () =>
   useMutation(({ file_id, folder_id }: MoveFileRequest) =>
-    APIClient.post<boolean>(`/api/v1/file/${file_id}/copy`, { folder_id })
+    APIClient.post<boolean>(`/api/v1/file/${file_id}/copy`, null, {
+      headers: { folder_id },
+    })
       .then((res) => res.data)
       .catch(typedError)
   );
