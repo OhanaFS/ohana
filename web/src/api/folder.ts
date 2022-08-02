@@ -6,17 +6,12 @@ import { EntryType, FileMetadata, FilePermission, Permission } from './file';
  * Get contents of a folder by ID.
  */
 export const useQueryFolderContents = (folderId: string) =>
-  useQuery(
-    ['folder', 'contents', 'id', folderId],
-    () =>
-      APIClient.get<FileMetadata<EntryType.Folder>[]>(
-        `/api/v1/folder/${folderId}`
-      )
-        .then((res) => res.data)
-        .catch(typedError),
-    {
-      refetchInterval: 1000,
-    }
+  useQuery(['folder', 'contents', 'id', folderId], () =>
+    APIClient.get<FileMetadata<EntryType.Folder>[]>(
+      `/api/v1/folder/${folderId}`
+    )
+      .then((res) => res.data)
+      .catch(typedError)
   );
 
 /**
@@ -25,7 +20,7 @@ export const useQueryFolderContents = (folderId: string) =>
 export const useQueryFolderContentsByPath = (path: string) =>
   useQuery(['folder', 'contents', 'path', path], () =>
     APIClient.get<FileMetadata<EntryType.Folder>[]>(`/api/v1/folder`, {
-      headers: { folder_path: path },
+      headers: { path },
     })
       .then((res) => res.data)
       .catch(typedError)
@@ -54,20 +49,12 @@ export const useMutateUpdateFolderMetadata = () =>
 /**
  * Delete a folder
  */
-export const useMutateDeleteFolder = () => {
-  const queryClient = useQueryClient();
-  return useMutation(
-    (folderId: string) =>
-      APIClient.delete<boolean>(`/api/v1/folder/${folderId}`)
-        .then((res) => res.data)
-        .catch(typedError),
-    {
-      onSuccess: () => {
-        queryClient.clear();
-      },
-    }
+export const useMutateDeleteFolder = () =>
+  useMutation((folderId: string) =>
+    APIClient.delete<boolean>(`/api/v1/folder/${folderId}`)
+      .then((res) => res.data)
+      .catch(typedError)
   );
-};
 
 export type CreateFolderRequest = {
   folder_name: string;
@@ -94,7 +81,6 @@ export const useMutateCreateFolder = () => {
             'id',
             params.parent_folder_id,
           ]);
-        else queryClient.clear();
       },
     }
   );
