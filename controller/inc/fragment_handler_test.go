@@ -231,7 +231,7 @@ func TestFragmentHandler(t *testing.T) {
 
 		err = dbfs.SetHowLongToKeepFileVersions(db, 1)
 		Assert.NoError(err)
-		err, s := Inc.CronJobDeleteFragments(true)
+		s, err := Inc.CronJobDeleteFragments(true)
 		Assert.NoError(err)
 		fmt.Println(s)
 
@@ -306,7 +306,7 @@ func TestFragmentHandler(t *testing.T) {
 
 		Inc.Db = db.Begin()
 
-		err, s := Inc.CronJobDeleteFragments(true)
+		s, err := Inc.CronJobDeleteFragments(true)
 		Assert.NoError(err)
 		fmt.Println("*******")
 		fmt.Println(s)
@@ -349,7 +349,7 @@ func TestFragmentHandler(t *testing.T) {
 
 		Inc.Db = db.Begin()
 
-		err, s := Inc.CronJobDeleteFragments(true)
+		s, err := Inc.CronJobDeleteFragments(true)
 		Assert.NoError(err)
 		fmt.Println("*******")
 		fmt.Println(s)
@@ -370,6 +370,50 @@ func TestFragmentHandler(t *testing.T) {
 		expectedRecords := previousShardCount - len(filesToBeVersioned)*totalShards
 
 		Assert.Equal(expectedRecords, len(dir))
+
+	})
+
+	t.Run("Testing LocalOrphanedShards", func(t *testing.T) {
+
+		Assert := assert.New(t)
+
+		_, err := Inc.LocalOrphanedShardsCheck()
+		Assert.NoError(err)
+
+		// add a weird file into the shards folder
+
+		shardName := "weird.shard"
+		shardPath := path.Join(Inc.ShardsLocation, shardName)
+		shardFile, err := os.Create(shardPath)
+		Assert.NoError(err)
+
+		// write some crap
+		_, err = shardFile.Write([]byte("Hello World"))
+		Assert.NoError(err)
+		Assert.NoError(shardFile.Close())
+
+		// check to see if it is in the list of orphaned shards
+		_, err = Inc.LocalOrphanedShardsCheck()
+		Assert.ErrorIs(err, inc.ErrOrphanedShardsFound)
+
+		// Delete that weird file
+		Assert.NoError(os.Remove(shardPath))
+
+	})
+
+	t.Run("Testing LocalMissingShards", func(t *testing.T) {
+
+		Assert := assert.New(t)
+
+		_, err := Inc.LocalMissingShardsCheck()
+		Assert.NoError(err)
+
+		dir, err := os.ReadDir(Inc.ShardsLocation)
+		Assert.NoError(err)
+		Assert.NoError(os.Remove(path.Join(Inc.ShardsLocation, dir[0].Name())))
+
+		_, err = Inc.LocalMissingShardsCheck()
+		Assert.ErrorIs(err, inc.ErrMissingShardsFound)
 
 	})
 
