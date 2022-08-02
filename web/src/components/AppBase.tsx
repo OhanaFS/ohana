@@ -89,7 +89,7 @@ export default function AppBase(props: AppBaseProps) {
     { icon: <IconTool size={16} />, color: 'blue', label: 'Maintenance' },
     { icon: <IconSettings size={16} />, color: 'blue', label: 'Settings' },
     { icon: <IconRotate2 size={16} />, color: 'blue', label: 'Rotate Key' },
-    { icon: <IconEdit size={16} />, color: 'blue', label: 'Key Management' },
+    { icon: <IconEdit size={16} />, color: 'blue', label: 'Manage Keys' },
   ];
 
   return (

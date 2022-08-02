@@ -54,7 +54,7 @@ services:
               },
               {
                 "Type": "roles",
-                "Value": "['admin', 'some_role']",
+                "Value": "[\"admin\", \"some_role\"]",
                 "ValueType": "json"
               }
             ]
@@ -74,7 +74,7 @@ services:
               },
               {
                 "Type": "roles",
-                "Value": "['test123']",
+                "Value": "[\"test123\"]",
                 "ValueType": "json"
               }
             ]
