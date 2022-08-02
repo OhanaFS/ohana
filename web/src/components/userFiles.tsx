@@ -2,6 +2,8 @@ import AppBase from './AppBase';
 import {
   ChonkyActions,
   ChonkyFileActionData,
+  ChonkyIconName,
+  defineFileAction,
   FileActionHandler,
   FileArray,
   FileBrowserProps,
@@ -26,6 +28,7 @@ import {
   getFileDownloadURL,
   useMutateDeleteFile,
   useMutateUpdateFile,
+  useMutateUpdateFileMetadata,
   useMutateUploadFile,
 } from '../api/file';
 import {
@@ -38,6 +41,17 @@ import { IconUpload } from '@tabler/icons';
 import { useQueryUser } from '../api/auth';
 
 export type VFSProps = Partial<FileBrowserProps>;
+
+const RenameFiles = defineFileAction({
+  id: 'rename_files',
+  button: {
+    name: 'Rename',
+    toolbar: true,
+    contextMenu: true,
+    group: 'Actions',
+    icon: ChonkyIconName.config,
+  },
+} as const);
 
 export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   const [fuOpened, setFuOpened] = useState(false);
@@ -80,6 +94,16 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
       );
     } else if (data.id === ChonkyActions.OpenFiles.id) {
       navigate(`/home/${data.state.selectedFilesForAction[0].id}`);
+    } else if ((data.id as string) === RenameFiles.id) {
+      let newFileName = window.prompt(
+        'Enter new file name',
+        data.state.selectedFilesForAction[0].name
+      );
+      if (!newFileName) return;
+      mUpdateFileMetadata.mutate({
+        file_name: newFileName,
+        file_id: data.state.selectedFilesForAction[0].id,
+      });
     }
   };
 
@@ -89,6 +113,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
       ChonkyActions.DeleteFiles,
       ChonkyActions.UploadFiles,
       ChonkyActions.DownloadFiles,
+      RenameFiles,
     ],
     []
   );
@@ -104,6 +129,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   const mDeleteFolder = useMutateDeleteFolder();
   const mUploadFile = useMutateUploadFile();
   const mDeleteFile = useMutateDeleteFile();
+  const mUpdateFileMetadata = useMutateUpdateFileMetadata();
 
   const ohanaFiles =
     qFilesList.data?.map((file) => ({
