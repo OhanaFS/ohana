@@ -303,5 +303,8 @@ func (user *User) RefreshGroups(tx *gorm.DB) error {
 
 // SetGroups replaces the user's groups with a new list of groups
 func (user *User) SetGroups(tx *gorm.DB, groups []Group) error {
-	return tx.Model(&user).Association("Groups").Replace(groups)
+	if err := tx.Model(&user).Association("Groups").Replace(groups); err != nil {
+		return err
+	}
+	return tx.Save(&user).Error
 }

@@ -87,7 +87,7 @@ func (s *Authentication) HandCallback(w http.ResponseWriter, r *http.Request) {
 
 	result, err := s.service.Callback(ctx, code, checkState)
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, fmt.Sprintf("Error getting roles: %s", err))
+		util.HttpError(w, http.StatusInternalServerError, fmt.Sprintf("Error authenticating: %s", err))
 		return
 	}
 
