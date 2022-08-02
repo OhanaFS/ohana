@@ -27,6 +27,7 @@ import {
   EntryType,
   getFileDownloadURL,
   useMutateDeleteFile,
+  useMutateMoveFile,
   useMutateUpdateFile,
   useMutateUpdateFileMetadata,
   useMutateUploadFile,
@@ -104,6 +105,12 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
         file_name: newFileName,
         file_id: data.state.selectedFilesForAction[0].id,
       });
+    } else if (data.id === ChonkyActions.MoveFiles.id) {
+      if (data.payload.draggedFile.isDir) return;
+      mMoveFile.mutate({
+        file_id: data.payload.draggedFile.id,
+        folder_id: data.payload.destination.id,
+      });
     }
   };
 
@@ -113,6 +120,8 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
       ChonkyActions.DeleteFiles,
       ChonkyActions.UploadFiles,
       ChonkyActions.DownloadFiles,
+      ChonkyActions.MoveFiles,
+      ChonkyActions.CopyFiles,
       RenameFiles,
     ],
     []
@@ -130,6 +139,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   const mUploadFile = useMutateUploadFile();
   const mDeleteFile = useMutateDeleteFile();
   const mUpdateFileMetadata = useMutateUpdateFileMetadata();
+  const mMoveFile = useMutateMoveFile();
 
   const ohanaFiles =
     qFilesList.data?.map((file) => ({
