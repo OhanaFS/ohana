@@ -21,7 +21,7 @@ func NewRouter() *mux.Router {
 	return mux.NewRouter()
 }
 
-// StartServer creates a new HTTP server with the given router. It uses fx
+// NewServer creates a new HTTP server with the given router. It uses fx
 // lifecycle hooks to start and stop the server.
 func NewServer(
 	lc fx.Lifecycle,

@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestDeletion(t *testing.T) {
@@ -159,6 +160,81 @@ func TestDeletion(t *testing.T) {
 		fragments, err = dbfs.GetToBeDeletedFragments(db)
 		Assert.NoError(err)
 		Assert.Equal(0, len(fragments))
+
+	})
+
+	t.Run("Test MarkOldFileVersions", func(t *testing.T) {
+
+		Assert := assert.New(t)
+
+		// Checking that attribute is not marked
+		rows, err := dbfs.MarkOldFileVersions(db)
+		Assert.NoError(err)
+		Assert.Equal(int64(0), rows)
+
+		// Setting bad attribute
+		err = dbfs.SetHowLongToKeepFileVersions(db, -1)
+		Assert.ErrorIs(err, dbfs.ErrInvalidCronJobProperty)
+
+		// Setting good attribute
+		err = dbfs.SetHowLongToKeepFileVersions(db, 1)
+		Assert.NoError(err)
+
+		// Checking that attribute is marked
+		rows, err = dbfs.MarkOldFileVersions(db)
+		Assert.NoError(err)
+		Assert.Equal(int64(0), rows)
+
+		// Creating 3 files.
+
+		// Get root folder
+		rootFolder, err := dbfs.GetRootFolder(db)
+
+		file1, err := EXAMPLECreateFile(db, &superUser, "deletefile1.txt", rootFolder.FileId)
+		Assert.NoError(err)
+		file2, err := EXAMPLECreateFile(db, &superUser, "deletefile2.txt", rootFolder.FileId)
+		Assert.NoError(err)
+		_, err = EXAMPLECreateFile(db, &superUser, "dontDeleteFile3.txt", rootFolder.FileId)
+		Assert.NoError(err)
+
+		// Turning on versioning for file 1 and file 2
+
+		err = file1.UpdateMetaData(db, dbfs.FileMetadataModification{VersioningMode: dbfs.VersioningOnVersions}, &superUser)
+		Assert.NoError(err)
+		err = file2.UpdateMetaData(db, dbfs.FileMetadataModification{VersioningMode: dbfs.VersioningOnVersions}, &superUser)
+		Assert.NoError(err)
+
+		// Updating file 1 and file 2
+
+		err = EXAMPLEUpdateFile(db, file1, "", &superUser)
+		Assert.NoError(err)
+		err = EXAMPLEUpdateFile(db, file2, "", &superUser)
+		Assert.NoError(err)
+
+		// Checking that file 1 and file 2 are not marked for deletion
+		rows, err = dbfs.MarkOldFileVersions(db)
+		Assert.NoError(err)
+		Assert.Equal(int64(0), rows)
+
+		// Updating file 1's fileversion to be old
+
+		// Getting the latest file version
+		file1, err = dbfs.GetFileById(db, file1.FileId, &superUser)
+
+		// Manually updating the file version to be old
+
+		result := db.Model(&dbfs.FileVersion{}).Where("file_id = ? AND version_no <> ?",
+			file1.FileId, file1.VersionNo).Update("modified_time", time.Now().Add(time.Hour*24*-2))
+		Assert.NoError(result.Error)
+
+		// Checking that file 1 is marked for deletion
+		rows, err = dbfs.MarkOldFileVersions(db)
+		Assert.NoError(err)
+		Assert.Equal(int64(2), rows) // should be 2 because the change from no versioning to versioning also counts
+
+		rows, err = dbfs.MarkOldFileVersions(db)
+		Assert.NoError(err)
+		Assert.Equal(int64(0), rows) // should be 2 because the change from no versioning to versioning also counts
 
 	})
 

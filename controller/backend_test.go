@@ -33,9 +33,7 @@ func TestBackendController(t *testing.T) {
 	configFile := &config.Config{Stitch: stitchConfig}
 	logger := config.NewLogger(configFile)
 	db := testutil.NewMockDB(t)
-	err := dbfs.InitDB(db)
 	session := testutil.NewMockSession(t)
-	assert.NoError(err)
 
 	// Setting up controller
 	bc := &controller.BackendController{

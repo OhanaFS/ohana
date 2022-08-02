@@ -21,7 +21,7 @@ type FileVersion struct {
 	CreatedTime           time.Time    `gorm:"not null" json:"created_time"`
 	ModifiedUser          User         `gorm:"foreignKey:ModifiedUserUserId" json:"-"`
 	ModifiedUserUserId    *string      `json:"modified_user_user_id"`
-	ModifiedTime          time.Time    `gorm:"not null; autoUpdateTime" json:"modified_time"`
+	ModifiedTime          time.Time    `gorm:"not null" json:"modified_time"`
 	VersioningMode        int8         `gorm:"not null" json:"versioning_mode"`
 	Checksum              string       `json:"checksum"`
 	TotalShards           int          `json:"total_shards"`

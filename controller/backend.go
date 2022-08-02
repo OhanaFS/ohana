@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/OhanaFS/ohana/controller/inc"
 	"io"
 	"net/http"
 	"os"
@@ -26,6 +27,7 @@ type BackendController struct {
 	Logger     *zap.Logger
 	Path       string
 	ServerName string
+	Inc        *inc.Inc
 }
 
 // NewBackend takes in config, dbfs, loggers, and middleware and registers the backend
@@ -36,6 +38,7 @@ func NewBackend(
 	db *gorm.DB,
 	mw *middleware.Middlewares,
 	config *config.Config,
+	inc *inc.Inc,
 ) error {
 
 	bc := &BackendController{
@@ -43,6 +46,7 @@ func NewBackend(
 		Logger:     logger,
 		Path:       config.Stitch.ShardsLocation,
 		ServerName: config.Inc.ServerName,
+		Inc:        inc,
 	}
 
 	bc.InitialiseShardsFolder()

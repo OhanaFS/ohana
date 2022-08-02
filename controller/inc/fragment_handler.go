@@ -4,19 +4,23 @@ import (
 	"errors"
 	"fmt"
 	"github.com/OhanaFS/ohana/dbfs"
+	"github.com/OhanaFS/ohana/util"
 	"gorm.io/gorm"
 	"os"
-	"sync"
+	"path"
 	"time"
 )
 
 var (
 	JobCurrentlyRunning        = errors.New("job is currently running")
 	JobCurrentlyRunningWarning = errors.New("job is currently running. warning")
+	ErrServerFailed            = errors.New("server failed")
+	ErrServerTimeout           = errors.New("server timeout")
+	ErrJobFailed               = errors.New("job failed")
 )
 
-func (i Inc) DeleteFragmentsByPath(path string) error {
-	return os.Remove(i.ShardsLocation + path)
+func (i Inc) DeleteFragmentsByPath(pathOfShard string) error {
+	return os.Remove(path.Join(i.ShardsLocation, pathOfShard))
 }
 
 func (i Inc) CronJobDeleteFragments(manualRun bool) (error, string) {
@@ -33,7 +37,7 @@ func (i Inc) CronJobDeleteFragments(manualRun bool) (error, string) {
 
 	// Check if the job is currently running.
 
-	server, timestamp, err := dbfs.IsCronDeleteRunning(i.db)
+	server, timestamp, err := dbfs.IsCronDeleteRunning(i.Db)
 	if err != nil {
 		return err, ""
 	}
@@ -53,7 +57,7 @@ func (i Inc) CronJobDeleteFragments(manualRun bool) (error, string) {
 	// else it should not be running
 
 	// Check if the server should handle it (least amount of data free)
-	servers, err := dbfs.GetServers(i.db)
+	servers, err := dbfs.GetServers(i.Db)
 	if err != nil {
 		return err, ""
 	}
@@ -77,13 +81,18 @@ func (i Inc) CronJobDeleteFragments(manualRun bool) (error, string) {
 	}
 
 	// Start the job
-
-	// TODO:
-	dbfs.MarkOldFileVersions(i.db)
-
-	fragments, err := dbfs.GetToBeDeletedFragments(i.db)
+	_, err = dbfs.MarkOldFileVersions(i.Db)
 	if err != nil {
 		return err, ""
+	}
+
+	fragments, err := dbfs.GetToBeDeletedFragments(i.Db)
+	if err != nil {
+		return err, ""
+	}
+
+	if len(fragments) == 0 {
+		return nil, "Finished. Deleted 0 fragments"
 	}
 
 	dataIdFragmentMap := make(map[string][]dbfs.Fragment)
@@ -96,12 +105,12 @@ func (i Inc) CronJobDeleteFragments(manualRun bool) (error, string) {
 
 	const maxGoroutines = 10
 	input := make(chan string, len(dataIdFragmentMap))
-	output := make(chan string, len(dataIdFragmentMap))
+	output := make(chan DeleteWorkerStatus, len(dataIdFragmentMap))
 
 	// Worker function
 
 	for num := 0; num < maxGoroutines; num++ {
-		go i.deleteWorker(dataIdFragmentMap, input, output)
+		go i.deleteWorker(dataIdFragmentMap, input, output, i.Db)
 	}
 
 	for dataId, _ := range dataIdFragmentMap {
@@ -109,50 +118,105 @@ func (i Inc) CronJobDeleteFragments(manualRun bool) (error, string) {
 	}
 	close(input)
 
-	// TODO: ?? Will this freeze the db?
-	err = i.db.Transaction(func(tx *gorm.DB) error {
+	AllDeleteWorkerErrors := make([]DeleteWorkerStatus, 0)
 
-		for i := 0; i < len(dataIdFragmentMap); i++ {
-			dataIdProcessed := <-output
+	for j := 0; j < len(dataIdFragmentMap); j++ {
 
-			// Create transaction
-			err2 := dbfs.FinishDeleteDataId(tx, dataIdProcessed)
-			if err2 != nil {
-				return err2
-			}
-		}
-		return nil
-	})
-
-	return nil, "Finished. Deleted " + fmt.Sprintf("%d", len(dataIdFragmentMap)) + " fragments"
-}
-
-func (i Inc) deleteWorker(dataIdFragmentMap map[string][]dbfs.Fragment, input <-chan string, output chan<- string) {
-
-	for j := range input {
-		var fragWg sync.WaitGroup
-
-		for _, fragment := range dataIdFragmentMap[j] {
-			fragWg.Add(1)
-			go func(path, server, dataId string) {
-
-				if server == i.ServerName {
-					err := i.DeleteFragmentsByPath(path)
-					if err != nil {
-						panic(err) // TODO: Figure out how to handle this to make sure no panics.
-					}
-				} else {
-					fmt.Println("Deleting fragment:", path, server, dataId)
-				}
-
-				// Assume this is a delete fragment call.
-
-				defer fragWg.Done()
-			}(fragment.FileFragmentPath, fragment.ServerName, fragment.FileVersionDataId)
+		status := <-output
+		if status.Error != nil {
+			AllDeleteWorkerErrors = append(AllDeleteWorkerErrors, status)
 		}
 
-		fragWg.Wait()
-		output <- j
 	}
 
+	// If there are errors, return them
+	if len(AllDeleteWorkerErrors) > 0 {
+		return ErrJobFailed, fmt.Sprintf("Finished (WARNING). Deleted %d, but %d errors occurred",
+			len(dataIdFragmentMap)-len(AllDeleteWorkerErrors), len(AllDeleteWorkerErrors))
+	} else {
+		return nil, "Finished. Deleted " + fmt.Sprintf("%d", len(dataIdFragmentMap)) + " fragments"
+	}
+
+}
+
+type DeleteWorkerStatus struct {
+	DataId       string
+	Error        error
+	ServerErrors []DeleteWorkerServerStatus
+}
+
+type DeleteWorkerServerStatus struct {
+	server string
+	err    error
+}
+
+func (i Inc) deleteWorker(dataIdFragmentMap map[string][]dbfs.Fragment, input <-chan string,
+	output chan<- DeleteWorkerStatus, db *gorm.DB) {
+
+	// for each dataId
+	for dataId := range input {
+
+		// Create channels to receive the results of the goroutines
+		serversBackChan := make(chan DeleteWorkerServerStatus, len(dataIdFragmentMap[dataId]))
+
+		// Set to monitor timeout servers.
+		serversPending := util.NewSet[string]()
+		for _, fragment := range dataIdFragmentMap[dataId] {
+			serversPending.Add(fragment.ServerName)
+		}
+
+		// spin up 'em routines
+		for _, fragment := range dataIdFragmentMap[dataId] {
+			go func(path, server, dataId string, dwss chan<- DeleteWorkerServerStatus) {
+
+				if server == i.ServerName {
+					// local
+					err := i.DeleteFragmentsByPath(path)
+					if err != nil {
+						dwss <- DeleteWorkerServerStatus{server, err}
+					} else {
+						dwss <- DeleteWorkerServerStatus{server, nil}
+					}
+				} else {
+					// call handling server
+					fmt.Println("Deleting fragment:", path, server, dataId)
+					dwss <- DeleteWorkerServerStatus{server, nil}
+				}
+
+			}(fragment.FileFragmentPath, fragment.ServerName, fragment.FileVersionDataId, serversBackChan)
+		}
+
+		failedServerErrors := make([]DeleteWorkerServerStatus, 0)
+
+		// waiting for the output from the channel. timeout for each server is 60 sec.
+		for i := 0; i < len(dataIdFragmentMap[dataId]); i++ {
+			serverBack := <-serversBackChan
+			if serverBack.err != nil {
+				failedServerErrors = append(failedServerErrors, serverBack)
+			} else {
+				serversPending.Remove(serverBack.server)
+			}
+
+		}
+
+		// Checking if any servers timed out
+		if serversPending.Size() > 0 {
+			serversPending.Each(func(server string) {
+				failedServerErrors = append(failedServerErrors, DeleteWorkerServerStatus{server, ErrServerTimeout})
+			})
+		}
+
+		// Checking how many failed
+		if len(failedServerErrors) > 0 {
+			output <- DeleteWorkerStatus{dataId, ErrServerFailed, failedServerErrors}
+		} else {
+			// success
+			err := dbfs.FinishDeleteDataId(db, dataId)
+			if err != nil {
+				output <- DeleteWorkerStatus{dataId, err, nil}
+			}
+			output <- DeleteWorkerStatus{dataId, nil, nil}
+		}
+
+	}
 }

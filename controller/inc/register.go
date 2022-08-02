@@ -25,7 +25,8 @@ func (i Inc) RegisterServer(initialRun bool) error {
 	for serverNotReady {
 
 		var server dbfs.Server
-		err := i.db.Model(&dbfs.Server{}).Where("status = ?", dbfs.ServerStarting).First(&server).Error
+
+		err := i.Db.Model(&dbfs.Server{}).Where("status = ?", dbfs.ServerStarting).First(&server).Error
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				serverNotReady = false
@@ -48,7 +49,7 @@ func (i Inc) RegisterServer(initialRun bool) error {
 
 	// Check if server exists.
 	var server dbfs.Server
-	err := i.db.First(&server, "name = ?", i.ServerName).Error
+	err := i.Db.First(&server, "name = ?", i.ServerName).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			isNewServer = true
@@ -66,7 +67,7 @@ func (i Inc) RegisterServer(initialRun bool) error {
 		FreeSpace: spaceFree,
 	}
 
-	if err := i.db.Save(&server).Error; err != nil {
+	if err := i.Db.Save(&server).Error; err != nil {
 		return err
 	}
 
@@ -78,21 +79,21 @@ func (i Inc) RegisterServer(initialRun bool) error {
 	}
 
 	var servers []dbfs.Server
-	i.db.Find(&servers).Where("status = ? ", dbfs.ServerOnline)
+	i.Db.Find(&servers).Where("status = ? ", dbfs.ServerOnline)
 
 	for _, server := range servers {
 		if !Ping(server.HostName, server.Port) {
 			fmt.Println("Server", server.HostName, "is unreachable.")
-			err := MarkServerOffline(i.db, i.HostName, server.HostName)
+			err := MarkServerOffline(i.Db, i.HostName, server.HostName)
 			if err != nil {
 				if isNewServer {
-					if i.db.Delete(&server).Error != nil {
+					if i.Db.Delete(&server).Error != nil {
 						return errors.New("ERROR. CANNOT DELETE SERVER FROM DATABASE. " + err.Error())
 					}
 				} else {
 					// mark server as offline instead
 					server.Status = dbfs.ServerOfflineError
-					if i.db.Save(&server).Error != nil {
+					if i.Db.Save(&server).Error != nil {
 						return errors.New("ERROR. CANNOT UPDATE SERVER FROM DATABASE. " + err.Error())
 					}
 				}
@@ -109,7 +110,7 @@ func (i Inc) RegisterServer(initialRun bool) error {
 		fmt.Println("Registering server as online...")
 	}
 
-	err = i.db.Save(&server).Error
+	err = i.Db.Save(&server).Error
 	if err != nil {
 		return err
 	}
@@ -174,4 +175,26 @@ func Ping(hostname, port string) bool {
 // This function needs to be attached to a http server.
 func Pong(w http.ResponseWriter, r *http.Request) {
 	util.HttpJson(w, http.StatusOK, map[string]string{"status": "online"})
+}
+
+// RegisterIncServices registers the inc services.
+// NOT RUNNING YET. NEED TO SET UP INC SERVER ELSE WILL NOT RUN.
+func RegisterIncServices(i *Inc) {
+	ticker := time.NewTicker(5 * time.Minute)
+	err := i.RegisterServer(true)
+	if err != nil {
+		i.Shutdown <- true
+	}
+	go func() {
+		for {
+			select {
+			case <-i.Shutdown:
+				ticker.Stop()
+				// deregister services
+				return
+			case <-ticker.C:
+				i.RegisterServer(false)
+			}
+		}
+	}()
 }

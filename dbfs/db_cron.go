@@ -27,6 +27,12 @@ const (
 	CronJobDeleteFragmentsHandledServer = "CronJobDeleteFragmentsHandledServer"
 	CronJobDeleteFragmentsLastStart     = "CronJobDeleteFragmentsLastStart"
 	CronJobDeleteFragmentsLastEnd       = "CronJobDeleteFragmentsLastEnd"
+	CronJobDeleteKeepVersionsFor        = "CronJobDeleteKeepVersionsFor"
+)
+
+var (
+	ErrCronJobPropertyNotSet  = errors.New("cron job property not set")
+	ErrInvalidCronJobProperty = errors.New("invalid cron job property")
 )
 
 func GetToBeDeletedFragments(tx *gorm.DB) ([]Fragment, error) {
@@ -115,9 +121,35 @@ func FinishDeleteDataId(tx *gorm.DB, dataId string) error {
 }
 
 // MarkOldFileVersions goes through the database and see what file versions are old and can be deleted.
-func MarkOldFileVersions(tx *gorm.DB) int {
+func MarkOldFileVersions(tx *gorm.DB) (int64, error) {
 
-	return 0
+	// Get the timeframe to consider "old"
+
+	var days KeyValueDBPair
+
+	err := tx.First(&days, "key = ?", CronJobDeleteKeepVersionsFor).Error
+	if err != nil {
+		return 0, err
+	}
+
+	beforeDate := time.Now().AddDate(0, 0, -1*days.ValueInt)
+
+	// Getting files that are currently in use
+	filesCurrentlyUsed := tx.Select("data_id").Where("entry_type = ?", IsFile).Table("files")
+
+	// Set date
+	result := tx.Model(&FileVersion{}).Where(
+		"status = ? AND modified_time < ? AND entry_type = ? AND data_id NOT IN (?)",
+		FileStatusGood, beforeDate, IsFile, filesCurrentlyUsed).Update("status", FileStatusToBeDeleted)
+
+	// This will only delete files. Will not delete folders since they don't take up disk space anyway so we don't care.
+
+	if result.Error != nil {
+		return 0, result.Error
+	} else {
+		return result.RowsAffected, nil
+	}
+
 }
 
 func ClearFileStatusDeletedEntries(tx *gorm.DB) error {
@@ -125,11 +157,13 @@ func ClearFileStatusDeletedEntries(tx *gorm.DB) error {
 		time.Now()).Delete(&FileVersion{}).Error
 }
 
+// createCronJobKeyValues creates the parameters for the cron job.
 func createCronJobKeyValues(tx *gorm.DB) error {
 	keyValueCronJobs := []string{CronJobDeleteFragmentsInProgress,
 		CronJobDeleteFragmentsHandledServer,
 		CronJobDeleteFragmentsLastStart,
 		CronJobDeleteFragmentsLastEnd,
+		CronJobDeleteKeepVersionsFor,
 	}
 
 	return tx.Transaction(func(tx *gorm.DB) error {
@@ -153,6 +187,9 @@ func createCronJobKeyValues(tx *gorm.DB) error {
 	})
 }
 
+// IsCronDeleteRunning checks if the cron job is running.
+// Returns a string of the server currently running, the time it started (or last ended),
+// and an error if DB encounters an issue.
 func IsCronDeleteRunning(tx *gorm.DB) (string, time.Time, error) {
 	var cronDeleteRunning KeyValueDBPair
 	err := tx.Model(&KeyValueDBPair{}).Where("key = ?", CronJobDeleteFragmentsInProgress).
@@ -208,4 +245,15 @@ func IsCronDeleteRunning(tx *gorm.DB) (string, time.Time, error) {
 		return cronDeleteRunningServer.ValueString, time.Unix(int64Timestamp, 0), nil
 	}
 
+}
+
+// SetHowLongToKeepFileVersions sets the number of days to keep file versions.
+func SetHowLongToKeepFileVersions(tx *gorm.DB, days int) error {
+
+	if days < 0 {
+		return ErrInvalidCronJobProperty
+	}
+
+	return tx.Model(&KeyValueDBPair{}).Where("key = ?", CronJobDeleteKeepVersionsFor).
+		Update("value_int", days).Error
 }
