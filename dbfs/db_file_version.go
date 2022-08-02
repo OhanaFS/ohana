@@ -128,7 +128,7 @@ func (fv *FileVersion) GetFragments(tx *gorm.DB, user *User) ([]Fragment, error)
 	}
 
 	var fragments []Fragment
-	err = tx.Model(&fragments).Where("file_version_file_id = ? AND file_version_data_id = ?", fv.FileId, fv.DataId).Find(&fragments).Error
+	err = tx.Model(&fragments).Where("file_version_data_id = ?", fv.DataId).Find(&fragments).Error
 	if err != nil {
 		return nil, err
 	}

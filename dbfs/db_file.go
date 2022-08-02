@@ -56,7 +56,7 @@ type File struct {
 	ParentFolder       *File     `gorm:"foreignKey:ParentFolderFileId" json:"-"`
 	ParentFolderFileId *string   `json:"parent_folder_id"`
 	VersionNo          int       `gorm:"not null" json:"version_no"`
-	DataId             string    `json:"-"`
+	DataId             string    `json:"-"` //TODO: Convert this to a pointer to a string and make it unique or nullable
 	DataIdVersion      int       `json:"data_version_no"`
 	Size               int       `gorm:"not null" json:"size"`
 	ActualSize         int       `gorm:"not null" json:"actual_size"`
