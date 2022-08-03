@@ -45,6 +45,10 @@ type AuthConfig struct {
 	ClientSecret string `yaml:"client_secret"`
 	// URL for the callback after authentication
 	RedirectURL string `yaml:"redirect_url"`
+	// Scopes to request to the identity provider
+	Scopes []string `yaml:"scopes"`
+	// The name of the claim which will contain user roles
+	RolesClaimName string `yaml:"roles_claim_name"`
 }
 
 type RedisConfig struct {

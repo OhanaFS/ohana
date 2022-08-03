@@ -37,9 +37,10 @@ export default function Demo() {
             }
           />
           <Route path="/home" element={<VFSBrowser />} />
+          <Route path="/home/:id" element={<VFSBrowser />} />
           <Route path="/" element={<LoginPage />} />
           <Route path="/insidessogroup" element={<AdminSsoGroupsInside />} />
-          <Route path="/key_management" element={<AdminKeyManagement />} />
+          <Route path="/manage_keys" element={<AdminKeyManagement />} />
           <Route
             path="/performmaintenance"
             element={<AdminPerformMaintenance />}

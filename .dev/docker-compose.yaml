@@ -50,20 +50,41 @@ services:
               },
               {
                 "Type": "email",
-                "Value": "superuser"
-              },
-              {
-                "Type": "custom-claim",
-                "Value": "test custom claim"
+                "Value": "admin@ohanais.live"
               },
               {
                 "Type": "roles",
-                "Value": "['a', 'b']",
+                "Value": "[\"admin\", \"some_role\"]",
+                "ValueType": "json"
+              }
+            ]
+          },
+          {
+            "SubjectId":"2",
+            "Username":"user",
+            "Password":"password",
+            "Claims": [
+              {
+                "Type": "name",
+                "Value": "John Doe"
+              },
+              {
+                "Type": "email",
+                "Value": "john@ohanais.live"
+              },
+              {
+                "Type": "roles",
+                "Value": "[\"test123\"]",
                 "ValueType": "json"
               }
             ]
           }
         ]
+      IDENTITY_RESOURCES_INLINE: |
+        [{
+          "Name": "app.roles",
+          "ClaimTypes": ["roles"]
+        }]
       CLIENTS_CONFIGURATION_INLINE: |
         [{
             "ClientId": "ohana",
@@ -82,7 +103,8 @@ services:
             "AllowedScopes": [
                 "openid",
                 "profile",
-                "email"
+                "email",
+                "app.roles"
             ],
             "ClientClaimsPrefix": "",
             "Claims": []

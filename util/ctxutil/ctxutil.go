@@ -10,8 +10,6 @@ import (
 const (
 	ContextKeyTransaction = "transaction"
 	ContextKeyUser        = "user"
-	ContextKeyDevice      = "device"
-	ContextKeyPagination  = "pagination"
 )
 
 // GetTransaction returns a transaction from the context if it exists. If a

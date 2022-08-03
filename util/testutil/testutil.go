@@ -1,6 +1,8 @@
 package testutil
 
 import (
+	"log"
+	"os"
 	"testing"
 
 	"github.com/OhanaFS/ohana/config"
@@ -10,11 +12,19 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func NewMockDB(t *testing.T) *gorm.DB {
 	assert := assert.New(t)
-	appDB, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	appDB, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
+		Logger: logger.New(
+			log.New(os.Stdout, "\n", log.LstdFlags),
+			logger.Config{
+				LogLevel: logger.Info,
+				Colorful: true,
+			}),
+	})
 	assert.NoError(err)
 	assert.NoError(dbfs.InitDB(appDB))
 	t.Log("Migrated in-memory database")

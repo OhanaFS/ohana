@@ -5,6 +5,7 @@ type WhoamiResponse = {
   user_id: string;
   name: string;
   email: string;
+  home_folder_id: string;
 };
 
 export const useQueryUser = () =>
