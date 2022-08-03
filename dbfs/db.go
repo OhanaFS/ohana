@@ -9,10 +9,8 @@ import (
 
 // InitDB Initiates the DB with gorm.db.AutoMigrate
 func InitDB(db *gorm.DB) error {
-	err := db.AutoMigrate(
-		&User{}, &Group{}, &File{}, &FileVersion{}, &Fragment{}, &Permission{},
-		&PermissionHistory{}, &PasswordProtect{}, &Server{}, KeyValueDBPair{}, &Role{},
-	)
+	err := db.AutoMigrate(&User{}, &Group{}, &File{}, &FileVersion{}, &Fragment{}, &Permission{}, &PermissionHistory{},
+		&PasswordProtect{}, &Server{}, KeyValueDBPair{}, DataCopies{}, &Log{}, &Role{})
 
 	if err != nil {
 		return err
@@ -163,7 +161,12 @@ func InitDB(db *gorm.DB) error {
 					Status:     1,
 				}
 
-				return db.Save(&permission).Error
+				err = db.Save(&permission).Error
+				if err != nil {
+					return err
+				}
+
+				return createCronJobKeyValues(db)
 			}
 		}
 

@@ -21,7 +21,7 @@ type FileVersion struct {
 	CreatedTime           time.Time    `gorm:"not null" json:"created_time"`
 	ModifiedUser          User         `gorm:"foreignKey:ModifiedUserUserId" json:"-"`
 	ModifiedUserUserId    *string      `json:"modified_user_user_id"`
-	ModifiedTime          time.Time    `gorm:"not null; autoUpdateTime" json:"modified_time"`
+	ModifiedTime          time.Time    `gorm:"not null" json:"modified_time"`
 	VersioningMode        int8         `gorm:"not null" json:"versioning_mode"`
 	Checksum              string       `json:"checksum"`
 	TotalShards           int          `json:"total_shards"`
@@ -128,7 +128,7 @@ func (fv *FileVersion) GetFragments(tx *gorm.DB, user *User) ([]Fragment, error)
 	}
 
 	var fragments []Fragment
-	err = tx.Model(&fragments).Where("file_version_file_id = ? AND file_version_data_id = ?", fv.FileId, fv.DataId).Find(&fragments).Error
+	err = tx.Model(&fragments).Where("file_version_data_id = ?", fv.DataId).Find(&fragments).Error
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (fv *FileVersion) ListFiles(tx *gorm.DB, user *User) ([]FileVersion, error)
 
 //deleteFileVersionFromFile will mark all versions as to be deleted, but will not delete
 // till the system clears it up as a chron job.
-func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
+func deleteFileVersionFromFile(tx *gorm.DB, file *File, server string) error {
 
 	// First, we'll create a new history entry to show when the file was deleted with timestamp
 
@@ -176,6 +176,14 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 	err := tx.First(&parentFolder).Error
 	if err != nil {
 		return err
+	}
+
+	var status int8
+
+	if file.EntryType == IsFolder {
+		status = FileStatusDeleted
+	} else {
+		status = FileStatusToBeDeleted
 	}
 
 	fileVersion := FileVersion{
@@ -192,7 +200,7 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 		ActualSize:            file.ActualSize,
 		CreatedTime:           file.CreatedTime,
 		ModifiedUserUserId:    file.ModifiedUserUserId,
-		ModifiedTime:          file.ModifiedTime,
+		ModifiedTime:          time.Now(),
 		VersioningMode:        file.VersioningMode,
 		Checksum:              file.Checksum,
 		TotalShards:           file.TotalShards,
@@ -204,8 +212,8 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 		//LinkFileFileId:        "GET LINKED FOLDER", // NOT READY
 		//LinkFileVersionNo:     0,                   // NOT READY
 		LastChecked:   file.LastChecked,
-		Status:        FileStatusDeleted,
-		HandledServer: file.HandledServer,
+		Status:        status,
+		HandledServer: server,
 	}
 
 	err = tx.Save(&fileVersion).Error
@@ -215,7 +223,7 @@ func deleteFileVersionFromFile(tx *gorm.DB, file *File) error {
 
 	// Next, we'll mark everything as deleted.
 
-	err = tx.Model(&FileVersion{}).Where("file_id = ?", file.FileId).Update("status", FileStatusDeleted).Error
+	err = tx.Model(&FileVersion{}).Where("file_id = ?", file.FileId).Update("status", FileStatusToBeDeleted).Error
 	if err != nil {
 		return err
 	}

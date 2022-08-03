@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/OhanaFS/ohana/controller/inc"
 	"io"
 	"net/http"
 	"os"
@@ -26,6 +27,7 @@ type BackendController struct {
 	Logger     *zap.Logger
 	Path       string
 	ServerName string
+	Inc        *inc.Inc
 }
 
 // NewBackend takes in config, dbfs, loggers, and middleware and registers the backend
@@ -36,6 +38,7 @@ func NewBackend(
 	db *gorm.DB,
 	mw *middleware.Middlewares,
 	config *config.Config,
+	inc *inc.Inc,
 ) error {
 
 	bc := &BackendController{
@@ -43,6 +46,7 @@ func NewBackend(
 		Logger:     logger,
 		Path:       config.Stitch.ShardsLocation,
 		ServerName: config.Inc.ServerName,
+		Inc:        inc,
 	}
 
 	bc.InitialiseShardsFolder()
@@ -262,11 +266,10 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 	for i := 1; i <= int(dbfsFile.TotalShards); i++ {
 		fragId := int(i)
 		fragmentPath := shardNames[i-1]
-		serverId := "Server" + strconv.Itoa(i)
 
-		err = dbfs.CreateFragment(bc.Db, dbfsFile.FileId, dbfsFile.DataId, dbfsFile.VersionNo, fragId, serverId, fragmentPath)
+		err = dbfs.CreateFragment(bc.Db, dbfsFile.FileId, dbfsFile.DataId, dbfsFile.VersionNo, fragId, bc.ServerName, fragmentPath)
 		if err != nil {
-			err2 := dbfsFile.Delete(bc.Db, user)
+			err2 := dbfsFile.Delete(bc.Db, user, bc.ServerName)
 			if err2 != nil {
 				util.HttpError(w, http.StatusInternalServerError, err.Error())
 				return
@@ -282,7 +285,7 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 
 	err = dbfs.FinishFile(bc.Db, &dbfsFile, user, 412, checksum)
 	if err != nil {
-		err2 := dbfsFile.Delete(bc.Db, user)
+		err2 := dbfsFile.Delete(bc.Db, user, bc.ServerName)
 		errorText := "Error finishing file: " + err.Error()
 		if err2 != nil {
 			errorText += " Error deleting file: " + err2.Error()
@@ -412,10 +415,11 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 	for i := 1; i <= int(dbfsFile.TotalShards); i++ {
 		fragId := int(i)
 		fragmentPath := shardNames[i-1]
-		serverId := "Server" + strconv.Itoa(i)
+
+		// TODO: Figure out checksum
 		fragChecksum := "CHECKSUM" + strconv.Itoa(i)
 
-		err = dbfsFile.UpdateFragment(bc.Db, fragId, fragmentPath, fragChecksum, serverId)
+		err = dbfsFile.UpdateFragment(bc.Db, fragId, fragmentPath, fragChecksum, bc.ServerName)
 		if err != nil {
 			err2 := dbfsFile.RevertFileToVersion(bc.Db, dbfsFile.VersionNo-1, user)
 			if err2 != nil {
@@ -664,7 +668,7 @@ func (bc *BackendController) DeleteFile(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Delete file
-	err = file.Delete(bc.Db, user)
+	err = file.Delete(bc.Db, user, bc.ServerName)
 	if errors.Is(err, dbfs.ErrNoPermission) {
 		util.HttpError(w, http.StatusForbidden, "No write permisison on destination folder")
 		return
@@ -1339,7 +1343,7 @@ func (bc *BackendController) DeleteFolder(w http.ResponseWriter, r *http.Request
 	}
 
 	// attempt to delete folder
-	err = folder.Delete(bc.Db, user)
+	err = folder.Delete(bc.Db, user, bc.ServerName)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return

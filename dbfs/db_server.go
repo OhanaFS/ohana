@@ -31,7 +31,7 @@ type Server struct {
 	FreeSpace uint64 `gorm:"not null"`
 }
 
-// GetServers returns all servers in the database. Pings redis first
+// GetServers returns all servers in the database.
 func GetServers(tx *gorm.DB) ([]Server, error) {
 
 	var servers []Server

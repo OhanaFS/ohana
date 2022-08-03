@@ -33,15 +33,14 @@ func TestBackendController(t *testing.T) {
 	configFile := &config.Config{Stitch: stitchConfig}
 	logger := config.NewLogger(configFile)
 	db := testutil.NewMockDB(t)
-	err := dbfs.InitDB(db)
 	session := testutil.NewMockSession(t)
-	assert.NoError(err)
 
 	// Setting up controller
 	bc := &controller.BackendController{
-		Db:     db,
-		Logger: logger,
-		Path:   configFile.Stitch.ShardsLocation,
+		Db:         db,
+		Logger:     logger,
+		Path:       configFile.Stitch.ShardsLocation,
+		ServerName: "localhost",
 	}
 
 	bc.InitialiseShardsFolder()
@@ -223,6 +222,21 @@ func TestBackendController(t *testing.T) {
 		body = w.Body.String()
 		err = json.Unmarshal([]byte(body), &files2)
 		assert.Equal(1, len(files2))
+
+		// Try to download the file
+		// Download File
+		req = httptest.NewRequest("GET", "/api/v1/file/", nil).WithContext(
+			ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req = mux.SetURLVars(req, map[string]string{
+			"fileID": files2[0].FileId,
+		})
+		w = httptest.NewRecorder()
+		bc.DownloadFileVersion(w, req)
+		assert.Equal(http.StatusOK, w.Code)
+
+		fmt.Println(w.Body.String())
+
 	})
 
 	t.Run("Copy Folder", func(t *testing.T) {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/OhanaFS/ohana/controller/inc"
 	"github.com/OhanaFS/ohana/controller/middleware"
 	"github.com/OhanaFS/ohana/dbfs"
 	"github.com/OhanaFS/ohana/selfsign"
@@ -43,6 +44,7 @@ func main() {
 			config.NewDatabase,
 			middleware.Provide,
 			controller.NewRouter,
+			inc.NewInc,
 
 			// Services
 			service.NewHealth,

@@ -6,15 +6,11 @@ import (
 	"github.com/OhanaFS/ohana/config"
 	"github.com/OhanaFS/ohana/controller/inc"
 	"github.com/OhanaFS/ohana/dbfs"
-	"github.com/OhanaFS/ohana/selfsign"
 	"github.com/OhanaFS/ohana/util/ctxutil"
 	"github.com/OhanaFS/ohana/util/testutil"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v3"
-	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 )
@@ -24,7 +20,7 @@ func TestRegisterServer(t *testing.T) {
 	// Initialize the config
 
 	Assert := assert.New(t)
-	tempdir, err := ioutil.TempDir("", "ohana-test")
+	tempdir, err := getTempDir()
 	Assert.Nil(err)
 
 	db := testutil.NewMockDB(t)
@@ -35,33 +31,7 @@ func TestRegisterServer(t *testing.T) {
 
 	// Setting up certs for configs
 
-	ogc := config.LoadFlagsConfig()
-	trueBool := true
-	ogc.GenCA = &trueBool
-	ogc.GenCerts = &trueBool
-	tempDirCA := filepath.Join(tempdir, "certificates/main")
-	ogc.GenCAPath = &tempDirCA
-	tempDirCerts := filepath.Join(tempdir, "certificates/output")
-	ogc.GenCertsPath = &tempDirCerts
-	tempCertPath := filepath.Join(tempdir, "certificates/main_GLOBAL_CERTIFICATE.pem")
-	ogc.CertPath = &tempCertPath
-	tempPkPath := filepath.Join(tempdir, "certificates/main_PRIVATE_KEY.pem")
-	ogc.PkPath = &tempPkPath
-	tempCsrPath := filepath.Join(tempdir, "certificates/main_csr.json")
-	ogc.CsrPath = &tempCsrPath
-	tempHostsFile := filepath.Join(tempdir, "certhosts.yaml")
-	ogc.AllHosts = &tempHostsFile
-
-	fakeHosts := selfsign.Hosts{Hosts: []string{"localhost", "localhost2"}}
-
-	hostFile, err := os.Create(filepath.Join(tempdir, "certhosts.yaml"))
-	Assert.Nil(err)
-	defer hostFile.Close()
-
-	encoder := yaml.NewEncoder(hostFile)
-	Assert.Nil(encoder.Encode(fakeHosts))
-
-	err = selfsign.ProcessFlags(ogc)
+	err = genCerts(tempdir)
 	Assert.Nil(err)
 
 	configFile := &config.Config{Stitch: stitchConfig,
