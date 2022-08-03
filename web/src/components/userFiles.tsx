@@ -106,6 +106,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
         data.state.selectedFilesForAction[0].id
       );
     } else if (data.id === ChonkyActions.OpenFiles.id) {
+      if (!data.state.selectedFilesForAction[0].isDir) return;
       navigate(`/home/${data.state.selectedFilesForAction[0].id}`);
     } else if ((data.id as string) === RenameFiles.id) {
       let newFileName = window.prompt(
