@@ -200,11 +200,16 @@ func (i Inc) deleteWorker(dataIdFragmentMap map[string][]dbfs.Fragment, input <-
 
 		// waiting for the output from the channel. timeout for each server is 60 sec.
 		for i := 0; i < len(dataIdFragmentMap[dataId]); i++ {
-			serverBack := <-serversBackChan
-			if serverBack.err != nil {
-				failedServerErrors = append(failedServerErrors, serverBack)
-			} else {
-				serversPending.Remove(serverBack.server)
+			select {
+			case serverBack := <-serversBackChan:
+				if serverBack.err != nil {
+					failedServerErrors = append(failedServerErrors, serverBack)
+				} else {
+					serversPending.Remove(serverBack.server)
+				}
+			case <-time.After(time.Second * 60):
+				// Log Timeout
+				continue
 			}
 
 		}
