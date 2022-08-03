@@ -136,7 +136,16 @@ export function AdminDashboard() {
       value: 400,
     },
   ];
-
+  const NodesStatus = [
+    {
+      name: 'Online',
+      value: 600,
+    },
+    {
+      name: 'Offline',
+      value: 400,
+    },
+  ];
   // data for new user
   const NewUserChartData = [
     {
@@ -169,6 +178,39 @@ export function AdminDashboard() {
     },
   ];
 
+  // data for new user
+  const SizeOfFiles = [
+    {
+      Date: 'jan 20',
+      'Total bytes': 4000,
+    },
+    {
+      Date: 'feb 20',
+      'Total bytes': 3000,
+    },
+    {
+      Date: 'mar 20',
+      'Total bytes': 2000,
+    },
+    {
+      Date: 'apr 20',
+      'Total bytes': 2780,
+    },
+    {
+      Date: 'may 20',
+      'Total bytes': 1890,
+    },
+    {
+      Date: 'jun 20',
+      'Total bytes': 2390,
+    },
+    {
+      Date: 'july 20',
+      'Total bytes': 3490,
+    },
+  ];
+
+  
   // data for new files
   const NewFileChartData = [
     {
@@ -325,7 +367,7 @@ export function AdminDashboard() {
 
   // set the card width and height
   const dashboardCard = {
-    width: '365px',
+    width: '550px',
     border: '0px',
     margin: '10px',
     height: '300px',
@@ -402,12 +444,18 @@ export function AdminDashboard() {
       <div
         style={{
           display: 'flex',
-          flexDirection: 'row',
-          flexWrap: 'wrap',
+          flexDirection: 'column',
           justifyContent: 'center',
-          alignItems: 'flex-start',
+       
         }}
       >
+        <div style={{
+          display: 'flex',
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          justifyContent: 'space-evenly',
+        
+        }}>
         <Card
           className="dashboardCard"
           style={dashboardCard}
@@ -475,7 +523,47 @@ export function AdminDashboard() {
             </AreaChart>
           </ResponsiveContainer>
         </Card>
-
+        <Card
+          className="dashboardCard"
+          style={dashboardCard}
+          shadow="sm"
+          p="xl"
+        >
+          <Text weight={700}>Total files size stored (not incl. replicas):</Text>
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart
+              data={SizeOfFiles}
+              margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="color" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#8884d8" stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
+              //delete this if dont want mouseover
+              <Tooltip></Tooltip>
+              <XAxis dataKey="Date" />
+              <YAxis dataKey="Total bytes" />
+              //use this if want axis CartesianGrid strokeDasharray="1 1"
+              <Area
+                type="monotone"
+                dataKey="Total bytes"
+                stroke="#8884d8"
+                fillOpacity={1}
+                fill="url(#color)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </Card>
+        </div>
+         <div style={{
+          display: 'flex',
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          justifyContent: 'space-evenly',
+        
+        }}>
         <Card style={dashboardCard} shadow="sm" p="xl">
           <Text weight={700}> Total Disk usage: </Text>
           <div style={{ marginTop: '-10px' }}>
@@ -511,7 +599,7 @@ export function AdminDashboard() {
             weight={700}
           >
             {' '}
-            Cluster Health : {status}{' '}
+            Cluster Health : {' '}
           </Text>
           <div style={{ marginTop: '-10px' }}>
             <ResponsiveContainer width="100%" height={250}>
@@ -540,8 +628,51 @@ export function AdminDashboard() {
           </div>
         </Card>
 
+        <Card style={dashboardCard} shadow="sm" p="xl">
+          <Text
+            style={{ marginTop: '-10px', marginBottom: '10px' }}
+            weight={700}
+          >
+            {' '}
+         Nodes Status  :{' '}
+          </Text>
+          <div style={{ marginTop: '-10px' }}>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={NodesStatus}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={renderCustomizedLabel}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {DiskUsageChartData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={barColors[index % barColors.length]}
+                    />
+                  ))}
+                </Pie>
+                <Legend layout="horizontal" />
+                <Tooltip></Tooltip>
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>            
+
+     </div>
+     <div style={{
+          display: 'flex',
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+       
+        }}>
         <Card className="dashboardLogsCard" shadow="sm" p="xl">
-          <ScrollArea style={{ height: '95%', width: '100%' }}>
+          <ScrollArea style={{ height: '90%', width: '100%' }}>
             <Table
               captionSide="top"
               striped
@@ -568,12 +699,13 @@ export function AdminDashboard() {
             variant="default"
             color="dark"
             size="md"
-            style={{ textAlign: 'right', marginTop: '1%' }}
+            style={{ textAlign: 'right' }}
             onClick={() => setOpened(true)}
           >
             View All Logs
           </Button>
         </Card>
+        </div>
       </div>
     </AppBase>
   );

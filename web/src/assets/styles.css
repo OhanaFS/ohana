@@ -95,7 +95,7 @@
   }
 }
 .dashboardLogsCard {
-  width: 750px;
+  width: 500px;
   border: none;
   margin: 10px;
 }
@@ -137,7 +137,7 @@
 }
 @media screen and (min-width: 1830px) {
   .dashboardLogsCard {
-    width: 1520px;
+    width: 1980px;
   }
   .maintenanceLogs{
     width: 1200px;
