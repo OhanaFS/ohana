@@ -3,7 +3,6 @@ import {
   Button,
   Text,
   Table,
-  useMantineTheme,
   Modal,
   Radio,
   createStyles,
@@ -872,7 +871,7 @@ export function AdminSettings() {
                 />
 
                 <Textarea
-                  label="New Location:"
+                  label="Location of Encryption Key:"
                   radius="md"
                   size="lg"
                   error={errorMessage}
@@ -1040,20 +1039,18 @@ export function AdminSettings() {
                 <div
                   style={{
                     display: 'flex',
-                    height: '50px',
+                    height: '60px',
                     flexDirection: 'row',
                     justifyContent: 'space-between',
                     marginLeft: '10px',
                   }}
                 >
-                  <span>
-                    <Text id="settingText"> Backup encryption key</Text>{' '}
-                    <Text weight={700} style={{ marginLeft: '10px' }}>
-                      Location: {backupLocation}{' '}
-                    </Text>{' '}
-                  </span>{' '}
+            
+                    <Text id="settingText" style={{marginTop:"20px",marginBottom:"10px"}}> Backup encryption key</Text>{' '}
+                   
+                
                   <Button
-                    style={{ marginRight: '10px', marginTop: '20px' }}
+                    style={{ marginRight: '10px',marginTop:"10px",marginBottom:"10px"  }}
                     variant="default"
                     color="dark"
                     size="md"
@@ -1067,14 +1064,14 @@ export function AdminSettings() {
                 <div
                   style={{
                     display: 'flex',
-                    height: '50px',
+                    height: '80px',
                     flexDirection: 'row',
                     justifyContent: 'space-between',
                     marginLeft: '10px',
                   }}
                 >
                   {' '}
-                  <span style={{ marginTop: '10px' }}>
+                  <span style={{ }}>
                     <Text id="settingText">
                       {' '}
                       Change the redundancy level of the files
@@ -1084,7 +1081,7 @@ export function AdminSettings() {
                     </Text>{' '}
                   </span>{' '}
                   <Button
-                    style={{ marginRight: '10px', marginTop: '20px' }}
+                    style={{ marginRight: '10px',marginTop:"20px",marginBottom:"20px" }}
                     variant="default"
                     color="dark"
                     size="md"
