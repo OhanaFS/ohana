@@ -365,13 +365,8 @@ export function AdminDashboard() {
     </tr>
   ));
 
-  // set the card width and height
-  const dashboardCard = {
-    width: '550px',
-    border: '0px',
-    margin: '10px',
-    height: '300px',
-  };
+
+
 
   // function to download all the logs
   function downloadLogs() {
@@ -454,11 +449,10 @@ export function AdminDashboard() {
           flexDirection: 'row',
           flexWrap: 'wrap',
           justifyContent: 'space-evenly',
-        
         }}>
         <Card
           className="dashboardCard"
-          style={dashboardCard}
+     
           shadow="sm"
           p="xl"
         >
@@ -492,7 +486,7 @@ export function AdminDashboard() {
 
         <Card
           className="dashboardCard"
-          style={dashboardCard}
+      
           shadow="sm"
           p="xl"
         >
@@ -525,8 +519,6 @@ export function AdminDashboard() {
         </Card>
         <Card
           className="dashboardCard"
-          style={dashboardCard}
-          shadow="sm"
           p="xl"
         >
           <Text weight={700}>Total files size stored (not incl. replicas):</Text>
@@ -564,7 +556,7 @@ export function AdminDashboard() {
           justifyContent: 'space-evenly',
         
         }}>
-        <Card style={dashboardCard} shadow="sm" p="xl">
+        <Card     className="dashboardCard"  shadow="sm" p="xl">
           <Text weight={700}> Total Disk usage: </Text>
           <div style={{ marginTop: '-10px' }}>
             <ResponsiveContainer width="100%" height={250}>
@@ -593,7 +585,7 @@ export function AdminDashboard() {
           </div>
         </Card>
 
-        <Card style={dashboardCard} shadow="sm" p="xl">
+        <Card     className="dashboardCard"  shadow="sm" p="xl">
           <Text
             style={{ marginTop: '-10px', marginBottom: '10px' }}
             weight={700}
@@ -628,7 +620,7 @@ export function AdminDashboard() {
           </div>
         </Card>
 
-        <Card style={dashboardCard} shadow="sm" p="xl">
+        <Card     className="dashboardCard"  shadow="sm" p="xl">
           <Text
             style={{ marginTop: '-10px', marginBottom: '10px' }}
             weight={700}
