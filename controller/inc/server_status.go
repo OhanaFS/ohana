@@ -1,14 +1,19 @@
 package inc
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/OhanaFS/ohana/dbfs"
+	"github.com/OhanaFS/ohana/util"
 	"github.com/mackerelio/go-osstat/cpu"
 	"github.com/mackerelio/go-osstat/loadavg"
 	"github.com/mackerelio/go-osstat/network"
 	"github.com/mackerelio/go-osstat/uptime"
+	"gorm.io/gorm"
+	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -39,18 +44,23 @@ type LocalServerReport struct {
 	SmartStatus    string `json:"smart_status"`
 }
 
+// memUsage is a struct that holds the memory usage for the server
+// required to support multi-platforms (darwin, linux)
 type memUsage struct {
 	MemoryUsed  uint64
 	MemoryFree  uint64
 	MemoryTotal uint64
 }
 
+// diskRW is a struct that holds the read and write stats for the server
+// required to support multi-platforms (darwin, linux)... tho broken on docker lol
 type diskRW struct {
 	Read  uint64
 	Write uint64
 }
 
-func (i Inc) GetLocalServerStatusReport() (*LocalServerReport, error) {
+// getLocalServerStatusReport returns a report of the local server.
+func (i Inc) getLocalServerStatusReport() (*LocalServerReport, error) {
 
 	// Get the free space on the server.
 	usedSpace := getUsedStorage(i.ShardsLocation)
@@ -85,23 +95,29 @@ func (i Inc) GetLocalServerStatusReport() (*LocalServerReport, error) {
 
 	// TODO: Convert this into a go routine and a channel to get the stats.
 	// rx tx
-	rx, tx, err := i.GetRXTX()
+	rx, tx, err := i.getRXTX()
 	if err != nil {
 		return nil, err
 	}
 
-	// read writes
+	// read writes... broken on docker so we can't use it.	:/
 
-	//read, write, err := i.GetDriveReadWrite()
+	//read, write, err := i.getDriveReadWrite()
 	//if err != nil {
 	//	return nil, err
 	//}
 
 	// warnings errors fatal
 
-	warnings, errors, fatales, err := i.GetWarningsErrorsFatal()
+	warnings, errors, fatales, err := i.getNumWarningsErrorsFatal()
 
-	// TODO check smart NOT IMPLEMENTED.
+	// TODO SMART CHECK NOT IMPLEMENTED.
+	/*
+		The main issue with SMART is that
+		a. A lot of the smart commands are not implemented on all platforms, and they aren't clear like return bad status
+		b. Most SMART commands require root access, and we don't necessarily want dbfs to run at that level
+		c. Good SMART utils like smartctl need to be installed.
+	*/
 
 	lsr := LocalServerReport{
 		ServerName:     i.ServerName,
@@ -128,6 +144,72 @@ func (i Inc) GetLocalServerStatusReport() (*LocalServerReport, error) {
 
 }
 
+// ReturnServerDetails returns the details for the server. Meant to be called if handling request server is not local
+func (i *Inc) ReturnServerDetails(w http.ResponseWriter, r *http.Request) {
+
+	serverDeets, err := i.getLocalServerStatusReport()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// json encode file
+	util.HttpJson(w, http.StatusOK, serverDeets)
+}
+
+// GetServerStatusReport returns the status report for the server.
+func (i *Inc) GetServerStatusReport(serverName string) (*LocalServerReport, error) {
+
+	var serverDeets *LocalServerReport
+	var err error
+
+	if serverName == i.ServerName {
+		serverDeets, err = i.getLocalServerStatusReport()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// call other server for status
+		// Check if the server exists
+		var server dbfs.Server
+		err = i.Db.First(&server, "name = ?", serverName).Error
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return nil, ErrServerNotFound
+			}
+			return nil, err
+		}
+
+		// get the server details from the other server
+		request, err := http.NewRequest("GET", server.HostName, nil)
+		if err != nil {
+			return nil, err
+		}
+		response := request.Response
+		defer response.Body.Close()
+
+		if response.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("server %s returned status %d", serverName, response.StatusCode)
+		}
+
+		body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		err = json.Unmarshal(body, &serverDeets)
+		if err != nil {
+			return nil, err
+		}
+
+		return serverDeets, nil
+
+	}
+
+	return serverDeets, nil
+}
+
+// getUsedStorage returns the used space on the server based on the shards' location.
 func getUsedStorage(path string) int64 {
 	usedSpace := int64(0)
 
@@ -146,6 +228,7 @@ func getUsedStorage(path string) int64 {
 	return usedSpace
 }
 
+// getAdaptorWithIP returns the adaptor (eth0 for example) with the given IP.
 func getAdaptorWithIP(ip string) (string, error) {
 
 	ifaces, err := net.Interfaces()
@@ -164,15 +247,12 @@ func getAdaptorWithIP(ip string) (string, error) {
 		}
 	}
 
-	// Need to add IPs to config file to know what to bind to.
-	// From there we can pick it up.
-
 	return "", ErrCannotFindNetworkAdaptor
 
 }
 
-// GetRXTX returns the RX and TX bytes/second for the network adapter inc is bound to.
-func (i Inc) GetRXTX() (uint64, uint64, error) {
+// getRXTX returns the RX and TX bytes/second for the network adapter inc is bound to.
+func (i Inc) getRXTX() (uint64, uint64, error) {
 
 	// Doesn't know the IP in testing, so leave it alone lmao.
 	if flag.Lookup("test.v") != nil {
@@ -213,7 +293,9 @@ func (i Inc) GetRXTX() (uint64, uint64, error) {
 	return 0, 0, ErrCannotFindNetworkAdaptor
 }
 
-func (i Inc) GetFSDeviceName() ([]string, error) {
+// getFSDeviceName returns the name of the device that is the root of the filesystem.
+// BROKEN ON DOCKER.
+func (i Inc) getFSDeviceName() ([]string, error) {
 
 	cmd := exec.Command("df", "-h", i.ShardsLocation)
 	out, err := cmd.CombinedOutput()
@@ -224,7 +306,7 @@ func (i Inc) GetFSDeviceName() ([]string, error) {
 	// get the device name from the output.
 	rows := strings.Split(strings.TrimSpace(string(out)), "\n")
 	if len(rows) < 2 {
-		return nil, fmt.Errorf("No device name found in output %s ", rows)
+		return nil, ErrCannotFindDriveDeviceName
 	}
 
 	arrayOfDeviceNames := make([]string, len(rows)-1)
@@ -237,8 +319,9 @@ func (i Inc) GetFSDeviceName() ([]string, error) {
 	return arrayOfDeviceNames, nil
 }
 
-func (i Inc) GetDriveReadWrite() (uint64, uint64, error) {
-	deviceNames, err := i.GetFSDeviceName()
+// getDriveReadWrite returns the read and write actions/second for the drive.
+func (i Inc) getDriveReadWrite() (uint64, uint64, error) {
+	deviceNames, err := i.getFSDeviceName()
 	if err != nil {
 		return 0, 0, err
 	}
@@ -255,7 +338,8 @@ func (i Inc) GetDriveReadWrite() (uint64, uint64, error) {
 	return rx, tx, nil
 }
 
-func (i Inc) GetWarningsErrorsFatal() (int64, int64, int64, error) {
+// getNumWarningsErrorsFatal returns the number of warnings, errors and fatal errors from alerts.
+func (i Inc) getNumWarningsErrorsFatal() (int64, int64, int64, error) {
 
 	var warnings, errors, fatal int64
 
@@ -276,4 +360,15 @@ func (i Inc) GetWarningsErrorsFatal() (int64, int64, int64, error) {
 	}
 	return warnings, errors, fatal, nil
 
+}
+
+// getAlertsForServer returns all the alerts for that server
+func (i Inc) getAlertsForServer() ([]dbfs.Alert, error) {
+
+	var alerts []dbfs.Alert
+	err := i.Db.Model(&dbfs.Alert{}).Where("server_name = ?", i.ServerName).Find(&alerts).Error
+	if err != nil {
+		return nil, err
+	}
+	return alerts, nil
 }
