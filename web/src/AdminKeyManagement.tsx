@@ -37,7 +37,7 @@ export function AdminKeyManagement() {
   // Variable that show all the ApiKey
   const [ApiKey, setValue] = useState(data);
 
-  // Variable that will be added to the CurrentSSOGroups
+  // Variable that will be added to the key structure
   var [key, addKey] = useState('');
   var [permissions, addPermissions] = useState<string[]>([]);
   var [type, addType] = useState('');
@@ -47,9 +47,9 @@ export function AdminKeyManagement() {
   // Variable that will decide whether the submit button is disabled
   var [submitBtn, setSubmitBtn] = useState(true);
 
-  // Variable that will decide whether the addUserModel visibility is true or false
-  const [openedAddUserModel, setOpened] = useState(false);
-  const [openedUpdateUserModel, setOpened2] = useState(false);
+  // Variable that will decide whether the modal visibility is true or false
+  const [openedAddKeyModel, setOpened] = useState(false);
+  const [openedUpdateKeyModel, setOpened2] = useState(false);
 
   // Variable that is bind to each specific labels
   const title = 'Add Key';
@@ -61,11 +61,11 @@ export function AdminKeyManagement() {
   var [errorMessage3, setErrorMessage3] = useState('');
   var [errorMessage4, setErrorMessage4] = useState('');
 
-  // Delete away specific group from CurrentSSOGroups
-  const deleteGroup = (index: any) => {
+  // Delete away specific key from apikey
+  const deleteKey = (index: any) => {
     setValue(ApiKey.filter((v, i) => i !== index));
   };
-  const updateGroup = (index: any) => {
+  const updateKey = (index: any) => {
     addKey(ApiKey[index].id);
     addPermissions(ApiKey[index].permissions);
     addType(ApiKey[index].type);
@@ -73,7 +73,19 @@ export function AdminKeyManagement() {
     addIndex(index);
     setOpened2(true);
   };
-  // Add the group to the CurrentSSOGroups and set the addUserModel visibility to false
+
+  function resetKey(){
+    addKey('');
+    addPermissions([]);
+    addType('');
+    addLocation('');
+    addIndex(Number);
+    setErrorMessage('');
+    setErrorMessage2('');
+    setErrorMessage3('');
+    setErrorMessage4('');
+  }
+  // Add the key to the Apikey and set the addKeyModel visibility to false
   function add() {
     const vkey = [
       {
@@ -247,11 +259,9 @@ export function AdminKeyManagement() {
           color="dark"
           style={{
             marginLeft: '10px',
-            pointerEvents: false ? 'auto' : 'none',
+        
           }}
-          component={Link}
-          to="/insidessogroup"
-          variant="link"
+     
         >
           {items['id']}
         </Text>
@@ -261,7 +271,7 @@ export function AdminKeyManagement() {
           color="dark"
           size="md"
           style={{   marginRight:"10px"}}
-          onClick={() => [updateGroup(index)]}
+          onClick={() => [updateKey(index)]}
         >
           Update
         </Button>
@@ -270,7 +280,7 @@ export function AdminKeyManagement() {
           color="dark"
           size="md"
           style={{}}
-          onClick={() => [deleteGroup(index)]}
+          onClick={() => [deleteKey(index)]}
         >
           Delete
         </Button>
@@ -293,8 +303,8 @@ export function AdminKeyManagement() {
             <Modal
               centered
               title="Add console"
-              opened={openedAddUserModel}
-              onClose={() => setOpened(false)}
+              opened={openedAddKeyModel}
+              onClose={() => [setOpened(false),resetKey()]}
               size="20%"
             >
               {
@@ -392,8 +402,8 @@ export function AdminKeyManagement() {
             <Modal
               centered
               title="Update console"
-              opened={openedUpdateUserModel}
-              onClose={() => setOpened2(false)}
+              opened={openedUpdateKeyModel}
+              onClose={() => [setOpened2(false),resetKey()]}
               size="20%"
             >
               {

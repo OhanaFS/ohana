@@ -2,7 +2,7 @@ import {
   useMantineTheme,
   Checkbox,
   Button,
-  Table,
+  Table,Text,
   ActionIcon,
   Modal,
 } from '@mantine/core';
@@ -10,17 +10,28 @@ import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { Settings } from 'tabler-icons-react';
 import AppBase from './components/AppBase';
+import { AdminConsole } from './AdminConsole';
 
 export function AdminRunMaintenance() {
   const theme = useMantineTheme();
+
+  /* get all the settings from database and amount of time needed for each settings
+
+
+  
+
+
+
+
+  */
   let MaintenanceSettings = [
-    { name: 'CrawlPermissions', setting: 'true' },
-    { name: 'PurgeOrphanedFile', setting: 'true' },
-    { name: 'PurgeUser', setting: 'false' },
-    { name: 'CrawlReplicas', setting: 'true' },
-    { name: 'QuickCheck', setting: 'true' },
-    { name: 'FullCheck', setting: 'false' },
-    { name: 'DBCheck', setting: 'true' },
+    { name: 'CrawlPermissions', setting: 'true', time: 10 },
+    { name: 'PurgeOrphanedFile', setting: 'true', time: 10 },
+    { name: 'PurgeUser', setting: 'false', time: 10 },
+    { name: 'CrawlReplicas', setting: 'true', time: 10 },
+    { name: 'QuickCheck', setting: 'true', time: 10 },
+    { name: 'FullCheck', setting: 'false', time: 10 },
+    { name: 'DBCheck', setting: 'true', time: 10 },
   ];
 
   // Maintenance settings that will be run
@@ -77,6 +88,7 @@ export function AdminRunMaintenance() {
 
   // Variable that will decide whether the openedMaintenanceSettingsModal visibility is true or false
   const [openedMaintenanceSettingsModal, setOpened] = useState(false);
+  const [openConfirmationModal, setOpened2] = useState(false);
 
   // maintenance settings
   var [sFirstCheck, setsFirstCheck] = useState(() => {
@@ -128,6 +140,9 @@ export function AdminRunMaintenance() {
 
     return false;
   });
+  var settings=[[],[],[],[],[],[],[]];
+  // error message
+  var [errorMessage,setErrorMessage]=useState('');
 
   // save the settings and set the maintenance settings modal visibility to false
   function saveSettings() {
@@ -140,6 +155,69 @@ export function AdminRunMaintenance() {
     setSeventhCheck(sSeventhCheck);
     setOpened(false);
   }
+
+  var totalTimeNeeded = 0;
+  var [timeTimeNeedInStr, setTimeTimeNeedInStr] = useState('');
+  function calculateAmountOfTime() {
+    if (firstCheck == true) {
+      totalTimeNeeded = totalTimeNeeded + MaintenanceSettings[0].time;
+    }
+    if (secondCheck == true) {
+      totalTimeNeeded = totalTimeNeeded + MaintenanceSettings[1].time;
+    }
+    if (thirdCheck == true) {
+      totalTimeNeeded = totalTimeNeeded + MaintenanceSettings[2].time;
+    }
+    if (fourthCheck == true) {
+      totalTimeNeeded = totalTimeNeeded + MaintenanceSettings[3].time;
+    }
+    if (fifthCheck == true) {
+      totalTimeNeeded = totalTimeNeeded + MaintenanceSettings[4].time;
+    }
+    if (sixthCheck == true) {
+      totalTimeNeeded = totalTimeNeeded + MaintenanceSettings[5].time;
+    }
+    if (seventhCheck == true) {
+      totalTimeNeeded = totalTimeNeeded + MaintenanceSettings[6].time;
+    }
+if(totalTimeNeeded==0){
+  setErrorMessage('you need to tick at least one checkbox');
+ 
+}
+else{
+  setOpened2(true)
+  setErrorMessage('');
+  timeTimeNeedInStr = secondsToDhms(totalTimeNeeded);
+  setTimeTimeNeedInStr(secondsToDhms(totalTimeNeeded));
+}
+
+  }
+  var date=getCurrentDate('/');
+  function getCurrentDate(separator = '') {
+    let newDate = new Date();
+    let date = newDate.getDate();
+    let month = newDate.getMonth() + 1;
+    let year = newDate.getFullYear();
+
+    return `${date}${separator}${
+      month < 10 ? `0${month}` : `${month}`
+    }${separator}${year}`;
+  }
+  function secondsToDhms(seconds: number) {
+    seconds = Number(seconds);
+    var d = Math.floor(seconds / (3600 * 24));
+    var h = Math.floor((seconds % (3600 * 24)) / 3600);
+    var m = Math.floor((seconds % 3600) / 60);
+    var s = Math.floor(seconds % 60);
+
+    var dDisplay = d > 0 ? d + (d == 1 ? ' day, ' : ' days, ') : '';
+    var hDisplay = h > 0 ? h + (h == 1 ? ' hour, ' : ' hrs, ') : '';
+    var mDisplay = m > 0 ? m + (m == 1 ? ' minute, ' : ' mins, ') : '';
+    var sDisplay = s > 0 ? s + (s == 1 ? ' second' : ' secs') : '';
+    return dDisplay + hDisplay + mDisplay + sDisplay;
+  }
+
+
   return (
     <>
       <AppBase userType="admin">
@@ -150,6 +228,79 @@ export function AdminRunMaintenance() {
             alignItems: 'flex-start',
           }}
         >
+          <Modal
+            centered
+            opened={openConfirmationModal}
+            size={600}
+            title={'Maintenance Confirmation'}
+            styles={{
+              title: {
+                fontSize: '22px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+              },
+            }}
+            onClose={() => setOpened2(false)}
+          >
+                 <div
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                fontSize: '22px',
+                justifyContent: 'space-evenly',
+                backgroundColor: 'white',
+              }}
+            >
+              Date : {date}
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                fontSize: '22px',
+                justifyContent: 'space-evenly',
+                backgroundColor: 'white',
+              }}
+            >
+              Expected Time needed : {timeTimeNeedInStr}
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                justifyContent: 'space-evenly',
+                backgroundColor: 'white',
+              }}
+            >
+              <Button
+                style={{
+                  alignSelf: 'flex-end',
+                  marginTop: '20px',
+                }}
+                variant="default"
+                color="dark"
+                size="md"
+                onClick={() => setOpened2(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                style={{
+                  alignSelf: 'flex-end',
+                  marginTop: '20px',
+                }}
+                variant="default"
+                color="dark"
+                size="md"
+                component={Link}
+                to="/performmaintenance"
+              >
+                Confirm
+              </Button>
+            
+            </div>
+          </Modal>
           <Modal
             centered
             opened={openedMaintenanceSettingsModal}
@@ -293,6 +444,7 @@ export function AdminRunMaintenance() {
                         />
                       </td>
                     </tr>
+              
                   </tbody>
 
                   <div
@@ -457,6 +609,11 @@ export function AdminRunMaintenance() {
                     />
                   </td>
                 </tr>
+                <tr>
+                      <td>
+                     <Text style={{color:'red'}}>{errorMessage}</Text>   
+                      </td>
+                    </tr>
               </tbody>
               <div
                 style={{
@@ -472,8 +629,7 @@ export function AdminRunMaintenance() {
                   variant="default"
                   color="dark"
                   size="md"
-                  component={Link}
-                  to="/performmaintenance"
+                  onClick={() => [calculateAmountOfTime()]}
                 >
                   Perform Maintenance
                 </Button>

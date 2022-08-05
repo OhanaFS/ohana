@@ -18,6 +18,7 @@ import { AdminSsoGroups } from './AdminSsoGroups';
 import { AdminSsoGroupsInside } from './AdminSsoGroupsInside';
 import AdminMaintenanceLogs from './AdminMaintenanceLogs';
 
+
 const queryClient = new QueryClient();
 
 export default function Demo() {
@@ -43,7 +44,7 @@ export default function Demo() {
           <Route path="/manage_keys" element={<AdminKeyManagement />} />
           <Route
             path="/performmaintenance"
-            element={<AdminPerformMaintenance />}
+            element={<AdminPerformMaintenance maintenanceSettings={[]} maintenanceTiming={50} />}
           />
           <Route path="/runmaintenance" element={<AdminRunMaintenance />} />
           <Route path="dashboard" element={<AdminDashboard />} />

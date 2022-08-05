@@ -41,7 +41,7 @@ export function AdminSsoGroupsInside() {
  var [errorMessage, setErrorMessage] = useState('');
 
  // Delete away specific group from CurrentSSOGroups
- const deleteGroup = (index: any) => {
+ const deleteUser = (index: any) => {
    setValue(CurrentSSOGroups.filter((v, i) => i !== index));
  };
 
@@ -139,15 +139,26 @@ export function AdminSsoGroupsInside() {
        >
          {items.name}
        </Text>
+       <div>
        <Button
          variant="default"
          color="dark"
          size="md"
          style={{ marginRight: '15px' }}
-         onClick={() => [deleteGroup(index)]}
+         //onClick={() => [updateUser(index)]}
+       >
+         Update
+       </Button>
+       <Button
+         variant="default"
+         color="dark"
+         size="md"
+         style={{ marginRight: '15px' }}
+         onClick={() => [deleteUser(index)]}
        >
          Delete
        </Button>
+       </div>
      </td>
    </tr>
  ));
