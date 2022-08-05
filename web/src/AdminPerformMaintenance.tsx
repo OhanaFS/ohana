@@ -1,26 +1,20 @@
 import AppBase from './components/AppBase';
-
 import {
   CountdownCircleTimer,
   useCountdown,
 } from 'react-countdown-circle-timer';
 import { Button, Modal, ScrollArea, Table } from '@mantine/core';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useSetState } from '@mantine/hooks';
-import { ChevronsDownLeft } from 'tabler-icons-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
-export interface Maintenance {
-  maintenanceTiming: number;
-  maintenanceSettings: Array<any>;
-}
-
-export function AdminPerformMaintenance(props: Maintenance) {
+export function AdminPerformMaintenance() {
   //labels
   const [timeRemaining, setTime] = useState(' Time remaining: ');
   const [percentageCompleted, setPercent] = useState('% Completed: ');
   const [elapsedTime, setElapsedTime] = useState(0);
 
+  const state = useLocation();
+  const maintenanceTiming: any = state.state;
   const timerProps = {
     isPlaying: true,
     size: 300,
@@ -28,7 +22,7 @@ export function AdminPerformMaintenance(props: Maintenance) {
   };
 
   //get total maintenance of time needed based on how much steps
-  const time = props.maintenanceTiming;
+  const time = maintenanceTiming.time;
 
   const minuteSeconds = time;
   const [pauseBtn, setPauseBtn] = useState(false);

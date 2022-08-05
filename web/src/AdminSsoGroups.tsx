@@ -7,11 +7,81 @@ import {
   Text,
 } from '@mantine/core';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AppBase from './components/AppBase';
 
 export function AdminSsoGroups() {
-  const SSOGroupList = ['Hr', 'Finance', 'IT', 'Management'];
+  const SSOGroupList = [
+    {
+      name: 'Hr',
+      users: [
+        {
+          name: 'Tom',
+          limit: '10',
+        },
+        {
+          name: 'Mary',
+          limit: '20',
+        },
+        {
+          name: 'Peter',
+          limit: '30',
+        },
+      ],
+    },
+    {
+      name: 'Finance',
+      users: [
+        {
+          name: 'Ray',
+          limit: '15',
+        },
+        {
+          name: 'Jane',
+          limit: '25',
+        },
+        {
+          name: 'Asd',
+          limit: '35',
+        },
+      ],
+    },
+    {
+      name: 'IT',
+      users: [
+        {
+          name: 'Hello',
+          limit: '11',
+        },
+        {
+          name: 'hello2',
+          limit: '21',
+        },
+        {
+          name: 'hello3',
+          limit: '32',
+        },
+      ],
+    },
+    {
+      name: 'Management',
+      users: [
+        {
+          name: 'Manager',
+          limit: '300',
+        },
+        {
+          name: 'CEO',
+          limit: '400',
+        },
+        {
+          name: 'CFO',
+          limit: '500',
+        },
+      ],
+    },
+  ];
+  const navigate = useNavigate();
   // Variable that show all the currentSSOGroups inside the props.groupList
   const [CurrentSSOGroups, setValue] = useState(SSOGroupList);
 
@@ -38,7 +108,14 @@ export function AdminSsoGroups() {
 
   // Add the group to the CurrentSSOGroups and set the addUserModel visibility to false
   function add() {
-    setValue(CurrentSSOGroups.concat(Group));
+    const vGroups = [
+      {
+        name: Group,
+        users: [],
+      },
+    ];
+    setValue([...CurrentSSOGroups, ...vGroups]);
+
     setOpened(false);
   }
 
@@ -118,18 +195,20 @@ export function AdminSsoGroups() {
           justifyContent: 'space-between',
         }}
       >
-        <Text
-          color="dark"
+        <Button
           style={{
-            marginLeft: '10px',
-            pointerEvents: true ? 'auto' : 'none',
+            alignSelf: 'flex-end',
           }}
-          component={Link}
-          to="/insidessogroup"
-          variant="link"
+          variant="subtle"
+          color="dark"
+          size="md"
+          onClick={() =>
+            navigate('/insidessogroup', { state: CurrentSSOGroups[index] })
+          }
         >
-          {items}
-        </Text>
+          {items.name}
+        </Button>
+
         <Button
           variant="default"
           color="dark"
@@ -215,7 +294,7 @@ export function AdminSsoGroups() {
                     marginTop: '5px',
                   }}
                 >
-                  "SSO Group Management Console"
+                  SSO Group Management Console
                 </caption>
                 <thead style={{}}>{ths}</thead>
                 <tbody>{rows}</tbody>

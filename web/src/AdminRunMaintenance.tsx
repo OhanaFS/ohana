@@ -7,7 +7,7 @@ import {
   ActionIcon,
   Modal,
 } from '@mantine/core';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { Settings } from 'tabler-icons-react';
 import AppBase from './components/AppBase';
@@ -156,7 +156,7 @@ export function AdminRunMaintenance() {
     setOpened(false);
   }
 
-  var totalTimeNeeded = 0;
+  var [totalTimeNeeded,setTotalTimeNeed] = useState(0);
   var [timeTimeNeedInStr, setTimeTimeNeedInStr] = useState('');
   function calculateAmountOfTime() {
     if (firstCheck == true) {
@@ -186,6 +186,7 @@ export function AdminRunMaintenance() {
       setOpened2(true);
       setErrorMessage('');
       timeTimeNeedInStr = secondsToDhms(totalTimeNeeded);
+      setTotalTimeNeed(totalTimeNeeded);
       setTimeTimeNeedInStr(secondsToDhms(totalTimeNeeded));
     }
   }
@@ -213,6 +214,7 @@ export function AdminRunMaintenance() {
     var sDisplay = s > 0 ? s + (s == 1 ? ' second' : ' secs') : '';
     return dDisplay + hDisplay + mDisplay + sDisplay;
   }
+  const navigate = useNavigate();
 
   return (
     <>
@@ -289,8 +291,9 @@ export function AdminRunMaintenance() {
                 variant="default"
                 color="dark"
                 size="md"
-                component={Link}
-                to="/performmaintenance"
+                onClick={()=>navigate('/performmaintenance',{state:{time:totalTimeNeeded}})}
+                  
+                
               >
                 Confirm
               </Button>

@@ -8,26 +8,14 @@ import {
   TextInput,
 } from '@mantine/core';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import AppBase from './components/AppBase';
 
 export function AdminSsoGroupsInside() {
-  const data: Array<any> = [
-    {
-      name: 'Tom',
-      limit: '10',
-    },
-    {
-      name: 'Mary',
-      limit: '20',
-    },
-    {
-      name: 'Peter',
-      limit: '30',
-    },
-  ];
+  const state = useLocation();
+  const userList: any = state.state;
   // Variable that show all the currentSSOGroups inside the props.groupList
-  const [CurrentSSOGroups, setValue] = useState(data);
+  const [CurrentSSOGroups, setValue] = useState(userList.users);
 
   // Variable that will be added to the CurrentSSOGroups
   var [Group, addGroup] = useState('');
@@ -51,7 +39,7 @@ export function AdminSsoGroupsInside() {
 
   // Delete away specific group from CurrentSSOGroups
   const deleteUser = (index: any) => {
-    setValue(CurrentSSOGroups.filter((v, i) => i !== index));
+    setValue(CurrentSSOGroups.filter((v: any, i: any) => i !== index));
   };
 
   // Add the group to the CurrentSSOGroups and set the addUserModel visibility to false
@@ -63,7 +51,6 @@ export function AdminSsoGroupsInside() {
       },
     ];
     setValue([...CurrentSSOGroups, ...vgroup]);
-
     setOpened(false);
   }
   function updateUser(index: any) {
@@ -170,7 +157,7 @@ export function AdminSsoGroupsInside() {
   );
 
   // display all the rows that is from props
-  const rows = CurrentSSOGroups.map((items, index) => (
+  const rows = CurrentSSOGroups.map((items: any, index: any) => (
     <tr key={index}>
       <td
         style={{

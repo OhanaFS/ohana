@@ -10,6 +10,7 @@ import {
   Textarea,
 } from '@mantine/core';
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import AppBase from './components/AppBase';
 
 // style the specific label
@@ -162,6 +163,7 @@ export function AdminSettings() {
 
   // each of these variable is binded, so if the data retrieve from database is true, the checkbox will be ticked
   var [clusterAlerts, setChecked] = useState(() => {
+
     if (oldConfigurationSettings[0].setting === true) {
       return true;
     }
@@ -908,7 +910,7 @@ export function AdminSettings() {
                   textAlign: 'center',
                 }}
               >
-                Notification Settings
+              Notification Settings
               </span>
             </caption>
 

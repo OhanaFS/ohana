@@ -44,7 +44,7 @@ export default function Demo() {
           <Route path="/manage_keys" element={<AdminKeyManagement />} />
           <Route
             path="/performmaintenance"
-            element={<AdminPerformMaintenance maintenanceSettings={[]} maintenanceTiming={50} />}
+            element={<AdminPerformMaintenance  />}
           />
           <Route path="/runmaintenance" element={<AdminRunMaintenance />} />
           <Route path="dashboard" element={<AdminDashboard />} />
