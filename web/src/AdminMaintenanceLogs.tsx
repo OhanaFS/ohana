@@ -1,4 +1,4 @@
-import { ScrollArea, Button,Table } from '@mantine/core';
+import { ScrollArea, Button, Table } from '@mantine/core';
 import { Link } from 'react-router-dom';
 import AppBase from './components/AppBase';
 
@@ -706,9 +706,13 @@ export function AdminMaintenanceLogs() {
     },
   ];
   // variable that show all the logs inside the props.groupList
-  const logsHeader =  [
-    "Maintenance date", "Total Files","Start Time","End Time","Maintenance Type"
-  ]
+  const logsHeader = [
+    'Maintenance date',
+    'Total Files',
+    'Start Time',
+    'End Time',
+    'Maintenance Type',
+  ];
 
   // display table header that is from props
   const ths = logsHeader.map((items) => (
@@ -728,67 +732,67 @@ export function AdminMaintenanceLogs() {
   return (
     <>
       <AppBase userType="admin">
-      <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        height: '85vh',
-      }}
-    >
-      <div className="maintenanceLogs">
-        <ScrollArea
-          style={{
-            height: '85%',
-            width: '90%',
-            marginTop: '10px',
-            marginLeft: '20px',
-          }}
-        >
-          <Table
-            id="maintenanceLogsTable"
-            captionSide="top"
-            striped
-            highlightOnHover
-            verticalSpacing="sm"
-          >
-            <caption
-              style={{
-                textAlign: 'center',
-                fontWeight: '600',
-                fontSize: '24px',
-                color: 'black',
-              }}
-            >
-            Maintenance Records
-            </caption>
-            <thead>{ths}</thead>
-            <tbody>{rows}</tbody>
-          </Table>
-        </ScrollArea>
-
         <div
           style={{
             display: 'flex',
-            flexDirection: 'column',
+            justifyContent: 'center',
+            height: '85vh',
           }}
         >
-          <Button
-            variant="default"
-            color="dark"
-            size="md"
-            style={{
-              alignSelf: 'flex-end',
-              marginRight: '15px',
-              marginTop: '10px',
-            }}
-            component={Link}
-            to="/runmaintenance"
-          >
-            Perform Maintenance
-          </Button>
+          <div className="maintenanceLogs">
+            <ScrollArea
+              style={{
+                height: '85%',
+                width: '90%',
+                marginTop: '10px',
+                marginLeft: '20px',
+              }}
+            >
+              <Table
+                id="maintenanceLogsTable"
+                captionSide="top"
+                striped
+                highlightOnHover
+                verticalSpacing="sm"
+              >
+                <caption
+                  style={{
+                    textAlign: 'center',
+                    fontWeight: '600',
+                    fontSize: '24px',
+                    color: 'black',
+                  }}
+                >
+                  Maintenance Records
+                </caption>
+                <thead>{ths}</thead>
+                <tbody>{rows}</tbody>
+              </Table>
+            </ScrollArea>
+
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <Button
+                variant="default"
+                color="dark"
+                size="md"
+                style={{
+                  alignSelf: 'flex-end',
+                  marginRight: '15px',
+                  marginTop: '10px',
+                }}
+                component={Link}
+                to="/runmaintenance"
+              >
+                Perform Maintenance
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
       </AppBase>
     </>
   );
@@ -798,4 +802,3 @@ export default AdminMaintenanceLogs;
 function useState(groupList: any): [any, any] {
   throw new Error('Function not implemented.');
 }
-

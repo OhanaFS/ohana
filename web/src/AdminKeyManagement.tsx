@@ -74,7 +74,7 @@ export function AdminKeyManagement() {
     setOpened2(true);
   };
 
-  function resetKey(){
+  function resetKey() {
     addKey('');
     addPermissions([]);
     addType('');
@@ -259,31 +259,29 @@ export function AdminKeyManagement() {
           color="dark"
           style={{
             marginLeft: '10px',
-        
           }}
-     
         >
           {items['id']}
         </Text>
         <div>
-        <Button
-          variant="default"
-          color="dark"
-          size="md"
-          style={{   marginRight:"10px"}}
-          onClick={() => [updateKey(index)]}
-        >
-          Update
-        </Button>
-        <Button
-          variant="default"
-          color="dark"
-          size="md"
-          style={{}}
-          onClick={() => [deleteKey(index)]}
-        >
-          Delete
-        </Button>
+          <Button
+            variant="default"
+            color="dark"
+            size="md"
+            style={{ marginRight: '10px' }}
+            onClick={() => [updateKey(index)]}
+          >
+            Update
+          </Button>
+          <Button
+            variant="default"
+            color="dark"
+            size="md"
+            style={{}}
+            onClick={() => [deleteKey(index)]}
+          >
+            Delete
+          </Button>
         </div>
       </td>
     </tr>
@@ -304,7 +302,7 @@ export function AdminKeyManagement() {
               centered
               title="Add console"
               opened={openedAddKeyModel}
-              onClose={() => [setOpened(false),resetKey()]}
+              onClose={() => [setOpened(false), resetKey()]}
               size="20%"
             >
               {
@@ -403,7 +401,7 @@ export function AdminKeyManagement() {
               centered
               title="Update console"
               opened={openedUpdateKeyModel}
-              onClose={() => [setOpened2(false),resetKey()]}
+              onClose={() => [setOpened2(false), resetKey()]}
               size="20%"
             >
               {

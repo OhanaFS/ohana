@@ -11,15 +11,11 @@ import { useSetState } from '@mantine/hooks';
 import { ChevronsDownLeft } from 'tabler-icons-react';
 
 export interface Maintenance {
- 
   maintenanceTiming: number;
-  maintenanceSettings:Array<any>
+  maintenanceSettings: Array<any>;
 }
 
-
-export function AdminPerformMaintenance(props:Maintenance) {
- 
-
+export function AdminPerformMaintenance(props: Maintenance) {
   //labels
   const [timeRemaining, setTime] = useState(' Time remaining: ');
   const [percentageCompleted, setPercent] = useState('% Completed: ');
@@ -63,7 +59,7 @@ export function AdminPerformMaintenance(props:Maintenance) {
   }
 
   const [logs, setLogs] = useState('Maintenance Logs : ');
-  const [listLogs,setListlogs]= useState([{log:''}]);
+  const [listLogs, setListlogs] = useState([{ log: '' }]);
 
   // convert the number of seconds into day hour month and seconds
   const renderTime = (dimension: string, time: number) => {
@@ -93,10 +89,10 @@ export function AdminPerformMaintenance(props:Maintenance) {
     }
     const vLogs = [
       {
-       log:buttonText
+        log: buttonText,
       },
     ];
-    setListlogs([...listLogs, ...vLogs])
+    setListlogs([...listLogs, ...vLogs]);
   }
   function stop() {
     setIsActive(false);
@@ -104,15 +100,13 @@ export function AdminPerformMaintenance(props:Maintenance) {
     setMaintenanceStatus('Not Completed');
     const vLogs = [
       {
-       log:'stop'
+        log: 'stop',
       },
     ];
-    setListlogs([...listLogs, ...vLogs])
+    setListlogs([...listLogs, ...vLogs]);
   }
   //modal
   const [maintenanceModal, setMaintenanceModal] = useState(false);
-
-
 
   const recentRows = listLogs.map((items, index) =>
     index <= elapsedTime ? (
@@ -160,10 +154,10 @@ export function AdminPerformMaintenance(props:Maintenance) {
   }
   var datalogs;
   function downloadLogs() {
-    datalogs = listLogs.map( function(v) {
-      return Object.values( v );
-   });
-   
+    datalogs = listLogs.map(function (v) {
+      return Object.values(v);
+    });
+
     const fileData = JSON.stringify(
       'Maintenance Status: ' +
         maintenanceStatus +
@@ -340,10 +334,9 @@ export function AdminPerformMaintenance(props:Maintenance) {
                     {setElapsedTime(Math.floor(elapsedTime))}
 
                     {setLogs(
-               
-                    'Maintenance Logs : ' + listLogs[listLogs.length-1].log
+                      'Maintenance Logs : ' + listLogs[listLogs.length - 1].log
                     )}
-               
+
                     <div
                       style={{
                         color,

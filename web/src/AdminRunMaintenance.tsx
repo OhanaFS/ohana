@@ -2,7 +2,8 @@ import {
   useMantineTheme,
   Checkbox,
   Button,
-  Table,Text,
+  Table,
+  Text,
   ActionIcon,
   Modal,
 } from '@mantine/core';
@@ -10,7 +11,6 @@ import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { Settings } from 'tabler-icons-react';
 import AppBase from './components/AppBase';
-import { AdminConsole } from './AdminConsole';
 
 export function AdminRunMaintenance() {
   const theme = useMantineTheme();
@@ -140,9 +140,9 @@ export function AdminRunMaintenance() {
 
     return false;
   });
-  var settings=[[],[],[],[],[],[],[]];
+  var settings = [[], [], [], [], [], [], []];
   // error message
-  var [errorMessage,setErrorMessage]=useState('');
+  var [errorMessage, setErrorMessage] = useState('');
 
   // save the settings and set the maintenance settings modal visibility to false
   function saveSettings() {
@@ -180,19 +180,16 @@ export function AdminRunMaintenance() {
     if (seventhCheck == true) {
       totalTimeNeeded = totalTimeNeeded + MaintenanceSettings[6].time;
     }
-if(totalTimeNeeded==0){
-  setErrorMessage('you need to tick at least one checkbox');
- 
-}
-else{
-  setOpened2(true)
-  setErrorMessage('');
-  timeTimeNeedInStr = secondsToDhms(totalTimeNeeded);
-  setTimeTimeNeedInStr(secondsToDhms(totalTimeNeeded));
-}
-
+    if (totalTimeNeeded == 0) {
+      setErrorMessage('you need to tick at least one checkbox');
+    } else {
+      setOpened2(true);
+      setErrorMessage('');
+      timeTimeNeedInStr = secondsToDhms(totalTimeNeeded);
+      setTimeTimeNeedInStr(secondsToDhms(totalTimeNeeded));
+    }
   }
-  var date=getCurrentDate('/');
+  var date = getCurrentDate('/');
   function getCurrentDate(separator = '') {
     let newDate = new Date();
     let date = newDate.getDate();
@@ -216,7 +213,6 @@ else{
     var sDisplay = s > 0 ? s + (s == 1 ? ' second' : ' secs') : '';
     return dDisplay + hDisplay + mDisplay + sDisplay;
   }
-
 
   return (
     <>
@@ -243,7 +239,7 @@ else{
             }}
             onClose={() => setOpened2(false)}
           >
-                 <div
+            <div
               style={{
                 display: 'flex',
                 flexDirection: 'row',
@@ -298,7 +294,6 @@ else{
               >
                 Confirm
               </Button>
-            
             </div>
           </Modal>
           <Modal
@@ -444,7 +439,6 @@ else{
                         />
                       </td>
                     </tr>
-              
                   </tbody>
 
                   <div
@@ -610,10 +604,10 @@ else{
                   </td>
                 </tr>
                 <tr>
-                      <td>
-                     <Text style={{color:'red'}}>{errorMessage}</Text>   
-                      </td>
-                    </tr>
+                  <td>
+                    <Text style={{ color: 'red' }}>{errorMessage}</Text>
+                  </td>
+                </tr>
               </tbody>
               <div
                 style={{

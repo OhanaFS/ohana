@@ -1,5 +1,4 @@
 import { Button, Textarea, Checkbox, Text } from '@mantine/core';
-
 import AppBase from './components/AppBase';
 
 export function AdminConfiguration() {

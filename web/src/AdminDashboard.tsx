@@ -210,7 +210,6 @@ export function AdminDashboard() {
     },
   ];
 
-  
   // data for new files
   const NewFileChartData = [
     {
@@ -365,9 +364,6 @@ export function AdminDashboard() {
     </tr>
   ));
 
-
-
-
   // function to download all the logs
   function downloadLogs() {
     const fileData = JSON.stringify(logs);
@@ -441,262 +437,253 @@ export function AdminDashboard() {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
-       
         }}
       >
-        <div style={{
-          display: 'flex',
-          flexDirection: 'row',
-          flexWrap: 'wrap',
-          justifyContent: 'space-evenly',
-        }}>
-        <Card
-          className="dashboardCard"
-     
-          shadow="sm"
-          p="xl"
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            justifyContent: 'space-evenly',
+          }}
         >
-          <Text weight={700}>Total Data Used:</Text>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart
-              data={NewUserChartData}
-              margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
-            >
-              <defs>
-                <linearGradient id="color" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#8884d8" stopOpacity={0.0} />
-                </linearGradient>
-              </defs>
-              //delete this if dont want mouseover
-              <Tooltip></Tooltip>
-              <XAxis dataKey="Date" />
-              <YAxis dataKey="Total Data Used" />
-              //use this if want axis CartesianGrid strokeDasharray="1 1"
-              <Area
-                type="monotone"
-                dataKey="Total Data Used"
-                stroke="#8884d8"
-                fillOpacity={1}
-                fill="url(#color)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </Card>
-
-        <Card
-          className="dashboardCard"
-      
-          shadow="sm"
-          p="xl"
-        >
-          <Text weight={700}>Total File Stored:</Text>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart
-              data={NewFileChartData}
-              margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
-            >
-              <defs>
-                <linearGradient id="color" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#8884d8" stopOpacity={0.0} />
-                </linearGradient>
-              </defs>
-              //delete this if dont want mouseover
-              <Tooltip></Tooltip>
-              <XAxis dataKey="Date" />
-              <YAxis dataKey="Total New File Stored" />
-              //use this if want axis CartesianGrid strokeDasharray="1 1"
-              <Area
-                type="monotone"
-                dataKey="Total New File Stored"
-                stroke="#8884d8"
-                fillOpacity={1}
-                fill="url(#color)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </Card>
-        <Card
-          className="dashboardCard"
-          p="xl"
-        >
-          <Text weight={700}>Total files size stored (not incl. replicas):</Text>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart
-              data={SizeOfFiles}
-              margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
-            >
-              <defs>
-                <linearGradient id="color" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#8884d8" stopOpacity={0.0} />
-                </linearGradient>
-              </defs>
-              //delete this if dont want mouseover
-              <Tooltip></Tooltip>
-              <XAxis dataKey="Date" />
-              <YAxis dataKey="Total bytes" />
-              //use this if want axis CartesianGrid strokeDasharray="1 1"
-              <Area
-                type="monotone"
-                dataKey="Total bytes"
-                stroke="#8884d8"
-                fillOpacity={1}
-                fill="url(#color)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </Card>
-        </div>
-         <div style={{
-          display: 'flex',
-          flexDirection: 'row',
-          flexWrap: 'wrap',
-          justifyContent: 'space-evenly',
-        
-        }}>
-        <Card     className="dashboardCard"  shadow="sm" p="xl">
-          <Text weight={700}> Total Disk usage: </Text>
-          <div style={{ marginTop: '-10px' }}>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={DiskUsageChartData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={renderCustomizedLabel}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {DiskUsageChartData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={barColors[index % barColors.length]}
-                    />
-                  ))}
-                </Pie>
-                <Legend layout="horizontal" />
-                <Tooltip></Tooltip>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-
-        <Card     className="dashboardCard"  shadow="sm" p="xl">
-          <Text
-            style={{ marginTop: '-10px', marginBottom: '10px' }}
-            weight={700}
-          >
-            {' '}
-            Cluster Health : {' '}
-          </Text>
-          <div style={{ marginTop: '-10px' }}>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={ClusterHealthChartData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={renderCustomizedLabel}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {DiskUsageChartData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={barColors[index % barColors.length]}
-                    />
-                  ))}
-                </Pie>
-                <Legend layout="horizontal" />
-                <Tooltip></Tooltip>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-
-        <Card     className="dashboardCard"  shadow="sm" p="xl">
-          <Text
-            style={{ marginTop: '-10px', marginBottom: '10px' }}
-            weight={700}
-          >
-            {' '}
-         Nodes Status  :{' '}
-          </Text>
-          <div style={{ marginTop: '-10px' }}>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={NodesStatus}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={renderCustomizedLabel}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {DiskUsageChartData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={barColors[index % barColors.length]}
-                    />
-                  ))}
-                </Pie>
-                <Legend layout="horizontal" />
-                <Tooltip></Tooltip>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>            
-
-     </div>
-     <div style={{
-          display: 'flex',
-          flexDirection: 'row',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-       
-        }}>
-        <Card className="dashboardLogsCard" shadow="sm" p="xl">
-          <ScrollArea style={{ height: '90%', width: '100%' }}>
-            <Table
-              captionSide="top"
-              striped
-              highlightOnHover
-              verticalSpacing="xs"
-            >
-              <caption
-                style={{
-                  textAlign: 'left',
-                  fontWeight: '600',
-                  fontSize: '24px',
-                  color: 'black',
-                  marginLeft: '2%',
-                }}
+          <Card className="dashboardCard" shadow="sm" p="xl">
+            <Text weight={700}>Total Data Used:</Text>
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart
+                data={NewUserChartData}
+                margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
               >
-                {' '}
-                Logs
-              </caption>
-              <thead>{ths}</thead>
-              <tbody>{recentRows}</tbody>
-            </Table>
-          </ScrollArea>
-          <Button
-            variant="default"
-            color="dark"
-            size="md"
-            style={{ textAlign: 'right' }}
-            onClick={() => setOpened(true)}
-          >
-            View All Logs
-          </Button>
-        </Card>
+                <defs>
+                  <linearGradient id="color" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                //delete this if dont want mouseover
+                <Tooltip></Tooltip>
+                <XAxis dataKey="Date" />
+                <YAxis dataKey="Total Data Used" />
+                //use this if want axis CartesianGrid strokeDasharray="1 1"
+                <Area
+                  type="monotone"
+                  dataKey="Total Data Used"
+                  stroke="#8884d8"
+                  fillOpacity={1}
+                  fill="url(#color)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </Card>
+
+          <Card className="dashboardCard" shadow="sm" p="xl">
+            <Text weight={700}>Total File Stored:</Text>
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart
+                data={NewFileChartData}
+                margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="color" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                //delete this if dont want mouseover
+                <Tooltip></Tooltip>
+                <XAxis dataKey="Date" />
+                <YAxis dataKey="Total New File Stored" />
+                //use this if want axis CartesianGrid strokeDasharray="1 1"
+                <Area
+                  type="monotone"
+                  dataKey="Total New File Stored"
+                  stroke="#8884d8"
+                  fillOpacity={1}
+                  fill="url(#color)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </Card>
+          <Card className="dashboardCard" p="xl">
+            <Text weight={700}>
+              Total files size stored (not incl. replicas):
+            </Text>
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart
+                data={SizeOfFiles}
+                margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="color" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                //delete this if dont want mouseover
+                <Tooltip></Tooltip>
+                <XAxis dataKey="Date" />
+                <YAxis dataKey="Total bytes" />
+                //use this if want axis CartesianGrid strokeDasharray="1 1"
+                <Area
+                  type="monotone"
+                  dataKey="Total bytes"
+                  stroke="#8884d8"
+                  fillOpacity={1}
+                  fill="url(#color)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </Card>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            justifyContent: 'space-evenly',
+          }}
+        >
+          <Card className="dashboardCard" shadow="sm" p="xl">
+            <Text weight={700}> Total Disk usage: </Text>
+            <div style={{ marginTop: '-10px' }}>
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={DiskUsageChartData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={renderCustomizedLabel}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {DiskUsageChartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={barColors[index % barColors.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Legend layout="horizontal" />
+                  <Tooltip></Tooltip>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+
+          <Card className="dashboardCard" shadow="sm" p="xl">
+            <Text
+              style={{ marginTop: '-10px', marginBottom: '10px' }}
+              weight={700}
+            >
+              {' '}
+              Cluster Health :{' '}
+            </Text>
+            <div style={{ marginTop: '-10px' }}>
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={ClusterHealthChartData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={renderCustomizedLabel}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {DiskUsageChartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={barColors[index % barColors.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Legend layout="horizontal" />
+                  <Tooltip></Tooltip>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+
+          <Card className="dashboardCard" shadow="sm" p="xl">
+            <Text
+              style={{ marginTop: '-10px', marginBottom: '10px' }}
+              weight={700}
+            >
+              {' '}
+              Nodes Status :{' '}
+            </Text>
+            <div style={{ marginTop: '-10px' }}>
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={NodesStatus}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={renderCustomizedLabel}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {DiskUsageChartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={barColors[index % barColors.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Legend layout="horizontal" />
+                  <Tooltip></Tooltip>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+          }}
+        >
+          <Card className="dashboardLogsCard" shadow="sm" p="xl">
+            <ScrollArea style={{ height: '90%', width: '100%' }}>
+              <Table
+                captionSide="top"
+                striped
+                highlightOnHover
+                verticalSpacing="xs"
+              >
+                <caption
+                  style={{
+                    textAlign: 'left',
+                    fontWeight: '600',
+                    fontSize: '24px',
+                    color: 'black',
+                    marginLeft: '2%',
+                  }}
+                >
+                  {' '}
+                  Logs
+                </caption>
+                <thead>{ths}</thead>
+                <tbody>{recentRows}</tbody>
+              </Table>
+            </ScrollArea>
+            <Button
+              variant="default"
+              color="dark"
+              size="md"
+              style={{ textAlign: 'right' }}
+              onClick={() => setOpened(true)}
+            >
+              View All Logs
+            </Button>
+          </Card>
         </div>
       </div>
     </AppBase>
