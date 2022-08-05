@@ -16,10 +16,11 @@ authentication:
   scopes: ['openid', 'profile', 'email', 'app.roles']
   roles_claim_name: roles
 stitch:
-  shards_location: shards/
+  shards_location: .
 node:
   server_name: alpaca # This is the name of the server in the cluster. Must be unique
   host_name: localhost
+  bind_ip: 192.168.2.53
   port: 5555
   ca_cert: certificates/main_GLOBAL_CERTIFICATE.pem
   public_cert: output_cert.pem
