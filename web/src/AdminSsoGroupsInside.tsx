@@ -1,8 +1,9 @@
-import { Modal, Textarea, Button, ScrollArea,Table,Text } from '@mantine/core';
+import { Modal, Textarea, Button, ScrollArea,Table,Text, TextInput } from '@mantine/core';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { AdminConsole } from './AdminConsole';
+import { AdminSsoGroups } from './AdminSsoGroups';
 import AppBase from './components/AppBase';
 
 export function AdminSsoGroupsInside() {
@@ -10,11 +11,11 @@ export function AdminSsoGroupsInside() {
 
   {
     name: 'Tom',
-    limit: '30'
+    limit: '10'
   },
   {
     name: 'Mary',
-    limit: '30'
+    limit: '20'
   },
   {
     name: 'Peter',
@@ -26,19 +27,23 @@ export function AdminSsoGroupsInside() {
 
  // Variable that will be added to the CurrentSSOGroups
  var [Group, addGroup] = useState('');
+ var [limit, addLimit] = useState(Number);
+ var [index, addIndex] = useState(Number);
 
  // Variable that will decide whether the submit button is disabled
  var [submitBtn, setSubmitBtn] = useState(true);
 
  // Variable that will decide whether the addUserModel visibility is true or false
  const [openedAddUserModel, setOpened] = useState(false);
-
+ const [openedUpdateUserModel, setOpened2] = useState(false);
+ 
  // Variable that is bind to each specific labels
  const title = 'Add User ';
  const textField = 'Name of the User';
 
  // Variable that will decide whether the errorMessage will be displayed
  var [errorMessage, setErrorMessage] = useState('');
+ var [errorMessage2, setErrorMessage2] = useState('');
 
  // Delete away specific group from CurrentSSOGroups
  const deleteUser = (index: any) => {
@@ -47,14 +52,27 @@ export function AdminSsoGroupsInside() {
 
  // Add the group to the CurrentSSOGroups and set the addUserModel visibility to false
  function add() {
-   setValue(CurrentSSOGroups.concat(Group));
+  const vgroup = [
+    {
+      name: Group,
+      limit: limit
+    },
+  ];
+  setValue([...CurrentSSOGroups, ...vgroup]);
+   
    setOpened(false);
  }
-
+ function updateUser(index: any){
+  addGroup(CurrentSSOGroups[index].name);
+  addLimit(CurrentSSOGroups[index].limit);
+  addIndex(index);
+  setOpened2(true);
+ }
  /* Validate the textfield to check if there is any special characters
     if there is special character, the function will display error message 
     and set the submit button to false.  */
  function validate() {
+  console.log(limit.toString());
    if (
      Group.includes('/') ||
      Group.includes('[') ||
@@ -97,11 +115,43 @@ export function AdminSsoGroupsInside() {
    } else {
      errorMessage = '';
      setErrorMessage('');
-     submitBtn = false;
-     setSubmitBtn(false);
+
+   }
+   if ( isNaN(limit)==false && limit !== 0 ){
+    errorMessage2 = '';
+    setErrorMessage2('');
+    console.log('hi');
+   }else if(limit === 0){
+    errorMessage2 = 'limit cannot be blank and  must be more than 0';
+    setErrorMessage2('limit cannot be blank and must be more than 0');
+
+   }
+   else{
+    errorMessage2 = 'Enter number only';
+    setErrorMessage2('Enter number only');
+    submitBtn = true;
+    console.log('hsi');
+    setSubmitBtn(true);
+   }
+   if(errorMessage ===''&& errorMessage2===''){
+    submitBtn = false;
+    setSubmitBtn(false);
    }
  }
-
+function reset(){
+  Group='';
+  limit=0;
+  index=0;
+}
+function updateLimit(){
+  const vkey = [
+    {
+      limit: limit
+    },
+  ];
+  CurrentSSOGroups[index].limit = vkey[0].limit;
+  setOpened2(false);
+}
  // display table header that is from props
  const ths = (
    <tr>
@@ -145,7 +195,7 @@ export function AdminSsoGroupsInside() {
          color="dark"
          size="md"
          style={{ marginRight: '15px' }}
-         //onClick={() => [updateUser(index)]}
+         onClick={() => [updateUser(index)]}
        >
          Update
        </Button>
@@ -176,8 +226,9 @@ export function AdminSsoGroupsInside() {
       <div className="console">
         <Modal
           centered
+          title="Add User console"
           opened={openedAddUserModel}
-          onClose={() => setOpened(false)}
+          onClose={() => [setOpened(false),reset()]}
         >
           {
             <div
@@ -191,14 +242,24 @@ export function AdminSsoGroupsInside() {
                 placeholder={textField}
                 label={title}
                 size="md"
-                name="password"
-                id="password"
                 required
                 error={errorMessage}
                 onChange={(event) => {
                   addGroup(event.target.value),
                     (Group = event.target.value),
                     validate();
+                }}
+              />
+                   <TextInput 
+                placeholder="quotas limits for each person"
+                label="Quota"
+                size="md"
+                error={errorMessage2}
+                required
+                onChange={(event) => {[
+                    addLimit(Number(event.target.value)),
+                    (limit = Number(event.target.value)),
+                    validate()]
                 }}
               />
               <Button
@@ -218,7 +279,51 @@ export function AdminSsoGroupsInside() {
             </div>
           }
         </Modal>
-
+    <Modal
+          centered
+          title="Update User console"
+          opened={openedUpdateUserModel}
+          onClose={() => [setOpened2(false),reset()]}
+        >
+          {
+            <div
+              style={{
+                display: 'flex',
+                height: '10vh',
+                flexDirection: 'column',
+              }}
+            >
+            
+                   <TextInput 
+                placeholder="quotas limits for each person"
+                label="Quota"
+                size="md"
+                error={errorMessage2}
+                value={limit}
+                required
+                onChange={(event) => {[
+                    addLimit(Number(event.target.value)),
+                    (limit = Number(event.target.value)),
+                    validate()]
+                }}
+              />
+              <Button
+                variant="default"
+                color="dark"
+                size="md"
+                disabled={submitBtn}
+                onClick={() => updateLimit()}
+                style={{
+                  marginLeft: '15px',
+                  alignSelf: 'flex-end',
+                  marginTop: '20px',
+                }}
+              >
+                Submit
+              </Button>
+            </div>
+          }
+        </Modal>
         <ScrollArea
           style={{
             height: '90%',
