@@ -67,7 +67,8 @@ func NewBackend(
 	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.AddPermissionsFolder).Methods("POST")
 	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.UpdateFolderMetadata).Methods("PATCH")
 	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}/metadata", bc.GetFileVersionMetadata).Methods("GET")
-	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}", bc.DownloadFileVersion).Methods("GET")
+	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}", bc.DownloadFileVersion).Methods("GET").
+		Queries("inline", "{inline}")
 	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}", bc.DeleteFileVersion).Methods("DELETE")
 	r.HandleFunc("/api/v1/file/{fileID}/versions/", bc.GetFileVersionHistory).Methods("GET")
 
