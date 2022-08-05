@@ -1040,6 +1040,9 @@ func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.
 	vars := mux.Vars(r)
 	fileID := vars["fileID"]
 	versionID := vars["versionID"]
+	inline := vars["inline"]
+
+	isDownload := true
 
 	// get password
 	password := r.Header.Get("password")
@@ -1047,6 +1050,10 @@ func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.
 	if fileID == "" {
 		util.HttpError(w, http.StatusBadRequest, "No fileID  provided")
 		return
+	}
+
+	if inline != "true" {
+		isDownload = false
 	}
 
 	// convert versionID into int if it is not empty
@@ -1136,7 +1143,11 @@ func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.
 	}
 
 	w.Header().Set("Content-Type", file.MIMEType)
-	w.Header().Set("Content-Disposition", "attachment; filename="+file.FileName)
+	if isDownload {
+		w.Header().Set("Content-Disposition", "attachment; filename="+file.FileName)
+	} else {
+		w.Header().Set("Content-Disposition", "inline; filename="+file.FileName)
+	}
 	w.WriteHeader(http.StatusOK)
 
 	_, err = io.Copy(w, reader)
