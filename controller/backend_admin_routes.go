@@ -31,3 +31,46 @@ func (bc *BackendController) CronDeleteFragments(w http.ResponseWriter, r *http.
 	// success
 	util.HttpJson(w, http.StatusOK, s)
 }
+
+func (bc *BackendController) GetNumOfFiles(w http.ResponseWriter, r *http.Request) {
+
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Check if user is admin
+	if user.AccountType != dbfs.AccountTypeAdmin {
+		util.HttpError(w, http.StatusForbidden, "You are not an admin")
+		return
+	}
+
+	var numOfFiles int64
+
+	bc.Db.Model(&dbfs.File{}).Where("entry_type = ?", dbfs.IsFile).Count(&numOfFiles)
+
+	// success
+	util.HttpJson(w, http.StatusOK, numOfFiles)
+}
+
+func (bc *BackendController) GetStorageUsed(w http.ResponseWriter, r *http.Request) {
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Check if user is admin
+	if user.AccountType != dbfs.AccountTypeAdmin {
+		util.HttpError(w, http.StatusForbidden, "You are not an admin")
+		return
+	}
+
+	var numOfFiles int64
+
+	bc.Db.Model(&dbfs.File{}).Select("sum(size)").Where("entry_type = ?", dbfs.IsFile).First(&numOfFiles)
+
+	// success
+	util.HttpJson(w, http.StatusOK, numOfFiles)
+}
