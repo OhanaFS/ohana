@@ -1,24 +1,16 @@
 import AppBase from './AppBase';
 import {
   ChonkyActions,
-  ChonkyFileActionData,
   ChonkyIconName,
   defineFileAction,
   FileActionHandler,
-  FileArray,
   FileBrowserProps,
   FileData,
-  FileHelper,
   FullFileBrowser,
 } from 'chonky';
 import { Modal, FileInput, FileButton, Button, Loader } from '@mantine/core';
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { showNotification, cleanNotifications } from '@mantine/notifications';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -28,7 +20,6 @@ import {
   useMutateCopyFile,
   useMutateDeleteFile,
   useMutateMoveFile,
-  useMutateUpdateFile,
   useMutateUpdateFileMetadata,
   useMutateUploadFile,
 } from '../api/file';
@@ -36,9 +27,7 @@ import {
   useMutateCreateFolder,
   useMutateDeleteFolder,
   useQueryFolderContents,
-  useQueryFolderContentsByPath,
 } from '../api/folder';
-import { IconUpload } from '@tabler/icons';
 import { useQueryUser } from '../api/auth';
 
 export type VFSProps = Partial<FileBrowserProps>;
@@ -80,6 +69,20 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
 
   const folderID = params.id || '';
 
+  var showNotificationFunc = (function () {
+    var executed = false;
+    return function (title: string, message: string) {
+      if (!executed) {
+        executed = true;
+        showNotification({
+          title: title,
+          message: message,
+          onClose: () => cleanNotifications,
+        });
+      }
+    };
+  })();
+
   const handleFileAction: FileActionHandler = async (data) => {
     if (data.action === ChonkyActions.UploadFiles) {
       setFuOpened(true);
@@ -95,9 +98,23 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
     } else if (data.id === ChonkyActions.DeleteFiles.id) {
       for (const selectedItem of data.state.selectedFilesForAction) {
         if (selectedItem.isDir) {
-          mDeleteFolder.mutate(selectedItem.id);
+          mDeleteFolder
+            .mutateAsync(selectedItem.id)
+            .then(() =>
+              showNotificationFunc(
+                `${selectedItem.name} deleted`,
+                'Successfully Deleted'
+              )
+            );
         } else {
-          mDeleteFile.mutate(selectedItem.id);
+          mDeleteFile
+            .mutateAsync(selectedItem.id)
+            .then(() =>
+              showNotificationFunc(
+                `${selectedItem.name} deleted`,
+                'Successfully Deleted'
+              )
+            );
         }
       }
     } else if (data.id === ChonkyActions.DownloadFiles.id) {
@@ -212,7 +229,13 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
                   frag_count: 1,
                   parity_count: 1,
                 })
-                .then(() => setFuOpened(false));
+                .then(() => setFuOpened(false))
+                .then(() =>
+                  showNotificationFunc(
+                    `${item.name} uploaded`,
+                    'File Uploaded Successfully'
+                  )
+                );
             }}
           >
             {(props) => (
