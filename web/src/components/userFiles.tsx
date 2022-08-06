@@ -69,19 +69,13 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
 
   const folderID = params.id || '';
 
-  var showNotificationFunc = (function () {
-    var executed = false;
-    return function (title: string, message: string) {
-      if (!executed) {
-        executed = true;
-        showNotification({
-          title: title,
-          message: message,
-          onClose: () => cleanNotifications,
-        });
-      }
-    };
-  })();
+  const showNotificationFunc = (title: string, message: string) => {
+    showNotification({
+      title: title,
+      message: message,
+      onClose: () => cleanNotifications(),
+    });
+  };
 
   const handleFileAction: FileActionHandler = async (data) => {
     if (data.action === ChonkyActions.UploadFiles) {
