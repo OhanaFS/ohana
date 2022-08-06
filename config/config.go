@@ -75,6 +75,7 @@ type StitchConfig struct {
 type IncConfig struct {
 	ServerName string `yaml:"server_name"`
 	HostName   string `yaml:"host_name"`
+	BindIp     string `yaml:"bind_ip"`
 	Port       string `yaml:"port"`
 	CaCert     string `yaml:"ca_cert"`
 	PublicCert string `yaml:"public_cert"`

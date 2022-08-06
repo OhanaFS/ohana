@@ -22,6 +22,14 @@ type Log struct {
 	TimeStamp  time.Time `gorm:"not null; autoUpdateTime"`
 }
 
+type Alert struct {
+	LogID      int    `gorm:"primaryKey;"`
+	LogType    int8   `gorm:"not null"`
+	Message    string `gorm:"not null"`
+	ServerName string
+	TimeStamp  time.Time `gorm:"not null;"`
+}
+
 type Logger struct {
 	db     *gorm.DB
 	server string
@@ -42,6 +50,14 @@ func (l *Logger) LogFatal(message string) {
 		TimeStamp:  time.Now(),
 	}
 	l.db.Create(&log)
+	alert := Alert{
+		LogID:      log.LogID,
+		LogType:    log.LogType,
+		Message:    log.Message,
+		ServerName: log.ServerName,
+		TimeStamp:  log.TimeStamp,
+	}
+	l.db.Create(&alert)
 }
 
 func (l *Logger) LogError(message string) {
@@ -52,6 +68,14 @@ func (l *Logger) LogError(message string) {
 		TimeStamp:  time.Now(),
 	}
 	l.db.Create(&log)
+	alert := Alert{
+		LogID:      log.LogID,
+		LogType:    log.LogType,
+		Message:    log.Message,
+		ServerName: log.ServerName,
+		TimeStamp:  log.TimeStamp,
+	}
+	l.db.Create(&alert)
 }
 
 func (l *Logger) LogWarning(message string) {
@@ -62,6 +86,14 @@ func (l *Logger) LogWarning(message string) {
 		TimeStamp:  time.Now(),
 	}
 	l.db.Create(&log)
+	alert := Alert{
+		LogID:      log.LogID,
+		LogType:    log.LogType,
+		Message:    log.Message,
+		ServerName: log.ServerName,
+		TimeStamp:  log.TimeStamp,
+	}
+	l.db.Create(&alert)
 }
 
 func (l *Logger) LogInfo(message string) {

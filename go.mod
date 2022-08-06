@@ -27,6 +27,7 @@ require (
 require (
 	cloud.google.com/go/compute v1.7.0 // indirect
 	github.com/SaveTheRbtz/zstd-seekable-format-go v0.6.0 // indirect
+	github.com/anatol/smart.go v0.0.0-20220716162959-68f00803d38b // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/census-instrumentation/opencensus-proto v0.3.0 // indirect
@@ -74,6 +75,7 @@ require (
 	github.com/klauspost/compress v1.15.8 // indirect
 	github.com/klauspost/cpuid/v2 v2.1.0 // indirect
 	github.com/klauspost/reedsolomon v1.10.0 // indirect
+	github.com/mackerelio/go-osstat v0.2.2 // indirect
 	github.com/mattn/go-runewidth v0.0.12 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
