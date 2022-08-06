@@ -1,6 +1,7 @@
 package dbfs
 
 import (
+	"errors"
 	"gorm.io/gorm"
 	"time"
 )
@@ -51,39 +52,81 @@ func CreateFileVersionFromFile(tx *gorm.DB, file *File, user *User) error {
 		return err
 	}
 
-	fileVersion := FileVersion{
-		FileId:                file.FileId,
-		VersionNo:             file.VersionNo,
-		FileName:              file.FileName,
-		MIMEType:              file.MIMEType,
-		EntryType:             file.EntryType,
-		ParentFolderFileId:    file.ParentFolderFileId,
-		ParentFolderVersionNo: &parentFolder.VersionNo,
-		DataId:                file.DataId,
-		DataIdVersion:         file.DataIdVersion,
-		Size:                  file.Size,
-		ActualSize:            file.ActualSize,
-		CreatedTime:           file.CreatedTime,
-		ModifiedUserUserId:    file.ModifiedUserUserId,
-		ModifiedTime:          file.ModifiedTime,
-		VersioningMode:        file.VersioningMode,
-		Checksum:              file.Checksum,
-		TotalShards:           file.TotalShards,
-		DataShards:            file.DataShards,
-		ParityShards:          file.ParityShards,
-		KeyThreshold:          file.KeyThreshold,
-		EncryptionKey:         file.EncryptionKey,
-		EncryptionIv:          file.EncryptionIv,
-		PasswordProtected:     file.PasswordProtected,
-		//LinkFileFileId:        "GET LINKED FOLDER", // NOT READY
-		//LinkFileVersionNo:     0,                   // NOT READY
-		LastChecked:   file.LastChecked,
-		Status:        file.Status,
-		HandledServer: file.HandledServer,
+	// Check if exists. If not, create it.
+
+	var fileVersion FileVersion
+
+	err = tx.Where("file_id = ? AND version_no = ?", file.FileId, file.VersionNo).First(&fileVersion).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		fileVersion := FileVersion{
+			FileId:                file.FileId,
+			VersionNo:             file.VersionNo,
+			FileName:              file.FileName,
+			MIMEType:              file.MIMEType,
+			EntryType:             file.EntryType,
+			ParentFolderFileId:    file.ParentFolderFileId,
+			ParentFolderVersionNo: &parentFolder.VersionNo,
+			DataId:                file.DataId,
+			DataIdVersion:         file.DataIdVersion,
+			Size:                  file.Size,
+			ActualSize:            file.ActualSize,
+			CreatedTime:           file.CreatedTime,
+			ModifiedUserUserId:    file.ModifiedUserUserId,
+			ModifiedTime:          file.ModifiedTime,
+			VersioningMode:        file.VersioningMode,
+			Checksum:              file.Checksum,
+			TotalShards:           file.TotalShards,
+			DataShards:            file.DataShards,
+			ParityShards:          file.ParityShards,
+			KeyThreshold:          file.KeyThreshold,
+			EncryptionKey:         file.EncryptionKey,
+			EncryptionIv:          file.EncryptionIv,
+			PasswordProtected:     file.PasswordProtected,
+			//LinkFileFileId:        "GET LINKED FOLDER", // NOT READY
+			//LinkFileVersionNo:     0,                   // NOT READY
+			LastChecked:   file.LastChecked,
+			Status:        file.Status,
+			HandledServer: file.HandledServer,
+		}
+
+		return tx.Save(&fileVersion).Error
+
+	} else if err != nil {
+		return err
 	}
 
-	return tx.Save(&fileVersion).Error
+	// else update it
+	err = tx.Model(&fileVersion).Where("file_id = ? AND version_no = ?", file.FileId, file.VersionNo).
+		Updates(FileVersion{
+			FileName:              file.FileName,
+			MIMEType:              file.MIMEType,
+			EntryType:             file.EntryType,
+			ParentFolderFileId:    file.ParentFolderFileId,
+			ParentFolderVersionNo: &parentFolder.VersionNo,
+			DataId:                file.DataId,
+			DataIdVersion:         file.DataIdVersion,
+			Size:                  file.Size,
+			ActualSize:            file.ActualSize,
+			CreatedTime:           file.CreatedTime,
+			ModifiedUserUserId:    file.ModifiedUserUserId,
+			ModifiedTime:          file.ModifiedTime,
+			VersioningMode:        file.VersioningMode,
+			Checksum:              file.Checksum,
+			TotalShards:           file.TotalShards,
+			DataShards:            file.DataShards,
+			ParityShards:          file.ParityShards,
+			KeyThreshold:          file.KeyThreshold,
+			EncryptionKey:         file.EncryptionKey,
+			EncryptionIv:          file.EncryptionIv,
+			PasswordProtected:     file.PasswordProtected,
+			//LinkFileFileId:        "GET LINKED FOLDER", // NOT READY
+			//LinkFileVersionNo:     0,                   // NOT READY
+			LastChecked:   file.LastChecked,
+			Status:        file.Status,
+			HandledServer: file.HandledServer,
+		}).Error
 
+	return err
 }
 
 // finaliseFileVersionFromFile finalises the status to be done (FileStatusGood)

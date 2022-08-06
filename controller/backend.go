@@ -284,7 +284,7 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 	// checksum
 	checksum := hex.EncodeToString(result.FileHash)
 
-	err = dbfs.FinishFile(bc.Db, &dbfsFile, user, 412, checksum)
+	err = dbfs.FinishFile(bc.Db, &dbfsFile, user, int(result.FileSize), checksum)
 	if err != nil {
 		err2 := dbfsFile.Delete(bc.Db, user, bc.ServerName)
 		errorText := "Error finishing file: " + err.Error()

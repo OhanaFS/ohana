@@ -461,7 +461,7 @@ func TestFile(t *testing.T) {
 		Assert.Nil(err)
 		newFile, err = dbfs.GetFileByPath(db, "/pogfile.txt", &superUser, false)
 		Assert.Nil(err)
-		Assert.Equal(newFile.VersionNo, 3)
+		Assert.Equal(newFile.VersionNo, 4)
 		fmt.Println(newFile.DataIdVersion)
 		Assert.Equal(newFile.DataIdVersion, 1)
 
@@ -478,7 +478,7 @@ func TestFile(t *testing.T) {
 			}
 		}
 
-		Assert.Equal(newFile.VersionNo, 4)
+		Assert.Equal(newFile.VersionNo, 5)
 
 		// Trying to get the file again
 		_, err = dbfs.GetFileById(db, newFile.FileId, userForGetFileMeta)

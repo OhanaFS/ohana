@@ -966,6 +966,7 @@ func (f *File) Move(tx *gorm.DB, newParent *File, user *User) error {
 
 	// Update the parent folder of the file
 	f.ParentFolderFileId = &newParent.FileId
+	f.VersionNo = f.VersionNo + 1
 
 	err = tx.Transaction(func(tx *gorm.DB) error {
 		err2 := tx.Save(f).Error
