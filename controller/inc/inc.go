@@ -13,6 +13,7 @@ type Inc struct {
 	CaCert         string
 	PublicCert     string
 	PrivateKey     string
+	BindIp         string
 	Db             *gorm.DB
 	Shutdown       chan bool
 }
@@ -27,6 +28,7 @@ func NewInc(config *config.Config, db *gorm.DB) *Inc {
 		CaCert:         config.Inc.CaCert,
 		PublicCert:     config.Inc.PublicCert,
 		PrivateKey:     config.Inc.PrivateKey,
+		BindIp:         config.Inc.BindIp,
 		Db:             db,
 		Shutdown:       make(chan bool),
 	}

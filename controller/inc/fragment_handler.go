@@ -11,16 +11,6 @@ import (
 	"time"
 )
 
-var (
-	JobCurrentlyRunning        = errors.New("job is currently running")
-	JobCurrentlyRunningWarning = errors.New("job is currently running. warning")
-	ErrServerFailed            = errors.New("server failed")
-	ErrServerTimeout           = errors.New("server timeout")
-	ErrJobFailed               = errors.New("job failed")
-	ErrOrphanedShardsFound     = errors.New("orphaned shards found")
-	ErrMissingShardsFound      = errors.New("missing shards found")
-)
-
 type DeleteWorkerStatus struct {
 	DataId       string
 	Error        error

@@ -4,6 +4,7 @@ import (
 	"github.com/OhanaFS/ohana/dbfs"
 	"github.com/OhanaFS/ohana/util"
 	"github.com/OhanaFS/ohana/util/ctxutil"
+	"github.com/gorilla/mux"
 	"net/http"
 )
 
@@ -46,7 +47,6 @@ func (bc *BackendController) GetNumOfFiles(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var numOfFiles int64
 
 	bc.Db.Model(&dbfs.File{}).Where("entry_type = ?", dbfs.IsFile).Count(&numOfFiles)
 
@@ -57,16 +57,6 @@ func (bc *BackendController) GetNumOfFiles(w http.ResponseWriter, r *http.Reques
 func (bc *BackendController) GetStorageUsed(w http.ResponseWriter, r *http.Request) {
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	// Check if user is admin
-	if user.AccountType != dbfs.AccountTypeAdmin {
-		util.HttpError(w, http.StatusForbidden, "You are not an admin")
-		return
-	}
-
 	var numOfFiles int64
 
 	bc.Db.Model(&dbfs.File{}).Select("sum(size)").Where("entry_type = ?", dbfs.IsFile).First(&numOfFiles)
