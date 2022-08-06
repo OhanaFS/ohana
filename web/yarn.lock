@@ -1766,6 +1766,14 @@
   resolved "https://registry.yarnpkg.com/@mantine/hooks/-/hooks-5.0.0.tgz#24fe9f945810d02ad7d933b8aecc646cf10f96dc"
   integrity sha512-IKqqnukPPyBMYRKz4VIhz7hNRe3p8B7RUyvFLaWc9l69ZO/b5atNuesE1ThuMQYc7tBobQbU4myHuhQc/csyLA==
 
+"@mantine/notifications@^5.0.3":
+  version "5.0.3"
+  resolved "https://registry.yarnpkg.com/@mantine/notifications/-/notifications-5.0.3.tgz#b749c840a7e2b553178628fb767ee452f77c77c7"
+  integrity sha512-tvkrWnXzTPYQFsAu2AvtfevKGr3dKPagjwYDeWM60SlO1FyBX1sg47YweVt/JBlmJFKVmVLOFhSZFx0jVvlSeA==
+  dependencies:
+    "@mantine/utils" "5.0.3"
+    react-transition-group "4.4.2"
+
 "@mantine/styles@5.0.0":
   version "5.0.0"
   resolved "https://registry.yarnpkg.com/@mantine/styles/-/styles-5.0.0.tgz#526fb8fea1be280b18f852d790a6b8d05c9c97e5"
@@ -1778,6 +1786,11 @@
   version "5.0.0"
   resolved "https://registry.yarnpkg.com/@mantine/utils/-/utils-5.0.0.tgz#576ebab6b0980b996ecb70b277f4ea378dcfb474"
   integrity sha512-Fy9BdxWvrXkplWua8ZKmsBQODo24QB8OPn6BEmvXUt4O+3qoP27VaAWQVea4opWZsy+L5dtEe/kOXY/Q/kC2qg==
+
+"@mantine/utils@5.0.3":
+  version "5.0.3"
+  resolved "https://registry.yarnpkg.com/@mantine/utils/-/utils-5.0.3.tgz#6d878169644b015cee921ada2af4ebe32341c3af"
+  integrity sha512-WZRHF7A2YQhalYwMqkS1hyjK8tu639EQDJxaaptBHQvsAilNS4qD2PD87Cz7np1XhI87SEj5a0U4crzT1jTdDg==
 
 "@material-ui/core@4.11.3":
   version "4.11.3"
@@ -8768,7 +8781,7 @@ react-transition-group@2.9.0:
     prop-types "^15.6.2"
     react-lifecycles-compat "^3.0.4"
 
-react-transition-group@^4.4.0:
+react-transition-group@4.4.2, react-transition-group@^4.4.0:
   version "4.4.2"
   resolved "https://registry.yarnpkg.com/react-transition-group/-/react-transition-group-4.4.2.tgz#8b59a56f09ced7b55cbd53c36768b922890d5470"
   integrity sha512-/RNYfRAMlZwDSr6z4zNKV6xu53/e2BuaBbGhbyYIXTrmgu/bGHzmqOs7mJSJBHy9Ud+ApHx3QjrkKSp1pxvlFg==

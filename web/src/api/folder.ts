@@ -49,12 +49,20 @@ export const useMutateUpdateFolderMetadata = () =>
 /**
  * Delete a folder
  */
-export const useMutateDeleteFolder = () =>
-  useMutation((folderId: string) =>
-    APIClient.delete<boolean>(`/api/v1/folder/${folderId}`)
-      .then((res) => res.data)
-      .catch(typedError)
+export const useMutateDeleteFolder = () => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (folderId: string) =>
+      APIClient.delete<boolean>(`/api/v1/folder/${folderId}`)
+        .then((res) => res.data)
+        .catch(typedError),
+    {
+      onSuccess: () => {
+        queryClient.clear();
+      },
+    }
   );
+};
 
 export type CreateFolderRequest = {
   folder_name: string;

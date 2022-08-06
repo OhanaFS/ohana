@@ -182,12 +182,20 @@ export const getFileDownloadURL = (fileId: string, versionId?: number) =>
 /**
  * Delete a file by its ID.
  */
-export const useMutateDeleteFile = () =>
-  useMutation((fileId: string) =>
-    APIClient.delete<boolean>(`/api/v1/file/${fileId}`)
-      .then((res) => res.data)
-      .catch(typedError)
+export const useMutateDeleteFile = () => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (fileId: string) =>
+      APIClient.delete<boolean>(`/api/v1/file/${fileId}`)
+        .then((res) => res.data)
+        .catch(typedError),
+    {
+      onSuccess: () => {
+        queryClient.clear();
+      },
+    }
   );
+};
 
 export type Permission = {
   can_read: boolean;
