@@ -173,6 +173,8 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
       id: file.file_id,
       name: file.file_name,
       isDir: file.entry_type === EntryType.Folder,
+      modDate: file.modified_time,
+      size: file.actual_size,
     })) || [];
 
   const ohanaFolderChain = [{ id: homeFolderID, name: 'Home', isDir: true }];
