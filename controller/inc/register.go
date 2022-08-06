@@ -42,6 +42,7 @@ func (i Inc) RegisterServer(initialRun bool) error {
 	}
 
 	spaceFree := getFreeSpace(i.ShardsLocation)
+	spaceUsed := uint64(getUsedStorage(i.ShardsLocation))
 
 	// Register as Starting
 
@@ -65,6 +66,7 @@ func (i Inc) RegisterServer(initialRun bool) error {
 		Port:      i.Port,
 		Status:    dbfs.ServerStarting,
 		FreeSpace: spaceFree,
+		UsedSpace: spaceUsed,
 	}
 
 	if err := i.Db.Save(&server).Error; err != nil {
@@ -177,6 +179,14 @@ func Pong(w http.ResponseWriter, r *http.Request) {
 	util.HttpJson(w, http.StatusOK, map[string]string{"status": "online"})
 }
 
+// ShutdownServer will try to gracefully shutdown the server.
+func (i Inc) ShutdownServer(w http.ResponseWriter, r *http.Request) {
+
+	i.Shutdown <- true
+
+	util.HttpJson(w, http.StatusOK, map[string]string{"status": "shutdown"})
+}
+
 // RegisterIncServices registers the inc services.
 // NOT RUNNING YET. NEED TO SET UP INC SERVER ELSE WILL NOT RUN.
 func RegisterIncServices(i *Inc) {
@@ -190,6 +200,7 @@ func RegisterIncServices(i *Inc) {
 			select {
 			case <-i.Shutdown:
 				ticker.Stop()
+				os.Exit(0)
 				// deregister services
 				return
 			case <-ticker.C:
