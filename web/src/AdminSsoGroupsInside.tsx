@@ -19,7 +19,7 @@ export function AdminSsoGroupsInside() {
 
   // Variable that will be added to the CurrentSSOGroups
   var [Group, addGroup] = useState('');
-  var [limit, addLimit] = useState(Number);
+  var [limit, addLimit] = useState(0);
   var [index, addIndex] = useState(Number);
 
   // Variable that will decide whether the submit button is disabled
@@ -62,62 +62,46 @@ export function AdminSsoGroupsInside() {
   /* Validate the textfield to check if there is any special characters
     if there is special character, the function will display error message 
     and set the submit button to false.  */
+  const allowedChar = /^[A-Za-z0-9\s]*$/;
+  const allowedDigit = /^[0-9\s]*$/;
+  const space = /^0\s*$/;
+  const space2 = /^\s*$/;
   function validate() {
-    if (
-      Group.includes('/') ||
-      Group.includes('[') ||
-      Group.includes('!') ||
-      Group.includes('@') ||
-      Group.includes('#') ||
-      Group.includes('$') ||
-      Group.includes('%') ||
-      Group.includes('^') ||
-      Group.includes('&') ||
-      Group.includes('*') ||
-      Group.includes('(') ||
-      Group.includes(')') ||
-      Group.includes('\\') ||
-      Group.includes('=') ||
-      Group.includes('[') ||
-      Group.includes(']') ||
-      Group.includes(';') ||
-      Group.includes(',') ||
-      Group.includes('.') ||
-      Group.includes('<') ||
-      Group.includes('>') ||
-      Group.includes('?') ||
-      Group.includes('`')
-    ) {
+    //if the group is blank
+    if (space2.test(Group) == true) {
+      errorMessage = 'Do not leave blank';
+      setErrorMessage('Do not leave blank');
+      submitBtn = true;
+      setSubmitBtn(true);
+    }
+    //if the group contains other than letter and digit
+    else if (allowedChar.test(Group) == false) {
       errorMessage = 'do not include special characters';
       setErrorMessage('do not include special characters');
       submitBtn = true;
       setSubmitBtn(true);
-    } else if (Group.includes(' ')) {
-      errorMessage = 'No space is allowed';
-      setErrorMessage('No space is allowed');
-      submitBtn = true;
-      setSubmitBtn(true);
-    } else if (Group == '') {
-      errorMessage = 'Details needed';
-      setErrorMessage('Details needed');
-      submitBtn = true;
-      setSubmitBtn(true);
     } else {
+      // all test are pass
       errorMessage = '';
       setErrorMessage('');
     }
-    if (isNaN(limit) == false && limit !== 0) {
+    //if the limit is blank
+    if (space.test(limit.toString()) == true) {
+      errorMessage2 = 'limit cannot be blank or 0';
+      setErrorMessage2('limit cannot be blank or 0');
+      submitBtn = true;
+      setSubmitBtn(true);
+    }
+    //check if limit contains other than digit
+    else if (allowedDigit.test(limit.toString()) == false) {
+      errorMessage2 = 'limit can only have digit ';
+      setErrorMessage2('limit can only have digit ');
+      submitBtn = true;
+      setSubmitBtn(true);
+    } else {
+      // all test are pass
       errorMessage2 = '';
       setErrorMessage2('');
-    } else if (limit === 0) {
-      errorMessage2 = 'limit cannot be blank and  must be more than 0';
-      setErrorMessage2('limit cannot be blank and must be more than 0');
-    } else {
-      errorMessage2 = 'Enter number only';
-      setErrorMessage2('Enter number only');
-      submitBtn = true;
-
-      setSubmitBtn(true);
     }
     if (errorMessage === '' && errorMessage2 === '') {
       submitBtn = false;
@@ -221,7 +205,7 @@ export function AdminSsoGroupsInside() {
                 <div
                   style={{
                     display: 'flex',
-                    height: '25vh',
+                    height: '35vh',
                     flexDirection: 'column',
                   }}
                 >
@@ -278,7 +262,7 @@ export function AdminSsoGroupsInside() {
                 <div
                   style={{
                     display: 'flex',
-                    height: '10vh',
+                    height: '20vh',
                     flexDirection: 'column',
                   }}
                 >
@@ -287,7 +271,7 @@ export function AdminSsoGroupsInside() {
                     label="Quota"
                     size="md"
                     error={errorMessage2}
-                    value={limit}
+                    defaultValue={limit}
                     required
                     onChange={(event) => {
                       [

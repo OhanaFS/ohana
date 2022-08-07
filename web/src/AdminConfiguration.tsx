@@ -8,48 +8,26 @@ export function AdminConfiguration() {
 
   var [location, addLocation] = useState('');
   var [errorMessage, setErrorMessage] = useState('');
-  var [rotateButton,setButton] = useState(true);
+  var [rotateButton, setButton] = useState(true);
+  const allowedChar = /^[A-Za-z0-9\s]*$/;
+  const space = /^\s*$/;
   function validate() {
-    if (
-      location.includes('/') ||
-      location.includes('[') ||
-      location.includes('!') ||
-      location.includes('@') ||
-      location.includes('#') ||
-      location.includes('$') ||
-      location.includes('%') ||
-      location.includes('^') ||
-      location.includes('&') ||
-      location.includes('*') ||
-      location.includes('(') ||
-      location.includes(')') ||
-      location.includes('\\') ||
-      location.includes('=') ||
-      location.includes('[') ||
-      location.includes(']') ||
-      location.includes(';') ||
-      location.includes(',') ||
-      location.includes('.') ||
-      location.includes('<') ||
-      location.includes('>') ||
-      location.includes('?') ||
-      location.includes('`')
+    //if the location is blank
+    if (space.test(location) == true) {
+      errorMessage = 'Do not leave blank';
+      setErrorMessage('Do not leave blank');
+      rotateButton = true;
+      setButton(true);
+    } else if (
+      //if the location contains other than letter and digit
+      allowedChar.test(location) == false
     ) {
       errorMessage = 'do not include special characters';
       setErrorMessage('do not include special characters');
       rotateButton = true;
       setButton(true);
-    } else if (location.includes(' ')) {
-      errorMessage = 'No space is allowed';
-      setErrorMessage('No space is allowed');
-      rotateButton = true;
-      setButton(true);
-    } else if (location == '') {
-      errorMessage = 'Details needed';
-      setErrorMessage('Details needed');
-      rotateButton = true;
-      setButton(true);
     } else {
+      // all test are pass
       errorMessage = '';
       setErrorMessage('');
       rotateButton = false;
@@ -97,7 +75,7 @@ export function AdminConfiguration() {
             auto rotate the key"
             radius="md"
             size="lg"
-            error= {errorMessage}
+            error={errorMessage}
             onChange={(event) => {
               addLocation(event.target.value),
                 (location = event.target.value),

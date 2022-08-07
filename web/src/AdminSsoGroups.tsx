@@ -122,47 +122,25 @@ export function AdminSsoGroups() {
   /* Validate the textfield to check if there is any special characters
    if there is special character, the function will display error message 
    and set the submit button to false.  */
+  const allowedChar = /^[A-Za-z0-9\s]*$/;
+  const space = /^\s*$/;
   function validate() {
-    if (
-      Group.includes('/') ||
-      Group.includes('[') ||
-      Group.includes('!') ||
-      Group.includes('@') ||
-      Group.includes('#') ||
-      Group.includes('$') ||
-      Group.includes('%') ||
-      Group.includes('^') ||
-      Group.includes('&') ||
-      Group.includes('*') ||
-      Group.includes('(') ||
-      Group.includes(')') ||
-      Group.includes('\\') ||
-      Group.includes('=') ||
-      Group.includes('[') ||
-      Group.includes(']') ||
-      Group.includes(';') ||
-      Group.includes(',') ||
-      Group.includes('.') ||
-      Group.includes('<') ||
-      Group.includes('>') ||
-      Group.includes('?') ||
-      Group.includes('`')
+    //if the group is blank
+    if (space.test(Group) == true) {
+      errorMessage = 'Do not leave blank';
+      setErrorMessage('Do not leave blank');
+      submitBtn = true;
+      setSubmitBtn(true);
+    } else if (
+      //if the group contains other than letter and digit
+      allowedChar.test(Group) == false
     ) {
       errorMessage = 'do not include special characters';
       setErrorMessage('do not include special characters');
       submitBtn = true;
       setSubmitBtn(true);
-    } else if (Group.includes(' ')) {
-      errorMessage = 'No space is allowed';
-      setErrorMessage('No space is allowed');
-      submitBtn = true;
-      setSubmitBtn(true);
-    } else if (Group == '') {
-      errorMessage = 'Details needed';
-      setErrorMessage('Details needed');
-      submitBtn = true;
-      setSubmitBtn(true);
     } else {
+      // all test are pass
       errorMessage = '';
       setErrorMessage('');
       submitBtn = false;

@@ -163,7 +163,6 @@ export function AdminSettings() {
 
   // each of these variable is binded, so if the data retrieve from database is true, the checkbox will be ticked
   var [clusterAlerts, setChecked] = useState(() => {
-
     if (oldConfigurationSettings[0].setting === true) {
       return true;
     }
@@ -508,7 +507,12 @@ export function AdminSettings() {
   // generate the key and show on the textfield, and enable the save button
   function generateKeys() {
     setTempKey(generateRandomString());
-    setsaveSettings(false);
+    console.log(errorMessage);
+    if (errorMessage === '') {
+      setsaveSettings(false);
+    } else {
+      setsaveSettings(true);
+    }
   }
 
   //download the key
@@ -648,43 +652,25 @@ export function AdminSettings() {
   var [errorMessage, setErrorMessage] = useState('');
 
   // validate the text field
+  const allowedChar = /^[A-Za-z0-9\s]*$/;
+  const space = /^\s*$/;
   function validateTF() {
-    if (
-      backupTemp.includes('/') ||
-      backupTemp.includes('[') ||
-      backupTemp.includes('!') ||
-      backupTemp.includes('@') ||
-      backupTemp.includes('#') ||
-      backupTemp.includes('$') ||
-      backupTemp.includes('%') ||
-      backupTemp.includes('^') ||
-      backupTemp.includes('&') ||
-      backupTemp.includes('*') ||
-      backupTemp.includes('(') ||
-      backupTemp.includes(')') ||
-      backupTemp.includes('=') ||
-      backupTemp.includes('[') ||
-      backupTemp.includes(']') ||
-      backupTemp.includes(';') ||
-      backupTemp.includes(',') ||
-      backupTemp.includes('.') ||
-      backupTemp.includes('<') ||
-      backupTemp.includes('>') ||
-      backupTemp.includes('?') ||
-      backupTemp.includes('`')
+    //if the location is blank
+    if (space.test(backupTemp) == true) {
+      errorMessage = 'Do not leave blank';
+      setErrorMessage('Do not leave blank');
+
+      setsaveSettings(true);
+    } else if (
+      //if the location contains other than letter and digit
+      allowedChar.test(backupTemp) == false
     ) {
-      errorMessage = 'Do not include special characters';
-      setErrorMessage('Do not include special characters');
-      setsaveSettings(true);
-    } else if (backupTemp.includes(' ')) {
-      errorMessage = 'No space is allowed';
-      setErrorMessage('No space is allowed');
-      setsaveSettings(true);
-    } else if (backupTemp == '') {
-      errorMessage = 'Details needed';
-      setErrorMessage('Details needed');
+      errorMessage = 'do not include special characters';
+      setErrorMessage('do not include special characters');
+
       setsaveSettings(true);
     } else {
+      // all test are pass
       errorMessage = '';
       setErrorMessage('');
       setsaveSettings(false);
@@ -859,7 +845,6 @@ export function AdminSettings() {
                     </Button>
                   }
                 />
-
                 <Textarea
                   label="Location of Encryption Key:"
                   radius="md"
@@ -910,7 +895,7 @@ export function AdminSettings() {
                   textAlign: 'center',
                 }}
               >
-              Notification Settings
+                Notification Settings
               </span>
             </caption>
 

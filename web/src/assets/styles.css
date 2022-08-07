@@ -7,7 +7,7 @@
   padding-bottom: 10px;
   background-color: white;
 }
-.dashboardCard{
+.dashboardCard {
   width: 350px;
   border: 0px;
   margin: 10px;
@@ -21,9 +21,9 @@
   background-color: white;
   display: flex;
   flex-direction: column;
-  height:500px;
+  height: 500px;
 }
-.maintenanceLogs{
+.maintenanceLogs {
   border: 1px solid #ccc;
   border-radius: 1%;
   text-align: left;
@@ -32,28 +32,29 @@
   display: flex;
   flex-direction: column;
 }
-.rotateKey{
+.rotateKey {
   border: 1px solid #ccc;
   text-align: left;
   width: 800px;
   background-color: white;
-  padding-left:10px;
+  padding-left: 10px;
   height: 400px;
 }
-#maintenanceLogsTable td,th {
+#maintenanceLogsTable td,
+th {
   font-size: 12px;
   font-weight: 400;
   text-align: 'left';
-  color:black;
+  color: black;
 }
-.ssoGroupsDetails{
-    border: 1px solid #ccc;
-    text-align: left;
-    width: 800px;
-    background-color: white;
-    padding-left:10px;
+.ssoGroupsDetails {
+  border: 1px solid #ccc;
+  text-align: left;
+  width: 800px;
+  background-color: white;
+  padding-left: 10px;
 }
-.settings{
+.settings {
   border: 1px solid #ccc;
   border-radius: 1%;
   height: 550px;
@@ -63,36 +64,36 @@
   display: flex;
   flex-direction: column;
 }
-#settingText{
+#settingText {
   text-align: left;
   margin-top: 10px;
   margin-left: 10px;
   font-weight: 400;
   font-size: 18px;
   color: black;
-
 }
-.maintenanceSettings{
+.maintenanceSettings {
   border: 1px solid #ccc;
   text-align: left;
   width: 800px;
   background-color: white;
-  padding-left:10px;
+  padding-left: 10px;
   height: 530px;
   display: flex;
   flex-direction: column;
 }
-#maintenanceSettings caption{
-    font-weight: 600;
-    font-size: 24px;
-    color: black;
-    text-align: center;
+#maintenanceSettings caption {
+  font-weight: 600;
+  font-size: 24px;
+  color: black;
+  text-align: center;
 }
-#maintenanceSettings td,th {
+#maintenanceSettings td,
+th {
   font-size: 16px;
   font-weight: 400;
   text-align: 'left';
-  color:black;
+  color: black;
 }
 @media screen and (max-width: 450px) {
   .loginBox {
@@ -105,67 +106,65 @@
   margin: 10px;
 }
 @media screen and (min-width: 450px) {
-  #maintenanceLogsTable td,th {
+  #maintenanceLogsTable td,
+  th {
     font-size: 16px;
     font-weight: 400;
     text-align: 'left';
-    color:black;
-    }
-
+    color: black;
+  }
 }
 @media screen and (max-width: 500px) {
-  #maintenanceSettings td,th {
+  #maintenanceSettings td,
+  th {
     font-size: 12px;
     font-weight: 400;
     text-align: 'left';
-    color:black;
-    }
-    #settingText{
-      font-size: 12px;
-    }
-    .settings{
-      border:none;
-    }
-  #maintenanceSettings caption{
+    color: black;
+  }
+  #settingText {
+    font-size: 12px;
+  }
+  .settings {
+    border: none;
+  }
+  #maintenanceSettings caption {
     font-size: 18px;
-  } 
-  .maintenanceSettings{
-      height: 500px;
-      border:none;
-    }
-    .maintenanceLogs{
-      border:none;
-    }
-    .console{
-      border:none;
-    }
+  }
+  .maintenanceSettings {
+    height: 500px;
+    border: none;
+  }
+  .maintenanceLogs {
+    border: none;
+  }
+  .console {
+    border: none;
+  }
 }
 @media screen and (max-width: 1400px) {
   .dashboardLogsCard {
     width: 350px;
   }
-
 }
 @media screen and (min-width: 1830px) {
   .dashboardLogsCard {
     width: 1950px;
   }
-  .dashboardCard{
+  .dashboardCard {
     width: 500px;
     border: 0px;
     margin: 10px;
     height: 300px;
   }
-  .maintenanceLogs{
+  .maintenanceLogs {
     width: 1200px;
   }
-  #maintenanceLogsTable td,th {
+  #maintenanceLogsTable td,
+  th {
     font-size: 22px;
     font-weight: 400;
     text-align: 'left';
-    color:black;
-    }
-
+    color: black;
+  }
 }
-
-
