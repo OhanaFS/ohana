@@ -52,7 +52,7 @@ func TestSelfSign(t *testing.T) {
 		// setting new configs (need vars here because we need their pointers)
 		c.GenCA = &tp
 
-		err := selfsign.ProcessFlags(c)
+		err := selfsign.ProcessFlags(c, true)
 		Assert.Nil(err)
 
 		// Making them from another folder
@@ -63,7 +63,7 @@ func TestSelfSign(t *testing.T) {
 		c.GenCA = &tp
 		c.GenCAPath = &caPath2
 
-		err = selfsign.ProcessFlags(c)
+		err = selfsign.ProcessFlags(c, true)
 		Assert.Nil(err)
 
 	})
@@ -94,7 +94,7 @@ func TestSelfSign(t *testing.T) {
 		c.GenCerts = &tp
 		c.NumOfCerts = &numCerts
 
-		err = selfsign.ProcessFlags(c)
+		err = selfsign.ProcessFlags(c, true)
 		Assert.Nil(err)
 
 		// Making them from another folder
@@ -114,7 +114,7 @@ func TestSelfSign(t *testing.T) {
 		c.PkPath = &pkPath
 		c.GenCertsPath = &genCertsPath
 
-		err = selfsign.ProcessFlags(c)
+		err = selfsign.ProcessFlags(c, true)
 		Assert.Nil(err)
 
 	})

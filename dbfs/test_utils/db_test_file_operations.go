@@ -1,9 +1,13 @@
 package dbfstestutils
 
 import (
+	"fmt"
 	"github.com/OhanaFS/ohana/dbfs"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"os"
+	"path"
+	"strconv"
 )
 
 const (
@@ -26,6 +30,8 @@ type ExampleFile struct {
 type ExampleUpdate struct {
 	NewSize       int
 	NewActualSize int
+	FragmentPath  string
+	FileData      string
 	Server        string
 	Password      string
 }
@@ -115,14 +121,29 @@ func EXAMPLECreateFile(tx *gorm.DB, user *dbfs.User, fileParams ExampleFile) (*d
 
 	for i := 1; i <= file.TotalShards; i++ {
 		fragId := i
-		fragmentPath := uuid.New().String()
 		serverId := fileParams.Server
 
-		err = dbfs.CreateFragment(tx, file.FileId, file.DataId, file.VersionNo, fragId, serverId, fragmentPath)
+		// FAKE CREATE FRAGMENTS
+
+		shardName := file.DataId + ".shard" + strconv.Itoa(i)
+		shardPath := path.Join(fileParams.FragmentPath, shardName)
+		shardFile, err := os.Create(shardPath)
 		if err != nil {
-			// Not sure how to handle this multiple error situation that is possible.
-			// Don't necessarily want to put it in a transaction because I'm worried it'll be too long?
-			// or does that make no sense?
+			return nil, err
+		}
+		// write some crap
+		_, err = shardFile.Write([]byte(fmt.Sprintf(fileParams.FileData + strconv.Itoa(i))))
+		if err != nil {
+			return nil, err
+		}
+		err = shardFile.Close()
+		if err != nil {
+			return nil, err
+		}
+
+		err = dbfs.CreateFragment(tx, file.FileId, file.DataId, file.VersionNo, fragId, serverId, shardName)
+		if err != nil {
+
 			err2 := file.Delete(tx, user, fileParams.Server)
 			if err2 != nil {
 				return nil, err2
@@ -165,7 +186,26 @@ func EXAMPLEUpdateFile(tx *gorm.DB, file *dbfs.File, eU ExampleUpdate, user *dbf
 
 	// As each fragment is uploaded, each fragment is added to the database.
 	for i := 1; i <= file.TotalShards; i++ {
-		err = file.UpdateFragment(tx, i, uuid.NewString(), "wowChecksum", eU.Server)
+
+		shardName := file.DataId + ".shard" + strconv.Itoa(i)
+		shardPath := path.Join(eU.FragmentPath, shardName)
+		shardFile, err := os.Create(shardPath)
+
+		if err != nil {
+			return err
+		}
+
+		// write some crap
+		_, err = shardFile.Write([]byte(fmt.Sprintf(eU.FileData + strconv.Itoa(i))))
+		if err != nil {
+			return err
+		}
+		err = shardFile.Close()
+		if err != nil {
+			return err
+		}
+
+		err = file.UpdateFragment(tx, i, shardName, "wowChecksum", eU.Server)
 		if err != nil {
 			return err
 		}

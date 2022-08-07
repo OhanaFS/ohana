@@ -32,38 +32,60 @@ type Hosts struct {
 
 // GenCA generates a new CA certificate and private key.
 // It returns the certificate and private key in PEM format and the CSR in JSON format.
-func GenCA(pathName string) error {
+func GenCA(pathName string, debugMode bool) error {
 
 	if pathName == "" {
 		pathName = "main"
 	}
 
+	var country, state, locality, organization, organizationalUnit string
+
 	// asking user for csr info
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Enter your country [SG]: ")
-	country, _ := reader.ReadString('\n')
-	if strings.Trim(country, "\n") == "" {
+	if debugMode {
 		country = "SG"
+	} else {
+		country, _ = reader.ReadString('\n')
+		if strings.Trim(country, "\n") == "" {
+			country = "SG"
+		}
 	}
 	fmt.Print("Enter your state [Singapore]: ")
-	state, _ := reader.ReadString('\n')
-	if strings.Trim(state, "\n") == "" {
+	if debugMode {
 		state = "Singapore"
+	} else {
+		state, _ = reader.ReadString('\n')
+		if strings.Trim(state, "\n") == "" {
+			state = "Singapore"
+		}
 	}
 	fmt.Print("Enter your locality [Singapore]: ")
-	locality, _ := reader.ReadString('\n')
-	if strings.Trim(locality, "\n") == "" {
+	if debugMode {
 		locality = "Singapore"
+	} else {
+		locality, _ = reader.ReadString('\n')
+		if strings.Trim(locality, "\n") == "" {
+			locality = "Singapore"
+		}
 	}
 	fmt.Print("Enter your organization [Ohana]: ")
-	organization, _ := reader.ReadString('\n')
-	if strings.Trim(organization, "\n") == "" {
+	if debugMode {
 		organization = "Ohana"
+	} else {
+		organization, _ = reader.ReadString('\n')
+		if strings.Trim(organization, "\n") == "" {
+			organization = "Ohana"
+		}
 	}
 	fmt.Print("Enter your organization unit [Ohana]: ")
-	organizationalUnit, _ := reader.ReadString('\n')
-	if strings.Trim(organizationalUnit, "\n") == "" {
+	if debugMode {
 		organizationalUnit = "Ohana"
+	} else {
+		organizationalUnit, _ = reader.ReadString('\n')
+		if strings.Trim(organizationalUnit, "\n") == "" {
+			organizationalUnit = "Ohana"
+		}
 	}
 
 	req := csr.CertificateRequest{
