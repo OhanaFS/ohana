@@ -21,7 +21,7 @@
   background-color: white;
   display: flex;
   flex-direction: column;
-
+  height:500px;
 }
 .maintenanceLogs{
   border: 1px solid #ccc;

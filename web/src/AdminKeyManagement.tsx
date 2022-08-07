@@ -290,26 +290,20 @@ export function AdminKeyManagement() {
   return (
     <>
       <AppBase userType="admin">
-        <div
-          style={{
-            display: 'flex',
-            height: '50vh',
-            justifyContent: 'center',
-          }}
-        >
-          <div className="console">
+   
+      
             <Modal
               centered
               title="Add console"
               opened={openedAddKeyModel}
               onClose={() => [setOpened(false), resetKey()]}
-              size="20%"
+              size={500}
             >
               {
                 <div
                   style={{
                     display: 'flex',
-                    height: '50vh',
+                    height: '100%',
                     flexDirection: 'column',
                   }}
                 >
@@ -402,16 +396,17 @@ export function AdminKeyManagement() {
               title="Update console"
               opened={openedUpdateKeyModel}
               onClose={() => [setOpened2(false), resetKey()]}
-              size="20%"
+              size={500}
             >
               {
                 <div
                   style={{
                     display: 'flex',
-                    height: '45vh',
+                    height: '100%',
                     flexDirection: 'column',
                   }}
                 >
+   
                   <Textarea
                     placeholder={textField}
                     label="Key"
@@ -490,7 +485,15 @@ export function AdminKeyManagement() {
                   </Button>
                 </div>
               }
-            </Modal>
+            </Modal>   
+            <div
+          style={{
+            display: 'flex',
+            height: '50vh',
+            justifyContent: 'center',
+          }}
+        >
+             <div className="console">
             <ScrollArea
               style={{
                 height: '90%',
