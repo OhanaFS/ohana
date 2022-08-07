@@ -85,6 +85,22 @@ func NewBackend(
 	r.HandleFunc("/api/v1/file/{folderID}/copy", bc.CopyFile).Methods("POST")
 	r.HandleFunc("/api/v1/folder/{folderID}/details", bc.GetMetadataFile).Methods("GET")
 
+	// Cluster Routes
+	r.HandleFunc("/api/v1/cluster/stats/num_of_files", bc.GetNumOfFiles).Methods("GET")
+	r.HandleFunc("/api/v1/cluster/stats/non_replica_used", bc.GetStorageUsed).Methods("GET")
+	r.HandleFunc("/api/v1/cluster/stats/replica_used", bc.GetStorageUsedReplica).Methods("GET")
+	r.HandleFunc("/api/v1/cluster/stats/alerts", bc.GetAllAlerts).Methods("GET")
+	r.HandleFunc("/api/v1/cluster/stats/alerts", bc.ClearAllAlerts).Methods("DELETE")
+	r.HandleFunc("/api/v1/cluster/stats/alerts/{id}", bc.GetAlert).Methods("GET")
+	r.HandleFunc("/api/v1/cluster/stats/alerts/{id}", bc.ClearAlert).Methods("DELETE")
+	r.HandleFunc("/api/v1/cluster/stats/logs", bc.GetAllLogs).Methods("GET")
+	r.HandleFunc("/api/v1/cluster/stats/logs", bc.ClearAllLogs).Methods("DELETE")
+	r.HandleFunc("/api/v1/cluster/stats/logs/{id}", bc.GetLog).Methods("GET")
+	r.HandleFunc("/api/v1/cluster/stats/logs/{id}", bc.ClearLog).Methods("DELETE")
+	r.HandleFunc("/api/v1/cluster/stats/servers", bc.GetServerStatuses).Methods("GET")
+	r.HandleFunc("/api/v1/cluster/stats/servers/{serverName}", bc.GetSpecificServerStatus).Methods("GET")
+	r.HandleFunc("/api/v1/cluster/stats/servers/{serverName}", bc.DeleteServer).Methods("DELETE")
+
 	r.Use(mw.UserAuth)
 
 	return nil
