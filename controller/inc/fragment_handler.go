@@ -140,7 +140,7 @@ func (i Inc) CronJobDeleteFragments(manualRun bool) (string, error) {
 		return fmt.Sprintf("Finished (WARNING). Deleted %d, but %d errors occurred",
 			len(dataIdFragmentMap)-len(AllDeleteWorkerErrors), len(AllDeleteWorkerErrors)), ErrJobFailed
 	} else {
-		return "Finished. Deleted " + fmt.Sprintf("%d", len(dataIdFragmentMap)) + " fragments", nil
+		return "Finished. Deleted " + fmt.Sprintf("%d", len(dataIdFragmentMap)) + " File Versions", nil
 	}
 
 }

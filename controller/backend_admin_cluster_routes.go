@@ -246,13 +246,13 @@ func (bc *BackendController) ClearAlert(w http.ResponseWriter, r *http.Request) 
 	util.HttpJson(w, http.StatusOK, true)
 }
 
-// GetLogs returns the 50 newest logs based on the parameters provided in the header
+// GetAllLogs returns the 50 newest logs based on the parameters provided in the header
 // start_num (if not will get latest)
 // start_date
 // end_date
 // server_filter
 // type_filter
-func (bc *BackendController) GetLogs(w http.ResponseWriter, r *http.Request) {
+func (bc *BackendController) GetAllLogs(w http.ResponseWriter, r *http.Request) {
 
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
@@ -289,27 +289,27 @@ func (bc *BackendController) GetLogs(w http.ResponseWriter, r *http.Request) {
 	if startDateString != "" {
 		startDate, err := time.Parse("2006-01-02", startDateString)
 		if err != nil {
-			util.HttpError(w, http.StatusBadRequest, "Invalid startDateString")
+			util.HttpError(w, http.StatusBadRequest, "Invalid startDateString. Follow YYYY-MM-DD")
 			return
 		}
 
-		parseStringArray = append(parseStringArray, "created_at >= ?")
+		parseStringArray = append(parseStringArray, "time_stamp >= ?")
 		parseObjectsArray = append(parseObjectsArray, startDate)
 
 	}
 	if endDateString != "" {
 		endDate, err := time.Parse("2006-01-02", endDateString)
 		if err != nil {
-			util.HttpError(w, http.StatusBadRequest, "Invalid endDateString")
+			util.HttpError(w, http.StatusBadRequest, "Invalid endDateString. Follow YYYY-MM-DD")
 			return
 		}
 
-		parseStringArray = append(parseStringArray, "created_at <= ?")
+		parseStringArray = append(parseStringArray, "time_stamp <= ?")
 		parseObjectsArray = append(parseObjectsArray, endDate)
 	}
 
 	if serverFilterString != "" {
-		parseStringArray = append(parseStringArray, "server LIKE ?")
+		parseStringArray = append(parseStringArray, "server_name LIKE ?")
 		parseObjectsArray = append(parseObjectsArray, "%"+serverFilterString+"%")
 	}
 	if typeFilterString != "" {
@@ -327,8 +327,8 @@ func (bc *BackendController) GetLogs(w http.ResponseWriter, r *http.Request) {
 
 	// build query
 
-	err = bc.Db.Find(&logs).Where(strings.Join(parseStringArray[:], " AND "),
-		parseObjectsArray...).Order("log_id desc").Offset(int(startNum)).Limit(50).Error
+	err = bc.Db.Where(strings.Join(parseStringArray[:], " AND "),
+		parseObjectsArray...).Order("log_id desc").Offset(int(startNum * 50)).Limit(50).Find(&logs).Error
 
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
@@ -339,8 +339,83 @@ func (bc *BackendController) GetLogs(w http.ResponseWriter, r *http.Request) {
 	util.HttpJson(w, http.StatusOK, logs)
 }
 
-// ClearLogs clears all logs
-func (bc *BackendController) ClearLogs(w http.ResponseWriter, r *http.Request) {
+// GetLog returns the log based on the ID provided.
+func (bc *BackendController) GetLog(w http.ResponseWriter, r *http.Request) {
+
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Check if user is admin
+	if user.AccountType != dbfs.AccountTypeAdmin {
+		util.HttpError(w, http.StatusForbidden, "You are not an admin")
+		return
+	}
+
+	vars := mux.Vars(r)
+	logId := vars["id"]
+
+	if logId == "" {
+		util.HttpError(w, http.StatusBadRequest, "Missing log id")
+		return
+	}
+
+	var log dbfs.Log
+	err = bc.Db.Where("log_id = ?", logId).First(&log).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			util.HttpError(w, http.StatusNotFound, "Log not found")
+			return
+		}
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// success
+	util.HttpJson(w, http.StatusOK, log)
+}
+
+// ClearLog clears the log based on the ID provided.
+func (bc *BackendController) ClearLog(w http.ResponseWriter, r *http.Request) {
+
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Check if user is admin
+	if user.AccountType != dbfs.AccountTypeAdmin {
+		util.HttpError(w, http.StatusForbidden, "You are not an admin")
+		return
+	}
+
+	vars := mux.Vars(r)
+	logId := vars["id"]
+
+	if logId == "" {
+		util.HttpError(w, http.StatusBadRequest, "Missing log id")
+		return
+	}
+
+	err = bc.Db.Where("log_id = ?", logId).Delete(&dbfs.Log{}).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			util.HttpError(w, http.StatusNotFound, "Log not found")
+			return
+		}
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// success
+	util.HttpJson(w, http.StatusOK, true)
+}
+
+// ClearAllLogs clears all logs
+func (bc *BackendController) ClearAllLogs(w http.ResponseWriter, r *http.Request) {
 
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
@@ -451,7 +526,6 @@ func (bc *BackendController) DeleteServer(w http.ResponseWriter, r *http.Request
 			return
 		}
 
-		// shutdown gracefully
 		bc.Inc.Shutdown <- true
 
 	} else {
