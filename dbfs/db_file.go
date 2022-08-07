@@ -1467,7 +1467,8 @@ func (f *File) FinishUpdateFile(tx *gorm.DB, checksum string) error {
 
 	if f.VersioningMode == VersioningOff {
 		// Mark previous fragment as to be deleted.
-		err = tx.Model(&FileVersion{}).Where("file_id = ? AND versioning_mode = ?", f.FileId, VersioningOff).Update("status", FileStatusToBeDeleted).Error
+		err = tx.Model(&FileVersion{}).Where("file_id = ? AND versioning_mode = ? AND data_id <> ?",
+			f.FileId, VersioningOff, f.DataId).Update("status", FileStatusToBeDeleted).Error
 
 	} else if f.VersioningMode == VersioningOnVersions {
 		err = nil
