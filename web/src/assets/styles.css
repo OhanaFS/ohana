@@ -8,7 +8,7 @@
   background-color: white;
 }
 .dashboardCard{
-  width: 500px;
+  width: 350px;
   border: 0px;
   margin: 10px;
   height: 300px;
@@ -100,7 +100,7 @@
   }
 }
 .dashboardLogsCard {
-  width: 500px;
+  width: 1000px;
   border: none;
   margin: 10px;
 }
@@ -139,6 +139,12 @@
     .console{
       border:none;
     }
+}
+@media screen and (max-width: 1400px) {
+  .dashboardLogsCard {
+    width: 350px;
+  }
+
 }
 @media screen and (min-width: 1830px) {
   .dashboardLogsCard {

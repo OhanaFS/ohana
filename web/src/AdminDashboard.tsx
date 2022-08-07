@@ -439,10 +439,18 @@ export function AdminDashboard() {
           justifyContent: 'center',
         }}
       >
-        <div
+               <div
           style={{
             display: 'flex',
             flexDirection: 'row',
+            flexWrap: 'wrap',
+            justifyContent: 'space-evenly',
+          }}
+        >
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
             flexWrap: 'wrap',
             justifyContent: 'space-evenly',
           }}
@@ -475,74 +483,6 @@ export function AdminDashboard() {
               </AreaChart>
             </ResponsiveContainer>
           </Card>
-
-          <Card className="dashboardCard" shadow="sm" p="xl">
-            <Text weight={700}>Total File Stored:</Text>
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart
-                data={NewFileChartData}
-                margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="color" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                //delete this if dont want mouseover
-                <Tooltip></Tooltip>
-                <XAxis dataKey="Date" />
-                <YAxis dataKey="Total New File Stored" />
-                //use this if want axis CartesianGrid strokeDasharray="1 1"
-                <Area
-                  type="monotone"
-                  dataKey="Total New File Stored"
-                  stroke="#8884d8"
-                  fillOpacity={1}
-                  fill="url(#color)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </Card>
-          <Card className="dashboardCard" p="xl">
-            <Text weight={700}>
-              Total files size stored (not incl. replicas):
-            </Text>
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart
-                data={SizeOfFiles}
-                margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="color" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                //delete this if dont want mouseover
-                <Tooltip></Tooltip>
-                <XAxis dataKey="Date" />
-                <YAxis dataKey="Total bytes" />
-                //use this if want axis CartesianGrid strokeDasharray="1 1"
-                <Area
-                  type="monotone"
-                  dataKey="Total bytes"
-                  stroke="#8884d8"
-                  fillOpacity={1}
-                  fill="url(#color)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </Card>
-        </div>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            justifyContent: 'space-evenly',
-          }}
-        >
           <Card className="dashboardCard" shadow="sm" p="xl">
             <Text weight={700}> Total Disk usage: </Text>
             <div style={{ marginTop: '-10px' }}>
@@ -571,7 +511,45 @@ export function AdminDashboard() {
               </ResponsiveContainer>
             </div>
           </Card>
-
+        
+     
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            flexWrap: 'wrap',
+            justifyContent: 'space-evenly',
+          }}
+        >
+  <Card className="dashboardCard" shadow="sm" p="xl">
+            <Text weight={700}>Total File Stored:</Text>
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart
+                data={NewFileChartData}
+                margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="color" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                //delete this if dont want mouseover
+                <Tooltip></Tooltip>
+                <XAxis dataKey="Date" />
+                <YAxis dataKey="Total New File Stored" />
+                //use this if want axis CartesianGrid strokeDasharray="1 1"
+                <Area
+                  type="monotone"
+                  dataKey="Total New File Stored"
+                  stroke="#8884d8"
+                  fillOpacity={1}
+                  fill="url(#color)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </Card>
           <Card className="dashboardCard" shadow="sm" p="xl">
             <Text
               style={{ marginTop: '-10px', marginBottom: '10px' }}
@@ -606,6 +584,49 @@ export function AdminDashboard() {
               </ResponsiveContainer>
             </div>
           </Card>
+          </div>
+
+
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            flexWrap: 'wrap',
+            justifyContent: 'space-evenly',
+          }}
+        >
+           <Card className="dashboardCard" p="xl">
+            <Text weight={700}>
+              Total files size stored (not incl. replicas):
+            </Text>
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart
+                data={SizeOfFiles}
+                margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="color" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                //delete this if dont want mouseover
+                <Tooltip></Tooltip>
+                <XAxis dataKey="Date" />
+                <YAxis dataKey="Total bytes" />
+                //use this if want axis CartesianGrid strokeDasharray="1 1"
+                <Area
+                  type="monotone"
+                  dataKey="Total bytes"
+                  stroke="#8884d8"
+                  fillOpacity={1}
+                  fill="url(#color)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </Card>
+
+      
 
           <Card className="dashboardCard" shadow="sm" p="xl">
             <Text
@@ -642,6 +663,7 @@ export function AdminDashboard() {
             </div>
           </Card>
         </div>
+     
         <div
           style={{
             display: 'flex',
@@ -685,6 +707,7 @@ export function AdminDashboard() {
             </Button>
           </Card>
         </div>
+      </div>
       </div>
     </AppBase>
   );
