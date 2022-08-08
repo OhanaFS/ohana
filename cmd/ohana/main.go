@@ -64,6 +64,9 @@ func main() {
 
 			// DB
 			dbfs.InitDB,
+
+			// Inc
+			inc.RegisterIncServices,
 		),
 	).Run()
 }
