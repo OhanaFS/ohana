@@ -53,6 +53,7 @@ func TestRegisterServer(t *testing.T) {
 		Assert := assert.New(t)
 
 		incServer = inc.NewInc(configFile, db)
+		inc.RegisterIncServices(incServer)
 
 		err := incServer.RegisterServer(true)
 		Assert.NoError(err)
