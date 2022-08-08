@@ -122,7 +122,7 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -321,7 +321,7 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -473,7 +473,7 @@ func (bc *BackendController) GetMetadataFile(w http.ResponseWriter, r *http.Requ
 
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -497,7 +497,7 @@ func (bc *BackendController) UpdateMetadataFile(w http.ResponseWriter, r *http.R
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -543,7 +543,7 @@ func (bc *BackendController) MoveFile(w http.ResponseWriter, r *http.Request) {
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -601,7 +601,7 @@ func (bc *BackendController) CopyFile(w http.ResponseWriter, r *http.Request) {
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -667,7 +667,7 @@ func (bc *BackendController) DeleteFile(w http.ResponseWriter, r *http.Request) 
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -704,7 +704,7 @@ func (bc *BackendController) GetPermissionsFile(w http.ResponseWriter, r *http.R
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -743,7 +743,7 @@ func (bc *BackendController) ModifyPermissionsFile(w http.ResponseWriter, r *htt
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -853,7 +853,7 @@ func (bc *BackendController) AddPermissionsFile(w http.ResponseWriter, r *http.R
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -963,7 +963,7 @@ func (bc *BackendController) GetFileVersionMetadata(w http.ResponseWriter, r *ht
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -1010,7 +1010,7 @@ func (bc *BackendController) GetFileVersionHistory(w http.ResponseWriter, r *htt
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -1049,7 +1049,7 @@ func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -1188,7 +1188,7 @@ func (bc *BackendController) DeleteFileVersion(w http.ResponseWriter, r *http.Re
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -1238,7 +1238,7 @@ func (bc *BackendController) LsFolderID(w http.ResponseWriter, r *http.Request) 
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -1277,7 +1277,7 @@ func (bc *BackendController) UpdateFolderMetadata(w http.ResponseWriter, r *http
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -1341,7 +1341,7 @@ func (bc *BackendController) DeleteFolder(w http.ResponseWriter, r *http.Request
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -1387,7 +1387,7 @@ func (bc *BackendController) GetFolderIDFromPath(w http.ResponseWriter, r *http.
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -1418,7 +1418,7 @@ func (bc *BackendController) CreateFolder(w http.ResponseWriter, r *http.Request
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -1483,7 +1483,7 @@ func (bc *BackendController) GetFolderPermissions(w http.ResponseWriter, r *http
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -1529,7 +1529,7 @@ func (bc *BackendController) ModifyPermissionsFolder(w http.ResponseWriter, r *h
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -1638,7 +1638,7 @@ func (bc *BackendController) AddPermissionsFolder(w http.ResponseWriter, r *http
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -1754,7 +1754,7 @@ func (bc *BackendController) MoveFolder(w http.ResponseWriter, r *http.Request) 
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -1817,7 +1817,7 @@ func (bc *BackendController) GetFolderDetails(w http.ResponseWriter, r *http.Req
 	// somehow get user idk
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 

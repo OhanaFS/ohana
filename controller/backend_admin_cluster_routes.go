@@ -19,7 +19,7 @@ func (bc *BackendController) CronDeleteFragments(w http.ResponseWriter, r *http.
 
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -44,7 +44,7 @@ func (bc *BackendController) GetNumOfFiles(w http.ResponseWriter, r *http.Reques
 
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -67,7 +67,7 @@ func (bc *BackendController) GetStorageUsed(w http.ResponseWriter, r *http.Reque
 
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -96,7 +96,7 @@ func (bc *BackendController) GetStorageUsedReplica(w http.ResponseWriter, r *htt
 
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -124,7 +124,7 @@ func (bc *BackendController) GetAllAlerts(w http.ResponseWriter, r *http.Request
 
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -151,7 +151,7 @@ func (bc *BackendController) ClearAllAlerts(w http.ResponseWriter, r *http.Reque
 
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -176,7 +176,7 @@ func (bc *BackendController) GetAlert(w http.ResponseWriter, r *http.Request) {
 
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -214,7 +214,7 @@ func (bc *BackendController) ClearAlert(w http.ResponseWriter, r *http.Request) 
 
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -256,7 +256,7 @@ func (bc *BackendController) GetAllLogs(w http.ResponseWriter, r *http.Request) 
 
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -344,7 +344,7 @@ func (bc *BackendController) GetLog(w http.ResponseWriter, r *http.Request) {
 
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -382,7 +382,7 @@ func (bc *BackendController) ClearLog(w http.ResponseWriter, r *http.Request) {
 
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -419,7 +419,7 @@ func (bc *BackendController) ClearAllLogs(w http.ResponseWriter, r *http.Request
 
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -444,7 +444,7 @@ func (bc *BackendController) GetServerStatuses(w http.ResponseWriter, r *http.Re
 
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -469,7 +469,7 @@ func (bc *BackendController) GetSpecificServerStatus(w http.ResponseWriter, r *h
 
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
@@ -502,7 +502,7 @@ func (bc *BackendController) DeleteServer(w http.ResponseWriter, r *http.Request
 
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
