@@ -1,11 +1,39 @@
 import { Button, Textarea, Checkbox, Text } from '@mantine/core';
-
+import { useState } from 'react';
 import AppBase from './components/AppBase';
 
 export function AdminConfiguration() {
   //function will be rotate key
   function rotateKey() {}
 
+  var [location, addLocation] = useState('');
+  var [errorMessage, setErrorMessage] = useState('');
+  var [rotateButton, setButton] = useState(true);
+  const allowedChar = /^[A-Za-z0-9\s]*$/;
+  const space = /^\s*$/;
+  function validate() {
+    //if the location is blank
+    if (space.test(location) == true) {
+      errorMessage = 'Do not leave blank';
+      setErrorMessage('Do not leave blank');
+      rotateButton = true;
+      setButton(true);
+    } else if (
+      //if the location contains other than letter and digit
+      allowedChar.test(location) == false
+    ) {
+      errorMessage = 'do not include special characters';
+      setErrorMessage('do not include special characters');
+      rotateButton = true;
+      setButton(true);
+    } else {
+      // all test are pass
+      errorMessage = '';
+      setErrorMessage('');
+      rotateButton = false;
+      setButton(false);
+    }
+  }
   return (
     <AppBase userType="admin">
       <div
@@ -47,6 +75,12 @@ export function AdminConfiguration() {
             auto rotate the key"
             radius="md"
             size="lg"
+            error={errorMessage}
+            onChange={(event) => {
+              addLocation(event.target.value),
+                (location = event.target.value),
+                validate();
+            }}
           />
           <div
             style={{
@@ -62,6 +96,7 @@ export function AdminConfiguration() {
             variant="default"
             color="dark"
             size="md"
+            disabled={rotateButton}
             style={{ alignSelf: 'flex-end' }}
             onClick={() => rotateKey()}
           >

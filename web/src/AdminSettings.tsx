@@ -3,7 +3,6 @@ import {
   Button,
   Text,
   Table,
-  useMantineTheme,
   Modal,
   Radio,
   createStyles,
@@ -11,6 +10,7 @@ import {
   Textarea,
 } from '@mantine/core';
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import AppBase from './components/AppBase';
 
 // style the specific label
@@ -35,7 +35,7 @@ const titleStyle = createStyles(() => ({
  *  then if u dont use the method to change the state but change straigth from the variable, next time u access the variable, it will use
  *  back the previous state.
  *  so i change the state of variable and also the variable data.
- * 
+ *
  *  so for the location right, from what i read online, u cant choose the place to download, the location will always be at the downloads
  */
 
@@ -507,7 +507,12 @@ export function AdminSettings() {
   // generate the key and show on the textfield, and enable the save button
   function generateKeys() {
     setTempKey(generateRandomString());
-    setsaveSettings(false);
+    console.log(errorMessage);
+    if (errorMessage === '') {
+      setsaveSettings(false);
+    } else {
+      setsaveSettings(true);
+    }
   }
 
   //download the key
@@ -531,7 +536,7 @@ export function AdminSettings() {
       oldConfigurationSettings[0].setting = newConfigurationSettings[0].setting;
       settingsA = true;
       setSettingsA(true);
-    
+
       if (oldConfigurationSettings[0].setting === true) {
         setClusterAlerts(true);
         oclusterAlerts = true;
@@ -550,8 +555,6 @@ export function AdminSettings() {
       oldConfigurationSettings[1].setting = newConfigurationSettings[1].setting;
       settingsB = true;
       setSettingsB(true);
-   
-  
 
       if (oldConfigurationSettings[1].setting === true) {
         setoActionAlerts(true);
@@ -571,8 +574,6 @@ export function AdminSettings() {
       oldConfigurationSettings[2].setting = newConfigurationSettings[2].setting;
       settingsC = true;
       setSettingsC(true);
-     
-    
 
       if (oldConfigurationSettings[2].setting === true) {
         setoSupiciousAlerts(true);
@@ -592,8 +593,6 @@ export function AdminSettings() {
       oldConfigurationSettings[3].setting = newConfigurationSettings[3].setting;
       settingsD = true;
       setSettingsD(true);
-    
-   
 
       if (oldConfigurationSettings[3].setting === true) {
         setoServerAlerts(true);
@@ -614,8 +613,6 @@ export function AdminSettings() {
       oldConfigurationSettings[4].setting = newConfigurationSettings[4].setting;
       settingsE = true;
       setSettingsE(true);
-     
-    
 
       if (oldConfigurationSettings[4].setting === true) {
         setoFileAlerts(true);
@@ -636,8 +633,6 @@ export function AdminSettings() {
       newConfigurationSettings[5].setting = backupLocation;
       settingsF = true;
       setSettingsF(true);
-    
-    
     }
 
     // redunacncy
@@ -648,8 +643,6 @@ export function AdminSettings() {
       newConfigurationSettings[6].setting = redundancyLevel;
       settingsG = true;
       setSettingsG(true);
-    
-    
     }
     settings = [true, true, true, true, true, true, true];
     setDisable(true);
@@ -659,43 +652,25 @@ export function AdminSettings() {
   var [errorMessage, setErrorMessage] = useState('');
 
   // validate the text field
+  const allowedChar = /^[A-Za-z0-9\s]*$/;
+  const space = /^\s*$/;
   function validateTF() {
-    if (
-      backupTemp.includes('/') ||
-      backupTemp.includes('[') ||
-      backupTemp.includes('!') ||
-      backupTemp.includes('@') ||
-      backupTemp.includes('#') ||
-      backupTemp.includes('$') ||
-      backupTemp.includes('%') ||
-      backupTemp.includes('^') ||
-      backupTemp.includes('&') ||
-      backupTemp.includes('*') ||
-      backupTemp.includes('(') ||
-      backupTemp.includes(')') ||
-      backupTemp.includes('=') ||
-      backupTemp.includes('[') ||
-      backupTemp.includes(']') ||
-      backupTemp.includes(';') ||
-      backupTemp.includes(',') ||
-      backupTemp.includes('.') ||
-      backupTemp.includes('<') ||
-      backupTemp.includes('>') ||
-      backupTemp.includes('?') ||
-      backupTemp.includes('`')
+    //if the location is blank
+    if (space.test(backupTemp) == true) {
+      errorMessage = 'Do not leave blank';
+      setErrorMessage('Do not leave blank');
+
+      setsaveSettings(true);
+    } else if (
+      //if the location contains other than letter and digit
+      allowedChar.test(backupTemp) == false
     ) {
-      errorMessage = 'Do not include special characters';
-      setErrorMessage('Do not include special characters');
-      setsaveSettings(true);
-    } else if (backupTemp.includes(' ')) {
-      errorMessage = 'No space is allowed';
-      setErrorMessage('No space is allowed');
-      setsaveSettings(true);
-    } else if (backupTemp == '') {
-      errorMessage = 'Details needed';
-      setErrorMessage('Details needed');
+      errorMessage = 'do not include special characters';
+      setErrorMessage('do not include special characters');
+
       setsaveSettings(true);
     } else {
+      // all test are pass
       errorMessage = '';
       setErrorMessage('');
       setsaveSettings(false);
@@ -870,9 +845,8 @@ export function AdminSettings() {
                     </Button>
                   }
                 />
-
                 <Textarea
-                  label="New Location:"
+                  label="Location of Encryption Key:"
                   radius="md"
                   size="lg"
                   error={errorMessage}
@@ -1040,20 +1014,25 @@ export function AdminSettings() {
                 <div
                   style={{
                     display: 'flex',
-                    height: '50px',
+                    height: '60px',
                     flexDirection: 'row',
                     justifyContent: 'space-between',
                     marginLeft: '10px',
                   }}
                 >
-                  <span>
-                    <Text id="settingText"> Backup encryption key</Text>{' '}
-                    <Text weight={700} style={{ marginLeft: '10px' }}>
-                      Location: {backupLocation}{' '}
-                    </Text>{' '}
-                  </span>{' '}
+                  <Text
+                    id="settingText"
+                    style={{ marginTop: '20px', marginBottom: '10px' }}
+                  >
+                    {' '}
+                    Backup encryption key
+                  </Text>{' '}
                   <Button
-                    style={{ marginRight: '10px', marginTop: '20px' }}
+                    style={{
+                      marginRight: '10px',
+                      marginTop: '10px',
+                      marginBottom: '10px',
+                    }}
                     variant="default"
                     color="dark"
                     size="md"
@@ -1067,14 +1046,14 @@ export function AdminSettings() {
                 <div
                   style={{
                     display: 'flex',
-                    height: '50px',
+                    height: '80px',
                     flexDirection: 'row',
                     justifyContent: 'space-between',
                     marginLeft: '10px',
                   }}
                 >
                   {' '}
-                  <span style={{ marginTop: '10px' }}>
+                  <span style={{}}>
                     <Text id="settingText">
                       {' '}
                       Change the redundancy level of the files
@@ -1084,7 +1063,11 @@ export function AdminSettings() {
                     </Text>{' '}
                   </span>{' '}
                   <Button
-                    style={{ marginRight: '10px', marginTop: '20px' }}
+                    style={{
+                      marginRight: '10px',
+                      marginTop: '20px',
+                      marginBottom: '20px',
+                    }}
                     variant="default"
                     color="dark"
                     size="md"

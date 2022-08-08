@@ -1,36 +1,20 @@
 import AppBase from './components/AppBase';
-
 import {
   CountdownCircleTimer,
   useCountdown,
 } from 'react-countdown-circle-timer';
 import { Button, Modal, ScrollArea, Table } from '@mantine/core';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useSetState } from '@mantine/hooks';
-export function AdminPerformMaintenance() {
-  const steps = [
-    'Cleaning Server 1',
-    'Finish Cleaning Server 1',
-    'Added Server 2 ',
-    'Finish Cleaning Server 2',
-    'Added Server 3 ',
-    'Finish Cleaning Server 3',
-    'Added Server 4 ',
-    'Finish Cleaning Server 4',
-    'Added Server 5 ',
-    'Finish Cleaning Server 5',
-    'Added Server 6 ',
-    'Finish Cleaning Server 6',
-    'Added Server 7 ',
-    'Finish Cleaning Server 7',
-  ];
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
+export function AdminPerformMaintenance() {
   //labels
   const [timeRemaining, setTime] = useState(' Time remaining: ');
   const [percentageCompleted, setPercent] = useState('% Completed: ');
   const [elapsedTime, setElapsedTime] = useState(0);
 
+  const state = useLocation();
+  const maintenanceTiming: any = state.state;
   const timerProps = {
     isPlaying: true,
     size: 300,
@@ -38,7 +22,7 @@ export function AdminPerformMaintenance() {
   };
 
   //get total maintenance of time needed based on how much steps
-  const time = steps.length;
+  const time = maintenanceTiming.time;
 
   const minuteSeconds = time;
   const [pauseBtn, setPauseBtn] = useState(false);
@@ -69,8 +53,8 @@ export function AdminPerformMaintenance() {
   }
 
   const [logs, setLogs] = useState('Maintenance Logs : ');
+  const [listLogs, setListlogs] = useState([{ log: '' }]);
 
-  const [logsDone, setLogsDone] = useState('');
   // convert the number of seconds into day hour month and seconds
   const renderTime = (dimension: string, time: number) => {
     return (
@@ -97,20 +81,28 @@ export function AdminPerformMaintenance() {
     } else {
       setButtonText('Unpause');
     }
+    const vLogs = [
+      {
+        log: buttonText,
+      },
+    ];
+    setListlogs([...listLogs, ...vLogs]);
   }
   function stop() {
     setIsActive(false);
     setMaintenanceModal(true);
     setMaintenanceStatus('Not Completed');
+    const vLogs = [
+      {
+        log: 'stop',
+      },
+    ];
+    setListlogs([...listLogs, ...vLogs]);
   }
   //modal
   const [maintenanceModal, setMaintenanceModal] = useState(false);
-  const displayedLogs = [''];
-  //setValue(CurrentSSOGroups.concat(Group));
-  function setDisplayedLogs(items: string) {
-    displayedLogs.concat(items);
-  }
-  const recentRows = steps.map((items, index) =>
+
+  const recentRows = listLogs.map((items, index) =>
     index <= elapsedTime ? (
       <tr>
         <td
@@ -122,7 +114,7 @@ export function AdminPerformMaintenance() {
             color: 'black',
           }}
         >
-          {items}
+          {items.log}
         </td>
       </tr>
     ) : (
@@ -154,7 +146,12 @@ export function AdminPerformMaintenance() {
       month < 10 ? `0${month}` : `${month}`
     }${separator}${date}`;
   }
+  var datalogs;
   function downloadLogs() {
+    datalogs = listLogs.map(function (v) {
+      return Object.values(v);
+    });
+
     const fileData = JSON.stringify(
       'Maintenance Status: ' +
         maintenanceStatus +
@@ -164,8 +161,9 @@ export function AdminPerformMaintenance() {
         'Date: ' +
         getCurrentDate('/') +
         ', Maintenance logs: ' +
-        logsDone
+        datalogs
     );
+
     const blob = new Blob([fileData], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -330,13 +328,9 @@ export function AdminPerformMaintenance() {
                     {setElapsedTime(Math.floor(elapsedTime))}
 
                     {setLogs(
-                      'Maintenance Logs : ' + steps[Math.floor(elapsedTime)]
+                      'Maintenance Logs : ' + listLogs[listLogs.length - 1].log
                     )}
-                    {logsDone.includes(steps[Math.floor(elapsedTime)])
-                      ? ''
-                      : setLogsDone(
-                          logsDone.concat(', ' + steps[Math.floor(elapsedTime)])
-                        )}
+
                     <div
                       style={{
                         color,

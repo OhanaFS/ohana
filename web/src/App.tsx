@@ -41,10 +41,7 @@ export default function Demo() {
           <Route path="/" element={<LoginPage />} />
           <Route path="/insidessogroup" element={<AdminSsoGroupsInside />} />
           <Route path="/manage_keys" element={<AdminKeyManagement />} />
-          <Route
-            path="/performmaintenance"
-            element={<AdminPerformMaintenance />}
-          />
+          <Route path="/performmaintenance" element={<AdminPerformMaintenance />}/>
           <Route path="/runmaintenance" element={<AdminRunMaintenance />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="/sso" element={<AdminSsoGroups />} />

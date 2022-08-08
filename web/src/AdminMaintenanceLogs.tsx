@@ -1,4 +1,5 @@
-import { AdminLogs } from './AdminLogs';
+import { ScrollArea, Button, Table } from '@mantine/core';
+import { Link } from 'react-router-dom';
 import AppBase from './components/AppBase';
 
 export function AdminMaintenanceLogs() {
@@ -704,26 +705,100 @@ export function AdminMaintenanceLogs() {
       'Maintenance Type': 'Corrective',
     },
   ];
+  // variable that show all the logs inside the props.groupList
+  const logsHeader = [
+    'Maintenance date',
+    'Total Files',
+    'Start Time',
+    'End Time',
+    'Maintenance Type',
+  ];
 
+  // display table header that is from props
+  const ths = logsHeader.map((items) => (
+    <th style={{ fontWeight: '600' }}>{items}</th>
+  ));
+
+  // display all the rows that is from props
+  const rows = maintenanceLogss.map((items) => (
+    <tr>
+      <td>{items['Maintenance date']}</td>
+      <td>{items['Total Files']}</td>
+      <td>{items['Start Time']}</td>
+      <td>{items['End Time']}</td>
+      <td>{items['Maintenance Type']}</td>
+    </tr>
+  ));
   return (
     <>
       <AppBase userType="admin">
-        <AdminLogs
-          groupList={maintenanceLogss}
-          tableHeader={[
-            ['Maintenance Date'],
-            ['Total Files'],
-            ['Time Started'],
-            ['Time Ended'],
-            ['Maintenance Type'],
-          ]}
-          tableBody={[]}
-          caption="Maintenance Records"
-          pointerEvents={true}
-        ></AdminLogs>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            height: '85vh',
+          }}
+        >
+          <div className="maintenanceLogs">
+            <ScrollArea
+              style={{
+                height: '85%',
+                width: '90%',
+                marginTop: '10px',
+                marginLeft: '20px',
+              }}
+            >
+              <Table
+                id="maintenanceLogsTable"
+                captionSide="top"
+                striped
+                highlightOnHover
+                verticalSpacing="sm"
+              >
+                <caption
+                  style={{
+                    textAlign: 'center',
+                    fontWeight: '600',
+                    fontSize: '24px',
+                    color: 'black',
+                  }}
+                >
+                  Maintenance Records
+                </caption>
+                <thead>{ths}</thead>
+                <tbody>{rows}</tbody>
+              </Table>
+            </ScrollArea>
+
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <Button
+                variant="default"
+                color="dark"
+                size="md"
+                style={{
+                  alignSelf: 'flex-end',
+                  marginRight: '15px',
+                  marginTop: '10px',
+                }}
+                component={Link}
+                to="/runmaintenance"
+              >
+                Perform Maintenance
+              </Button>
+            </div>
+          </div>
+        </div>
       </AppBase>
     </>
   );
 }
 
 export default AdminMaintenanceLogs;
+function useState(groupList: any): [any, any] {
+  throw new Error('Function not implemented.');
+}
