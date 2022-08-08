@@ -61,6 +61,7 @@ func NewBackend(
 	r.HandleFunc("/api/v1/file/{fileID}/metadata", bc.UpdateMetadataFile).Methods("PATCH")
 	r.HandleFunc("/api/v1/file/{fileID}/move", bc.MoveFile).Methods("POST")
 	r.HandleFunc("/api/v1/file/{fileID}/copy", bc.CopyFile).Methods("POST")
+	r.HandleFunc("/api/v1/file/{fileID}/path", bc.GetPath).Methods("GET")
 	r.HandleFunc("/api/v1/file/{fileID}", bc.DownloadFileVersion).Methods("GET")
 	r.HandleFunc("/api/v1/file/{fileID}", bc.DeleteFile).Methods("DELETE")
 	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.GetFolderPermissions).Methods("GET")
@@ -76,6 +77,7 @@ func NewBackend(
 	r.HandleFunc("/api/v1/folder/{folderID}", bc.LsFolderID).Methods("GET")
 	r.HandleFunc("/api/v1/folder/{folderID}", bc.UpdateFolderMetadata).Methods("PATCH")
 	r.HandleFunc("/api/v1/folder/{folderID}", bc.DeleteFolder).Methods("DELETE")
+	r.HandleFunc("/api/v1/folder/{folderID}/path", bc.GetPath).Methods("GET")
 	r.HandleFunc("/api/v1/folder", bc.GetFolderIDFromPath).Methods("GET")
 	r.HandleFunc("/api/v1/folder", bc.CreateFolder).Methods("POST")
 	r.HandleFunc("/api/v1/folder/{folderID}/permissions", bc.GetPermissionsFile).Methods("GET")
@@ -1843,4 +1845,42 @@ func (bc *BackendController) GetFolderDetails(w http.ResponseWriter, r *http.Req
 
 	// success
 	util.HttpJson(w, http.StatusOK, folder)
+}
+
+func (bc *BackendController) GetPath(w http.ResponseWriter, r *http.Request) {
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// folderID
+	vars := mux.Vars(r)
+	folderID := vars["folderID"]
+	fileID := vars["fileID"]
+	if folderID == "" && fileID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No folder_id or file_id provided")
+		return
+	} else if folderID != "" && fileID != "" {
+		util.HttpError(w, http.StatusBadRequest, "Both folder_id and file_id provided")
+		return
+	} else if folderID == "" && fileID != "" {
+		folderID = fileID
+	}
+
+	// get file
+	folder, err := dbfs.GetFileById(bc.Db, folderID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// success
+
+	folders, err := folder.GetPath(bc.Db, user)
+
+	util.HttpJson(w, http.StatusOK, folders)
 }

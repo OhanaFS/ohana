@@ -928,4 +928,80 @@ func TestBackendController(t *testing.T) {
 
 	})
 
+	t.Run("GetPath", func(t *testing.T) {
+
+		// create path1, path2, path3, path4
+
+		rootFolder, err := dbfs.GetRootFolder(db)
+		assert.NoError(err)
+
+		path1, err := rootFolder.CreateSubFolder(db, "path1", user, "")
+		assert.NoError(err)
+
+		path2, err := path1.CreateSubFolder(db, "path2", user, "")
+		assert.NoError(err)
+
+		path3, err := path2.CreateSubFolder(db, "path3", user, "")
+		assert.NoError(err)
+
+		path4, err := path3.CreateSubFolder(db, "path4", user, "")
+		assert.NoError(err)
+
+		// Create a user
+		userForGetFileMeta, err := dbfs.CreateNewUser(db, "GettingPath", "GettingPath", dbfs.AccountTypeEndUser, "GettingPath",
+			"GettingPath", "GettingPath", "GettingPath", "testServer")
+		assert.NoError(err)
+
+		err = path2.AddPermissionUsers(db, &dbfs.PermissionNeeded{Read: true, Write: true}, user, *userForGetFileMeta)
+		assert.NoError(err)
+
+		var files []dbfs.File
+
+		fakeSessionId, err := session.Create(nil, "GettingPath", time.Hour)
+
+		req = httptest.NewRequest("GET", "/api/v1/folder/"+path2.FileId+"/path", nil).WithContext(
+			ctxutil.WithUser(context.Background(), userForGetFileMeta))
+
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: fakeSessionId})
+		req = mux.SetURLVars(req, map[string]string{
+			"folderID": path4.FileId,
+		})
+		w = httptest.NewRecorder()
+		bc.GetPath(w, req)
+		assert.Equal(http.StatusOK, w.Code)
+		body = w.Body.String()
+
+		err = json.Unmarshal([]byte(body), &files)
+		assert.Equal(3, len(files))
+
+		// folder 2
+		req = httptest.NewRequest("GET", "/api/v1/folder/"+path2.FileId+"/path", nil).WithContext(
+			ctxutil.WithUser(context.Background(), userForGetFileMeta))
+
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: fakeSessionId})
+		req = mux.SetURLVars(req, map[string]string{
+			"folderID": path2.FileId,
+		})
+		w = httptest.NewRecorder()
+		bc.GetPath(w, req)
+		assert.Equal(http.StatusOK, w.Code)
+		body = w.Body.String()
+
+		err = json.Unmarshal([]byte(body), &files)
+		assert.Equal(1, len(files))
+
+		// folder 1 error since no permission
+		req = httptest.NewRequest("GET", "/api/v1/folder/"+path2.FileId+"/path", nil).WithContext(
+			ctxutil.WithUser(context.Background(), userForGetFileMeta))
+
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: fakeSessionId})
+		req = mux.SetURLVars(req, map[string]string{
+			"folderID": path1.FileId,
+		})
+		w = httptest.NewRecorder()
+		bc.GetPath(w, req)
+		assert.Equal(http.StatusNotFound, w.Code)
+
+	})
+
 }
