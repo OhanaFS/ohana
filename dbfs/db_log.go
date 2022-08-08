@@ -15,7 +15,7 @@ const (
 )
 
 type Log struct {
-	LogID      int    `gorm:"primaryKey;autoIncrement"`
+	LogId      int    `gorm:"primaryKey;autoIncrement"`
 	LogType    int8   `gorm:"not null"`
 	Message    string `gorm:"not null"`
 	ServerName string
@@ -23,11 +23,11 @@ type Log struct {
 }
 
 type Alert struct {
-	LogID      int    `gorm:"primaryKey;"`
-	LogType    int8   `gorm:"not null"`
-	Message    string `gorm:"not null"`
-	ServerName string
-	TimeStamp  time.Time `gorm:"not null;"`
+	LogId      int       `gorm:"primaryKey;" json:"id"`
+	LogType    int8      `gorm:"not null" json:"log_type"`
+	Message    string    `gorm:"not null" json:"message"`
+	ServerName string    `json:"server_name"`
+	TimeStamp  time.Time `gorm:"not null;" json:"timestamp"`
 }
 
 type Logger struct {
@@ -51,7 +51,7 @@ func (l *Logger) LogFatal(message string) {
 	}
 	l.db.Create(&log)
 	alert := Alert{
-		LogID:      log.LogID,
+		LogId:      log.LogId,
 		LogType:    log.LogType,
 		Message:    log.Message,
 		ServerName: log.ServerName,
@@ -69,7 +69,7 @@ func (l *Logger) LogError(message string) {
 	}
 	l.db.Create(&log)
 	alert := Alert{
-		LogID:      log.LogID,
+		LogId:      log.LogId,
 		LogType:    log.LogType,
 		Message:    log.Message,
 		ServerName: log.ServerName,
@@ -87,7 +87,7 @@ func (l *Logger) LogWarning(message string) {
 	}
 	l.db.Create(&log)
 	alert := Alert{
-		LogID:      log.LogID,
+		LogId:      log.LogId,
 		LogType:    log.LogType,
 		Message:    log.Message,
 		ServerName: log.ServerName,

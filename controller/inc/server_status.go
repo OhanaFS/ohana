@@ -64,7 +64,7 @@ func (i Inc) getLocalServerStatusReport() (*LocalServerReport, error) {
 
 	// Get the free space on the server.
 	usedSpace := getUsedStorage(i.ShardsLocation)
-	if usedSpace <= 0 {
+	if usedSpace < 0 {
 		return nil, ErrServerFailed
 	}
 

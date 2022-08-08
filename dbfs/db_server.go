@@ -24,11 +24,12 @@ var (
 // With that, comes with an IP or host address so it knows what to connect to someone with.
 // also needs an struct to specify the status of it.
 type Server struct {
-	Name      string `gorm:"not null; primaryKey; unique"`
-	HostName  string `gorm:"not null; unique"`
-	Port      string `gorm:"not null"`
-	Status    int8   `gorm:"not null"`
-	FreeSpace uint64 `gorm:"not null"`
+	Name      string `gorm:"not null; primaryKey; unique" json:"name"`
+	HostName  string `gorm:"not null; unique" json:"hostname"`
+	Port      string `gorm:"not null" json:"port"`
+	Status    int8   `gorm:"not null" json:"status"`
+	FreeSpace uint64 `gorm:"not null" json:"used_space"`
+	UsedSpace uint64 `gorm:"not null" json:"free_space"`
 }
 
 // GetServers returns all servers in the database.
@@ -79,6 +80,15 @@ func MarkServerOffline(tx *gorm.DB, serverName string) error {
 
 	server.Status = ServerOffline
 	err = tx.Save(&server).Error
+	if err != nil {
+		return err
+	}
+
+	// Mark fragments as offline.
+
+	err = tx.Model(&Fragment{}).Where("server_name = ?", serverName).
+		Update("status", ServerOffline).Error
+
 	if err != nil {
 		return err
 	}

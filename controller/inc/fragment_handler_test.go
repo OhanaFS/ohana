@@ -1,19 +1,17 @@
 package inc_test
 
 import (
+	"context"
 	"fmt"
 	"github.com/OhanaFS/ohana/config"
 	"github.com/OhanaFS/ohana/controller/inc"
 	"github.com/OhanaFS/ohana/dbfs"
-	"github.com/OhanaFS/ohana/selfsign"
+	selfsigntestutils "github.com/OhanaFS/ohana/selfsign/test_utils"
 	"github.com/OhanaFS/ohana/util/testutil"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
 	"gorm.io/gorm"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -21,10 +19,6 @@ import (
 	"testing"
 	"time"
 )
-
-var certsConfigured = false
-var tempDirConfigured = false
-var tempDir string
 
 func TestFragmentHandler(t *testing.T) {
 
@@ -34,9 +28,6 @@ func TestFragmentHandler(t *testing.T) {
 	filesToBeDeleted := []int{3, 4, 5}
 	filesToBeVersioned := []int{6, 7, 8}
 	//filesLeftAlone := []int{9}
-
-	cleanupBefore := true
-	cleanupOn := true
 
 	db := testutil.NewMockDB(t)
 
@@ -51,26 +42,14 @@ func TestFragmentHandler(t *testing.T) {
 	err := db.Where("email = ?", "superuser").First(&superUser).Error
 	assert.Nil(t, err)
 
-	// making Inc
-
 	Assert := assert.New(t)
-	tempdir, err := getTempDir()
-	Assert.Nil(err)
-
-	err = genCerts(tempdir)
+	tempdir := t.TempDir()
 	Assert.Nil(err)
 
 	sharddir := filepath.Join(tempdir, "shards")
 
 	stitchConfig := config.StitchConfig{
 		ShardsLocation: sharddir,
-	}
-
-	if cleanupBefore {
-		err := os.RemoveAll(tempdir)
-		Assert.NoError(err)
-		err = os.RemoveAll(stitchConfig.ShardsLocation)
-		Assert.NoError(err)
 	}
 
 	if w, err := os.Stat(stitchConfig.ShardsLocation); os.IsNotExist(err) {
@@ -82,14 +61,17 @@ func TestFragmentHandler(t *testing.T) {
 		panic("ERROR. SHARDS FOLDER IS NOT A DIRECTORY.")
 	}
 
+	certsPaths, err := selfsigntestutils.GenCertsTest(tempdir)
+	Assert.Nil(err)
+
 	configFile := &config.Config{Stitch: stitchConfig,
 		Inc: config.IncConfig{
 			ServerName: "testServer",
 			HostName:   "localhost",
 			Port:       "5555",
-			CaCert:     tempdir + "/certificates/main_GLOBAL_CERTIFICATE.pem",
-			PublicCert: tempdir + "/certificates/output_cert.pem",
-			PrivateKey: tempdir + "/certificates/output_key.pem",
+			CaCert:     certsPaths.CaCertPath,
+			PublicCert: certsPaths.PublicCertPath,
+			PrivateKey: certsPaths.PrivateKeyPath,
 		},
 	}
 
@@ -102,35 +84,6 @@ func TestFragmentHandler(t *testing.T) {
 	totalShards := dataShards + parityShards
 
 	Inc := inc.NewInc(configFile, db)
-
-	t.Run("Running a Server for ping test", func(t *testing.T) {
-
-		mux := http.NewServeMux()
-		mux.HandleFunc("/inc/ping", inc.Pong)
-
-		server := &http.Server{
-			Addr:    ":" + configFile.Inc.Port,
-			Handler: mux,
-		}
-
-		go server.ListenAndServe()
-
-	})
-
-	t.Run("Test Pong", func(t *testing.T) {
-
-		time.Sleep(1 * time.Second)
-
-		//req := httptest.NewRequest("GET", "/inc/ping", nil)
-		//w := httptest.NewRecorder()
-		//inc.Pong(w, req)
-		//Assert.Equal(http.StatusOK, w.Code)
-
-		Assert := assert.New(t)
-
-		Assert.Equal(inc.Ping(configFile.Inc.HostName, configFile.Inc.Port), true)
-
-	})
 
 	t.Run("Creating random files", func(t *testing.T) {
 
@@ -417,73 +370,13 @@ func TestFragmentHandler(t *testing.T) {
 
 	})
 
-	if cleanupOn {
-		t.Run("Cleanup", func(t *testing.T) {
-			err := os.RemoveAll(tempdir)
-			Assert.NoError(err)
-			err = os.RemoveAll(Inc.ShardsLocation)
-			Assert.NoError(err)
-		})
+	t.Run("Cleanup", func(t *testing.T) {
+		err = os.RemoveAll(Inc.ShardsLocation)
+		Assert.NoError(err)
+	})
 
-	}
+	defer Inc.HttpServer.Shutdown(context.Background())
 
-}
-
-func genCerts(tempdir string) error {
-	// Setting up certs for configs
-
-	if certsConfigured {
-		return nil
-	} else {
-		certsConfigured = true
-	}
-
-	ogc := config.LoadFlagsConfig()
-	trueBool := true
-	ogc.GenCA = &trueBool
-	ogc.GenCerts = &trueBool
-	tempDirCA := filepath.Join(tempdir, "certificates/main")
-	ogc.GenCAPath = &tempDirCA
-	tempDirCerts := filepath.Join(tempdir, "certificates/output")
-	ogc.GenCertsPath = &tempDirCerts
-	tempCertPath := filepath.Join(tempdir, "certificates/main_GLOBAL_CERTIFICATE.pem")
-	ogc.CertPath = &tempCertPath
-	tempPkPath := filepath.Join(tempdir, "certificates/main_PRIVATE_KEY.pem")
-	ogc.PkPath = &tempPkPath
-	tempCsrPath := filepath.Join(tempdir, "certificates/main_csr.json")
-	ogc.CsrPath = &tempCsrPath
-	tempHostsFile := filepath.Join(tempdir, "certhosts.yaml")
-	ogc.AllHosts = &tempHostsFile
-
-	fakeHosts := selfsign.Hosts{Hosts: []string{"localhost", "localhost2"}}
-
-	hostFile, err := os.Create(filepath.Join(tempdir, "certhosts.yaml"))
-	if err != nil {
-		return err
-	}
-	defer hostFile.Close()
-
-	encoder := yaml.NewEncoder(hostFile)
-	if err := encoder.Encode(fakeHosts); err != nil {
-		return err
-	}
-
-	return selfsign.ProcessFlags(ogc)
-}
-
-func getTempDir() (string, error) {
-
-	if tempDirConfigured {
-		return tempDir, nil
-	} else {
-		tempDirConfigured = true
-	}
-
-	tempDir, err := ioutil.TempDir("", "ohana-test")
-	if err != nil {
-		return "", err
-	}
-	return tempDir, nil
 }
 
 type testFileFrag struct {

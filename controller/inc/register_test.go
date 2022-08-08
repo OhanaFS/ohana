@@ -6,11 +6,10 @@ import (
 	"github.com/OhanaFS/ohana/config"
 	"github.com/OhanaFS/ohana/controller/inc"
 	"github.com/OhanaFS/ohana/dbfs"
+	selfsigntestutils "github.com/OhanaFS/ohana/selfsign/test_utils"
 	"github.com/OhanaFS/ohana/util/ctxutil"
 	"github.com/OhanaFS/ohana/util/testutil"
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"os"
 	"testing"
 	"time"
 )
@@ -20,8 +19,7 @@ func TestRegisterServer(t *testing.T) {
 	// Initialize the config
 
 	Assert := assert.New(t)
-	tempdir, err := getTempDir()
-	Assert.Nil(err)
+	tempdir := t.TempDir()
 
 	db := testutil.NewMockDB(t)
 
@@ -31,7 +29,8 @@ func TestRegisterServer(t *testing.T) {
 
 	// Setting up certs for configs
 
-	err = genCerts(tempdir)
+	certsPath, err := selfsigntestutils.GenCertsTest(tempdir)
+
 	Assert.Nil(err)
 
 	configFile := &config.Config{Stitch: stitchConfig,
@@ -39,44 +38,15 @@ func TestRegisterServer(t *testing.T) {
 			ServerName: "testServer",
 			HostName:   "localhost",
 			Port:       "5555",
-			CaCert:     tempdir + "/certificates/main_GLOBAL_CERTIFICATE.pem",
-			PublicCert: tempdir + "/certificates/output_cert.pem",
-			PrivateKey: tempdir + "/certificates/output_key.pem",
+			CaCert:     certsPath.CaCertPath,
+			PublicCert: certsPath.PublicCertPath,
+			PrivateKey: certsPath.PrivateKeyPath,
 		},
 	}
 
 	var incServer *inc.Inc
 
 	// Create inc server
-
-	t.Run("Running a Server for ping test", func(t *testing.T) {
-
-		mux := http.NewServeMux()
-		mux.HandleFunc("/inc/ping", inc.Pong)
-
-		server := &http.Server{
-			Addr:    ":" + configFile.Inc.Port,
-			Handler: mux,
-		}
-
-		go server.ListenAndServe()
-
-	})
-
-	t.Run("Test Pong", func(t *testing.T) {
-
-		time.Sleep(1 * time.Second)
-
-		//req := httptest.NewRequest("GET", "/inc/ping", nil)
-		//w := httptest.NewRecorder()
-		//inc.Pong(w, req)
-		//Assert.Equal(http.StatusOK, w.Code)
-
-		Assert := assert.New(t)
-
-		Assert.Equal(inc.Ping(configFile.Inc.HostName, configFile.Inc.Port), true)
-
-	})
 
 	t.Run("Register Server", func(t *testing.T) {
 
@@ -157,9 +127,6 @@ func TestRegisterServer(t *testing.T) {
 
 	})
 
-	t.Run("Cert Cleanup", func(t *testing.T) {
-		os.RemoveAll(tempdir)
-
-	})
+	defer incServer.HttpServer.Shutdown(context.Background())
 
 }

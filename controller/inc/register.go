@@ -42,6 +42,7 @@ func (i Inc) RegisterServer(initialRun bool) error {
 	}
 
 	spaceFree := getFreeSpace(i.ShardsLocation)
+	spaceUsed := uint64(getUsedStorage(i.ShardsLocation))
 
 	// Register as Starting
 
@@ -59,13 +60,12 @@ func (i Inc) RegisterServer(initialRun bool) error {
 		}
 	}
 
-	server = dbfs.Server{
-		Name:      i.ServerName,
-		HostName:  i.HostName,
-		Port:      i.Port,
-		Status:    dbfs.ServerStarting,
-		FreeSpace: spaceFree,
-	}
+	server.Name = i.ServerName
+	server.HostName = i.HostName
+	server.Port = i.Port
+	server.Status = dbfs.ServerStarting
+	server.FreeSpace = spaceFree
+	server.UsedSpace = spaceUsed
 
 	if err := i.Db.Save(&server).Error; err != nil {
 		return err
@@ -79,10 +79,10 @@ func (i Inc) RegisterServer(initialRun bool) error {
 	}
 
 	var servers []dbfs.Server
-	i.Db.Find(&servers).Where("status = ? ", dbfs.ServerOnline)
+	i.Db.Where("status = ? ", dbfs.ServerOnline).Find(&servers)
 
 	for _, server := range servers {
-		if !Ping(server.HostName, server.Port) {
+		if !i.Ping(server.HostName, server.Port) {
 			fmt.Println("Server", server.HostName, "is unreachable.")
 			err := MarkServerOffline(i.Db, i.HostName, server.HostName)
 			if err != nil {
@@ -159,11 +159,9 @@ func MarkServerOffline(tx *gorm.DB, requestServer, destServer string) error {
 }
 
 // Ping returns true if the server is online.
-func Ping(hostname, port string) bool {
+func (i Inc) Ping(hostname, port string) bool {
 
-	client := &http.Client{} // TODO: Put TLS config here. Need to configure holding object.
-
-	res, err := client.Get("http://" + hostname + ":" + port + "/inc/ping")
+	res, err := i.HttpClient.Get("http://" + hostname + ":" + port + "/inc/ping")
 	if err != nil {
 		return false
 	}
@@ -177,9 +175,17 @@ func Pong(w http.ResponseWriter, r *http.Request) {
 	util.HttpJson(w, http.StatusOK, map[string]string{"status": "online"})
 }
 
+// ShutdownServer will try to gracefully shutdown the server.
+func (i Inc) ShutdownServer(w http.ResponseWriter, r *http.Request) {
+
+	i.Shutdown <- true
+
+	util.HttpJson(w, http.StatusOK, map[string]string{"status": "shutdown"})
+}
+
 // RegisterIncServices registers the inc services.
-// NOT RUNNING YET. NEED TO SET UP INC SERVER ELSE WILL NOT RUN.
-func RegisterIncServices(i *Inc) {
+func (i Inc) RegisterIncServices() {
+	time.Sleep(time.Second * 2)
 	ticker := time.NewTicker(5 * time.Minute)
 	err := i.RegisterServer(true)
 	if err != nil {
@@ -190,10 +196,13 @@ func RegisterIncServices(i *Inc) {
 			select {
 			case <-i.Shutdown:
 				ticker.Stop()
+				fmt.Println("Shutdown signal received. Exiting in 5 seconds...")
+				time.Sleep(time.Second * 5)
+				os.Exit(0)
 				// deregister services
 				return
 			case <-ticker.C:
-				i.RegisterServer(false)
+				_ = i.RegisterServer(false)
 			}
 		}
 	}()

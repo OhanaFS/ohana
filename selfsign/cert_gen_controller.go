@@ -9,12 +9,12 @@ import (
 )
 
 // ProcessFlags processes the flags provided by the user.
-func ProcessFlags(flagsConfig *config.FlagsConfig) error {
+func ProcessFlags(flagsConfig *config.FlagsConfig, debugMode bool) error {
 
 	if *flagsConfig.GenCA {
 		fmt.Println("Generating CA certs")
 
-		err := GenCA(*flagsConfig.GenCAPath)
+		err := GenCA(*flagsConfig.GenCAPath, debugMode)
 		if err != nil {
 			return err
 		}

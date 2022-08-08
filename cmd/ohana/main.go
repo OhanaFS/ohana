@@ -28,7 +28,7 @@ func main() {
 	flagsConfig := config.LoadFlagsConfig()
 
 	if *flagsConfig.GenCA || *flagsConfig.GenCerts {
-		err := selfsign.ProcessFlags(flagsConfig)
+		err := selfsign.ProcessFlags(flagsConfig, false)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(-1)
