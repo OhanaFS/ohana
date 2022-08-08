@@ -84,6 +84,7 @@ func TestFragmentHandler(t *testing.T) {
 	totalShards := dataShards + parityShards
 
 	Inc := inc.NewInc(configFile, db)
+	inc.RegisterIncServices(Inc)
 
 	t.Run("Creating random files", func(t *testing.T) {
 
