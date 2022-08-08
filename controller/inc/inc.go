@@ -103,8 +103,5 @@ func NewInc(config *config.Config, db *gorm.DB) *Inc {
 		}
 	}()
 
-	// register server
-	newInc.RegisterIncServices()
-
 	return newInc
 }

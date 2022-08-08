@@ -59,6 +59,7 @@ func TestAdminClusterRoutes(t *testing.T) {
 	session := testutil.NewMockSession(t)
 	sessionId, err := session.Create(nil, "superuser", time.Hour)
 	Inc := inc.NewInc(configFile, db)
+	inc.RegisterIncServices(Inc)
 
 	// Setting up controller
 	bc := &controller.BackendController{

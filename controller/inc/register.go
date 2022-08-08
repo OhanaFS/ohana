@@ -184,7 +184,7 @@ func (i Inc) ShutdownServer(w http.ResponseWriter, r *http.Request) {
 }
 
 // RegisterIncServices registers the inc services.
-func (i Inc) RegisterIncServices() {
+func RegisterIncServices(i *Inc) {
 	time.Sleep(time.Second * 2)
 	ticker := time.NewTicker(5 * time.Minute)
 	err := i.RegisterServer(true)
