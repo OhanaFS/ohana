@@ -43,6 +43,47 @@ see the React app. The login URL is `/auth/login` and the default credentials is
 `admin:password`, as defined in the `.dev/docker-compose.yaml` file (the
 `USERS_CONFIGURATION_INLINE` part).
 
+### Cert Generation
+
+If you get a
+`panic: open certificates/main_GLOBAL_CERTIFICATE.pem: no such file or directory`
+error, you need to generate the certificates to allow the servers to securely
+communicate with each other.
+
+1. Make a copy of certshost.example.yaml, name it certshost.yaml, and fill it
+   out with all the hostnames or IP addresses of the servers in the cluster. You
+   can use wildcards, but they cannot be too generic (e.g. \*.hosts is fine,
+   but \* is not). See wildcards
+   [here](https://en.wikipedia.org/wiki/Wildcard_certificate) for more.
+
+2. From the ohana directory, run
+   `./bin/ohana --gen-ca --gen-certs -hosts certhosts.example.yaml`
+
+   1. `--gen-ca` will generate a new CA package that includes the following:
+      1. `main_csr.json` - this is the CSR for the CA. This is required for
+         making new client and node certificates
+      2. `main_PRIVATE_KEY.pem` - this is the private key for the CA. This is
+         required for making new client and node certificates.
+      3. `main_GLOBAL_CERTIFICATE.pem` - this is the certificate for the CA.
+         This is required for making new client and node certificates, **and for
+         validating the certificates of the other servers.**
+   2. `--gen-certs` will generate a new Cert Package that includes the
+      following:
+      1. `output_cert.pem` - this is the certificate for the server.
+      2. `output_key.pem` - this is the private key for the server.
+
+**Cert Generation Parameters**
+
+- You can use `-num-of-certs` to specify the number of certificates to generate.
+- After generating the CA once, you can generate more certificates by specifying
+  the paths of the CA files using the following parameters and run
+  `./bin/ohana --gen-certs ` with the following parameters:
+  - `--csr-path` for `main_csr.json`
+  - `--cert-path` for `main_GLOBAL_CERTIFICATE.pem`
+  - `--pk-path` for `main_PRIVATE_KEY.pem`
+- You can find more information about the parameters by running
+  `./bin/ohana --help`
+
 When you're done, don't forget to tear down redis and the postgres database:
 
 ```
