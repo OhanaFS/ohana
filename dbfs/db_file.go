@@ -1631,3 +1631,49 @@ func (f *File) DeleteFileVersion(tx *gorm.DB, user *User, versionNo int) error {
 		f.FileId, versionNo).Update("status", FileStatusToBeDeleted).Error
 
 }
+
+// GetPath returns the path of a file with fileID
+func (f *File) GetPath(tx *gorm.DB, user *User) ([]File, error) {
+
+	// Check if user has read permission (if not 404)
+	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
+	if !hasPermissions {
+		return nil, ErrFileNotFound
+	} else if err != nil {
+		return nil, err
+	}
+
+	files := []File{
+		*f,
+	}
+	parentFile := f
+	continueSearching := true
+	for continueSearching {
+		pfid := *parentFile.ParentFolderFileId
+		var tempParent File
+		if pfid == "00000000-0000-0000-0000-000000000000" {
+			// at root
+			err = tx.Where(&File{FileId: pfid}).First(&tempParent).Error
+			files = append(files, tempParent)
+			continueSearching = false
+			break
+		}
+
+		err = tx.Where(&File{FileId: pfid}).First(&tempParent).Error
+		if err != nil {
+			return nil, err
+		}
+		hasPermission, err := user.HasPermission(tx, &tempParent, &PermissionNeeded{Read: true})
+		if err != nil {
+			return nil, err
+		}
+		if !hasPermission {
+			continueSearching = false
+			break
+		}
+		files = append(files, tempParent)
+		parentFile = &tempParent
+	}
+
+	return files, nil
+}

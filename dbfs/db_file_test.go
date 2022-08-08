@@ -405,6 +405,11 @@ func TestFile(t *testing.T) {
 		err = newFile.AddPermissionUsers(db, &dbfs.PermissionNeeded{Read: true, Write: true}, &superUser, *userForGetFileMeta)
 		Assert.Nil(err)
 
+		// get path for newFile for userForGetFileMeta
+		path, err := newFile.GetPath(db, userForGetFileMeta)
+		Assert.Nil(err)
+		Assert.Equal(1, len(path))
+
 		newFile, err = dbfs.GetFileByPath(db, "/TestFakeFiles/somefile.txt", &superUser, false)
 		Assert.Nil(err)
 		err = newFile.GetFileMeta(db, &superUser)
@@ -526,6 +531,43 @@ func TestFile(t *testing.T) {
 
 	})
 
+	t.Run("GettingPath", func(t *testing.T) {
+
+		Assert := assert.New(t)
+
+		// Create folder at root
+
+		rootFolder, err := dbfs.GetRootFolder(db)
+		Assert.Nil(err)
+
+		path1, err := rootFolder.CreateSubFolder(db, "path1", &superUser, "")
+		Assert.Nil(err)
+
+		path2, err := path1.CreateSubFolder(db, "path2", &superUser, "")
+		Assert.Nil(err)
+
+		path3, err := path2.CreateSubFolder(db, "path3", &superUser, "")
+		Assert.Nil(err)
+
+		path4, err := path3.CreateSubFolder(db, "path4", &superUser, "")
+		Assert.Nil(err)
+
+		// Create a user
+		userForGetFileMeta, err := dbfs.CreateNewUser(db, "GettingPath", "GettingPath", dbfs.AccountTypeEndUser, "GettingPath",
+			"GettingPath", "GettingPath", "GettingPath", "testServer")
+		Assert.Nil(err)
+
+		err = path2.AddPermissionUsers(db, &dbfs.PermissionNeeded{Read: true, Write: true}, &superUser, *userForGetFileMeta)
+		Assert.Nil(err)
+
+		pathArray, err := path4.GetPath(db, userForGetFileMeta)
+		Assert.Nil(err)
+		Assert.Equal(3, len(pathArray))
+		pathArray, err = path4.GetPath(db, &superUser)
+		Assert.Nil(err)
+		Assert.Equal(5, len(pathArray))
+
+	})
 }
 
 // EXAMPLECreateFile is an example driver for creating a File.
