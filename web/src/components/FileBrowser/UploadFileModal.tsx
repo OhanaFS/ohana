@@ -9,7 +9,7 @@ export type UploadFileModalProps = {
   parentFolderId: string;
 };
 
-export const UploadFileModal = (props: UploadFileModalProps) => {
+const UploadFileModal = (props: UploadFileModalProps) => {
   const mUploadFile = useMutateUploadFile();
 
   return (
@@ -58,3 +58,5 @@ export const UploadFileModal = (props: UploadFileModalProps) => {
     </Modal>
   );
 };
+
+export default UploadFileModal;

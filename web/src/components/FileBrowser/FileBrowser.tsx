@@ -8,28 +8,16 @@ import {
   FileData,
   FullFileBrowser,
 } from 'chonky';
-import {
-  Modal,
-  FileButton,
-  Button,
-  Loader,
-  Image,
-  Drawer,
-  Table,
-} from '@mantine/core';
-import { showNotification, cleanNotifications } from '@mantine/notifications';
+import { showNotification } from '@mantine/notifications';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   EntryType,
   getFileDownloadURL,
-  MetadataKeyMap,
   useMutateCopyFile,
   useMutateDeleteFile,
   useMutateMoveFile,
   useMutateUpdateFileMetadata,
-  useMutateUploadFile,
-  useQueryFileMetadata,
 } from '../../api/file';
 import {
   useMutateCreateFolder,
@@ -37,8 +25,9 @@ import {
   useQueryFolderContents,
 } from '../../api/folder';
 import { useQueryUser } from '../../api/auth';
-import { useMediaQuery } from '@mantine/hooks';
-import { UploadFileModal } from './UploadFileModal';
+import UploadFileModal from './UploadFileModal';
+import FilePreviewModal from './FilePreviewModal';
+import FilePropertiesDrawer from './FilePropertiesDrawer';
 
 export type VFSProps = Partial<FileBrowserProps>;
 
@@ -77,12 +66,11 @@ const FileProperties = defineFileAction({
 
 export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   const [fuOpened, setFuOpened] = useState(false);
-  const [fileOpened, setFileOpened] = useState('');
-  const [filePropertiesOpened, setFilePropertiesOpened] = useState('');
+  const [previewFileId, setPreviewFileId] = useState('');
+  const [propertiesFileId, setPropertiesFileId] = useState('');
   const [clipboardIds, setClipboardsIds] = useState<string[]>([]);
   const params = useParams();
   const navigate = useNavigate();
-  const smallScreen = useMediaQuery('(max-width: 600px)');
 
   const qUser = useQueryUser();
   const homeFolderID: string = qUser.data?.home_folder_id || '';
@@ -130,7 +118,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
       );
     } else if (data.id === ChonkyActions.OpenFiles.id) {
       if (!data.state.selectedFilesForAction[0].isDir)
-        setFileOpened(data.state.selectedFilesForAction[0].id);
+        setPreviewFileId(data.state.selectedFilesForAction[0].id);
       else navigate(`/home/${data.state.selectedFilesForAction[0].id}`);
     } else if ((data.id as string) === RenameFiles.id) {
       let newFileName = window.prompt(
@@ -161,7 +149,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
         });
       }
     } else if ((data.id as string) === FileProperties.id) {
-      setFilePropertiesOpened(data.state.selectedFilesForAction[0].id);
+      setPropertiesFileId(data.state.selectedFilesForAction[0].id);
     }
   };
 
@@ -186,12 +174,9 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   );
 
   const qFilesList = useQueryFolderContents(folderID);
-  const qActiveFile = useQueryFileMetadata(fileOpened);
-  const qPropsFile = useQueryFileMetadata(filePropertiesOpened);
 
   const mCreateFolder = useMutateCreateFolder();
   const mDeleteFolder = useMutateDeleteFolder();
-  const mUploadFile = useMutateUploadFile();
   const mDeleteFile = useMutateDeleteFile();
   const mUpdateFileMetadata = useMutateUpdateFileMetadata();
   const mMoveFile = useMutateMoveFile();
@@ -218,78 +203,20 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
           thumbnailGenerator={thumbnailGenerator}
           {...props}
         />
-        {/* Upload file modal */}
       </div>
       <UploadFileModal
         onClose={() => setFuOpened(false)}
         opened={fuOpened}
         parentFolderId={folderID}
       />
-      <Modal
-        centered
-        opened={fileOpened !== ''}
-        onClose={() => setFileOpened('')}
-        title={qActiveFile.data?.file_name}
-        size={smallScreen ? '100%' : '70%'}
-      >
-        <div className="flex">
-          {qActiveFile.data?.mime_type.startsWith('image/') ? (
-            <Image src={getFileDownloadURL(fileOpened)} />
-          ) : qActiveFile.data?.mime_type.startsWith('video/') ? (
-            <video
-              controls
-              playsInline
-              src={getFileDownloadURL(fileOpened)}
-            ></video>
-          ) : null}
-        </div>
-        <Button
-          component="a"
-          href={getFileDownloadURL(fileOpened) + '?inline=1'}
-          className="bg-blue-600 mt-5"
-          color="blue"
-        >
-          Download
-        </Button>
-      </Modal>
-      <Drawer
-        opened={filePropertiesOpened !== ''}
-        onClose={() => setFilePropertiesOpened('')}
-        title={qPropsFile.data?.file_name}
-        padding="lg"
-        position="right"
-        size="xl"
-      >
-        <Table>
-          <thead>
-            <tr>
-              <th>Property</th>
-              <th>Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.keys(qPropsFile.data || {})
-              .map((key) => key as keyof typeof MetadataKeyMap)
-              .filter((key) =>
-                (
-                  [
-                    'file_name',
-                    'size',
-                    'created_time',
-                    'modified_time',
-                    'version_no',
-                  ] as Array<keyof typeof MetadataKeyMap>
-                ).includes(key)
-              )
-              .map((key) => (
-                <tr key={key}>
-                  <td>{MetadataKeyMap[key]}</td>
-                  <td>{(qPropsFile.data as any)[key]}</td>
-                </tr>
-              ))}
-          </tbody>
-        </Table>
-      </Drawer>
+      <FilePreviewModal
+        fileId={previewFileId}
+        onClose={() => setPreviewFileId('')}
+      />
+      <FilePropertiesDrawer
+        fileId={propertiesFileId}
+        onClose={() => setPropertiesFileId('')}
+      />
     </AppBase>
   );
 });
