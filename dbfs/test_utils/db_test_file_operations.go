@@ -210,6 +210,12 @@ func EXAMPLEUpdateFile(tx *gorm.DB, file *dbfs.File, eU ExampleUpdate, user *dbf
 		return err
 	}
 
+	err = file.UpdateFile(tx, eU.NewSize, eU.NewActualSize, "UPDATING",
+		eU.Server, dataKey, dataIv, eU.Password, user)
+	if err != nil {
+		return err
+	}
+
 	shardWriters := make([]io.Writer, ExampleTotalShards)
 	shardFiles := make([]*os.File, ExampleTotalShards)
 	shardNames := make([]string, ExampleTotalShards)
@@ -246,12 +252,6 @@ func EXAMPLEUpdateFile(tx *gorm.DB, file *dbfs.File, eU ExampleUpdate, user *dbf
 		if err = encoder.FinalizeHeader(shardFiles[i]); err != nil {
 			return err
 		}
-	}
-
-	err = file.UpdateFile(tx, eU.NewSize, eU.NewActualSize, hex.EncodeToString(result.FileHash),
-		eU.Server, dataKey, dataIv, eU.Password, user)
-	if err != nil {
-		return err
 	}
 
 	// As each fragment is uploaded, each fragment is added to the database.

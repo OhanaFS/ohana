@@ -29,9 +29,13 @@ type Fragment struct {
 
 // UpdateStatus gets called after checking the status of each fragment
 func (f *Fragment) UpdateStatus(tx *gorm.DB, status int8) error {
-	f.LastChecked = time.Now()
-	f.Status = status
-	return tx.Save(f).Error
+
+	err := tx.Model(f).Update("status", status).Error
+	if err != nil {
+		return err
+	}
+	return tx.Model(f).Update("last_checked", time.Now()).Error
+
 }
 
 func deleteFragmentsByDataId(tx *gorm.DB, dataId string) error {

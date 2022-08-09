@@ -402,9 +402,8 @@ func TestStitchFragment(t *testing.T) {
 	err := db.Where("email = ?", "superuser").First(&superUser).Error
 	assert.Nil(t, err)
 
-	Assert := assert.New(t)
 	tempdir := t.TempDir()
-	Assert.Nil(err)
+	assert.Nil(t, err)
 
 	sharddir := filepath.Join(tempdir, "shards")
 
@@ -422,7 +421,7 @@ func TestStitchFragment(t *testing.T) {
 	}
 
 	certsPaths, err := selfsigntestutils.GenCertsTest(tempdir)
-	Assert.Nil(err)
+	assert.Nil(t, err)
 
 	configFile := &config.Config{Stitch: stitchConfig,
 		Inc: config.IncConfig{
@@ -461,71 +460,138 @@ func TestStitchFragment(t *testing.T) {
 		Size:           50,
 		ActualSize:     50,
 	})
-	Assert.Nil(err)
-	Assert.NotNil(file)
-	Inc.LocalCurrentFilesFragmentsHealthCheck(1)
 
-	// damange the file
-	fragments, err := file.GetFileFragments(db, &superUser)
-	Assert.Nil(err)
-	Assert.NotNil(fragments)
+	t.Run("Checking health of fragments", func(t *testing.T) {
+		Assert := assert.New(t)
 
-	err = dbfstestutils.EXAMPLECorruptFragments(
-		path.Join(configFile.Stitch.ShardsLocation, fragments[0].FileFragmentPath))
-	Assert.Nil(err)
-	Inc.LocalCurrentFilesFragmentsHealthCheck(2)
+		Assert.Nil(err)
+		Assert.NotNil(file)
+		Inc.LocalCurrentFilesFragmentsHealthCheck(1)
 
-	results, err := dbfs.GetResultsCffhc(db, 2)
-	Assert.Nil(err)
-	Assert.NotNil(results)
-	Assert.Equal(1, len(results))
+		var fragments1 []dbfs.Fragment
+		err = db.Find(&fragments1).Error
+		fmt.Println(err)
 
-	// Check using InvidiaulFragmentHealthCheck
-	result, err := Inc.IndividualFragHealthCheck(fragments[0])
-	Assert.Nil(err)
-	Assert.NotNil(result)
-	Assert.True(len(result.BrokenBlocks) > 0)
+		// damange the file
+		fragments, err := file.GetFileFragments(db, &superUser)
+		Assert.Nil(err)
+		Assert.NotNil(fragments)
 
-	result, err = Inc.IndividualFragHealthCheck(fragments[1])
-	Assert.Nil(err)
-	Assert.NotNil(result)
-	Assert.True(len(result.BrokenBlocks) == 0)
+		err = dbfstestutils.EXAMPLECorruptFragments(
+			path.Join(configFile.Stitch.ShardsLocation, fragments[0].FileFragmentPath))
+		Assert.Nil(err)
+		Inc.LocalCurrentFilesFragmentsHealthCheck(2)
 
-	// Check bad fragment via route
+		results, err := dbfs.GetResultsCffhc(db, 2)
+		Assert.Nil(err)
+		Assert.NotNil(results)
+		Assert.Equal(1, len(results))
 
-	req := httptest.NewRequest("GET",
-		strings.Replace(inc.FragmentHealthCheckPath,
-			"{fragmentPath}", fragments[0].FileFragmentPath, -1), nil)
-	w := httptest.NewRecorder()
-	req = mux.SetURLVars(req, map[string]string{
-		"fragmentPath": fragments[0].FileFragmentPath,
+		// Check using InvidiaulFragmentHealthCheck
+		result, err := Inc.IndividualFragHealthCheck(fragments[0])
+		Assert.Nil(err)
+		Assert.NotNil(result)
+		Assert.True(len(result.BrokenBlocks) > 0)
+
+		result, err = Inc.IndividualFragHealthCheck(fragments[1])
+		Assert.Nil(err)
+		Assert.NotNil(result)
+		Assert.True(len(result.BrokenBlocks) == 0)
+
+		// Check bad fragment via route
+
+		req := httptest.NewRequest("GET",
+			strings.Replace(inc.FragmentHealthCheckPath,
+				"{fragmentPath}", fragments[0].FileFragmentPath, -1), nil)
+		w := httptest.NewRecorder()
+		req = mux.SetURLVars(req, map[string]string{
+			"fragmentPath": fragments[0].FileFragmentPath,
+		})
+		fmt.Println(fragments[0].FileFragmentPath)
+		Inc.FragmentHealthCheckRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+		body := w.Body.String()
+
+		err = json.Unmarshal([]byte(body), &result)
+		Assert.Nil(err)
+
+		Assert.True(len(result.BrokenBlocks) > 0)
+
+		// Check good fragment via route
+
+		req = httptest.NewRequest("GET",
+			strings.Replace(inc.FragmentHealthCheckPath,
+				"{fragmentPath}", fragments[1].FileFragmentPath, -1), nil)
+		w = httptest.NewRecorder()
+		req = mux.SetURLVars(req, map[string]string{
+			"fragmentPath": fragments[1].FileFragmentPath,
+		})
+		Inc.FragmentHealthCheckRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+		body = w.Body.String()
+
+		err = json.Unmarshal([]byte(body), &result)
+		Assert.Nil(err)
+
+		Assert.True(len(result.BrokenBlocks) == 0)
+
+		err = db.Find(&fragments).Error
+		fmt.Println(err)
 	})
-	Inc.FragmentHealthCheckRoute(w, req)
-	Assert.Equal(http.StatusOK, w.Code)
-	body := w.Body.String()
 
-	err = json.Unmarshal([]byte(body), &result)
-	Assert.Nil(err)
+	t.Run("Checking health of all fragments", func(t *testing.T) {
+		Assert := assert.New(t)
 
-	Assert.True(len(result.BrokenBlocks) > 0)
+		// We are going to update the file we created and corrupted earlier.
+		// This should cause the health check to fail for LocalAllFilesFragmentsHealthCheck
+		// but not for LocalCurrentFilesFragmentsHealthCheck
 
-	// Check good fragment via route
+		// We are also going to create the edge case, where a file that is corrupted is coppied
+		// (thus the new file is linked to the same data ID and fragments)
+		// and then update the new file
 
-	req = httptest.NewRequest("GET",
-		strings.Replace(inc.FragmentHealthCheckPath,
-			"{fragmentPath}", fragments[1].FileFragmentPath, -1), nil)
-	w = httptest.NewRecorder()
-	req = mux.SetURLVars(req, map[string]string{
-		"fragmentPath": fragments[1].FileFragmentPath,
+		// Create new folder for copied file
+		newFolder, err := rootFolder.CreateSubFolder(db, "blah", &superUser, "omgServer")
+		Assert.Nil(err)
+
+		// Copy file
+		err = file.Copy(db, newFolder, &superUser, "omgServer")
+		Assert.Nil(err)
+
+		// Get the copied file
+		_, err = dbfs.GetFileByPath(db, "/blah/test123", &superUser, false)
+
+		Assert.True(Inc.LocalCurrentFilesFragmentsHealthCheck(3))
+
+		results, err := dbfs.GetResultsCffhc(db, 3)
+		Assert.Nil(err)
+		Assert.NotNil(results)
+		Assert.Equal(2, len(results))
+
+		Assert.NoError(dbfstestutils.EXAMPLEUpdateFile(db, file, dbfstestutils.ExampleUpdate{
+			NewSize:       50,
+			NewActualSize: 50,
+			FragmentPath:  configFile.Stitch.ShardsLocation,
+			FileData:      "New file data pog",
+			Server:        configFile.Inc.ServerName,
+			Password:      "",
+		}, &superUser))
+
+		Assert.True(Inc.LocalCurrentFilesFragmentsHealthCheck(4))
+
+		results, err = dbfs.GetResultsCffhc(db, 4)
+		Assert.Nil(err)
+		Assert.NotNil(results)
+		Assert.Equal(1, len(results))
+
+		Assert.True(Inc.LocalAllFilesFragmentsHealthCheck(5))
+
+		results2, err := dbfs.GetResultsAffhc(db, 5)
+		Assert.Nil(err)
+		Assert.NotNil(results2)
+		Assert.Equal(0, len(results2))
+
 	})
-	Inc.FragmentHealthCheckRoute(w, req)
-	Assert.Equal(http.StatusOK, w.Code)
-	body = w.Body.String()
-
-	err = json.Unmarshal([]byte(body), &result)
-	Assert.Nil(err)
-
-	Assert.True(len(result.BrokenBlocks) == 0)
 
 }
 

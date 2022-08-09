@@ -403,7 +403,7 @@ func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) bool {
 		ServerName       string
 	}
 
-	// store start in the JobProgress_CFFHC
+	// store start in the JobProgress_CFFHC. TODO: Needs to be closed by another driver.
 	err := i.Db.Create(&dbfs.JobprogressCffhc{
 		JobId:      jobId,
 		StartTime:  time.Now(),
@@ -471,6 +471,9 @@ func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) bool {
 	// insert the results into the database
 	err = i.Db.Create(&resultsCffhc).Error
 	if err != nil {
+		if strings.Contains(err.Error(), "empty slice found") {
+			return true
+		}
 		log.Println(err)
 		return false
 	}
@@ -489,7 +492,7 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 		ServerName       string
 	}
 
-	// store start in the JobprogressAffhc
+	// store start in the JobprogressAffhc. TODO: Needs to be closed by another driver.
 	err := i.Db.Create(&dbfs.JobprogressAffhc{
 		JobId:      jobId,
 		StartTime:  time.Now(),
@@ -508,14 +511,19 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 	// Get all the fragments belonging to this server
 	// We are going to use a join
 
-	err = i.Db.Model(&dbfs.FileVersion{}).Select(
-		"file_versions.file_id, file_versions.file_name, file_versions.data_id, fragments.file_fragment_path, fragments.server_name").
-		Joins("JOIN fragments ON file_versions.data_id = fragments.file_version_data_id").
+	var fragments []dbfs.Fragment
+	err = i.Db.Find(&fragments).Error
+
+	err = i.Db.Model(&dbfs.Fragment{}).Select(
+		"files.file_id, files.file_name, fragments.file_version_data_id, fragments.file_fragment_path, fragments.server_name").
+		Joins("JOIN files ON fragments.file_version_file_id = files.file_id").
 		Where("fragments.server_name = ?", i.ServerName).Find(&results).Error
 	if err != nil {
 		log.Println(err)
 		return false
 	}
+
+	//resultsMap := make(map[string]dbfs.ResultsAffhc)
 
 	for _, result := range results {
 		// check the health of the fragment
@@ -526,6 +534,7 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 				JobId:     jobId,
 				FileName:  result.FileName,
 				FileId:    result.FileId,
+				DataId:    result.DataId,
 				FragPath:  result.FileFragmentPath,
 				ServerId:  result.ServerName,
 				Error:     err.Error(),
@@ -536,6 +545,7 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 				JobId:     jobId,
 				FileName:  result.FileName,
 				FileId:    result.FileId,
+				DataId:    result.DataId,
 				FragPath:  result.FileFragmentPath,
 				ServerId:  result.ServerName,
 				Error:     "Fragment is not available",
@@ -546,6 +556,7 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 				JobId:     jobId,
 				FileName:  result.FileName,
 				FileId:    result.FileId,
+				DataId:    result.DataId,
 				FragPath:  result.FileFragmentPath,
 				ServerId:  result.ServerName,
 				Error:     "Fragment is broken",
@@ -554,11 +565,38 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 		}
 	}
 
-	// insert the results into the database
-	err = i.Db.Create(&resultsAffhc).Error
-	if err != nil {
-		log.Println(err)
-		return false
+	// Check if any of the fragments are missing filenames or file_ids, in which, we grab them from
+	// the file version table. This is done to ensure that we always get the latest version of the file
+	// in the case that the file has been updated. And to ensure that it works properly with postgres
+
+	for _, badFragment := range resultsAffhc {
+
+		if badFragment.FileName == "" || badFragment.FileId == "" {
+			// query the db for the latest
+
+			var fileVersion dbfs.FileVersion
+			err = i.Db.Where("data_id = ? and status NOT IN ?",
+				badFragment.DataId, []int8{dbfs.FileStatusToBeDeleted, dbfs.FileStatusDeleted}).
+				Order("created_at desc").First(&fileVersion).Error
+
+			badFragment.FileId = fileVersion.FileId
+			badFragment.FileName = fileVersion.FileName
+
+			// else the file is probably meant to be deleted, so it doesn't matter if it's bad.
+
+			badFragment.ErrorType = 4 // file is likely deleted, skip.
+		}
+
+	}
+
+	for _, badFragment := range resultsAffhc {
+		if badFragment.ErrorType == 4 { // skip as the file is likely deleted
+			continue
+		}
+		err := i.Db.Create(&badFragment).Error
+		if err != nil {
+			return false
+		}
 	}
 
 	return true
