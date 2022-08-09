@@ -287,9 +287,9 @@ func (bc *BackendController) GetAllLogs(w http.ResponseWriter, r *http.Request) 
 
 	// check if start date is valid
 	if startDateString != "" {
-		startDate, err := time.Parse("2006-01-02", startDateString)
+		startDate, err := time.Parse(time.RFC3339, startDateString)
 		if err != nil {
-			util.HttpError(w, http.StatusBadRequest, "Invalid startDateString. Follow YYYY-MM-DD")
+			util.HttpError(w, http.StatusBadRequest, "Invalid startDateString. Follow RFC3339 2006-01-02T15:04:05Z07:00")
 			return
 		}
 
@@ -298,7 +298,7 @@ func (bc *BackendController) GetAllLogs(w http.ResponseWriter, r *http.Request) 
 
 	}
 	if endDateString != "" {
-		endDate, err := time.Parse("2006-01-02", endDateString)
+		endDate, err := time.Parse(time.RFC3339, endDateString)
 		if err != nil {
 			util.HttpError(w, http.StatusBadRequest, "Invalid endDateString. Follow YYYY-MM-DD")
 			return

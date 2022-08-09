@@ -2,7 +2,6 @@ package inc
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"github.com/OhanaFS/ohana/dbfs"
 	"github.com/OhanaFS/ohana/util"
@@ -255,42 +254,47 @@ func getAdaptorWithIP(ip string) (string, error) {
 func (i Inc) getRXTX() (uint64, uint64, error) {
 
 	// Doesn't know the IP in testing, so leave it alone lmao.
-	if flag.Lookup("test.v") != nil {
-		return 0, 0, nil
-	}
+	//if flag.Lookup("test.v") != nil {
+	//	return 0, 0, nil
+	//}
 
 	// First get the adaptor with the IP.
-	adaptor, err := getAdaptorWithIP(i.BindIp)
+	//adaptor, err := getAdaptorWithIP(i.BindIp)
+	//if err != nil {
+	//	return 0, 0, err
+	//}
+
+	// get the rx tx bytes.
+	initalStats, err := network.Get()
 	if err != nil {
 		return 0, 0, err
 	}
 
-	// get the rx tx bytes.
-	initalStats, err := network.Get()
-
 	var initalRx, initalTx uint64
 
+	initalRx = 0
+	initalTx = 0
+
 	for _, stat := range initalStats {
-		if stat.Name == adaptor {
-			// process crap
-			initalRx = stat.RxBytes
-			initalTx = stat.TxBytes
-			break
-		}
+		initalRx += stat.RxBytes
+		initalTx += stat.TxBytes
 	}
 
 	// sleep for a second.
 	time.Sleep(time.Second)
 
 	newStats, err := network.Get()
-
-	for _, stat := range newStats {
-		if stat.Name == adaptor {
-			return stat.RxBytes - initalRx, stat.TxBytes - initalTx, nil
-		}
+	if err != nil {
+		return 0, 0, err
 	}
 
-	return 0, 0, ErrCannotFindNetworkAdaptor
+	for _, stat := range newStats {
+
+		initalRx -= stat.RxBytes
+		initalTx -= stat.TxBytes
+	}
+
+	return initalRx, initalTx, nil
 }
 
 // getFSDeviceName returns the name of the device that is the root of the filesystem.
