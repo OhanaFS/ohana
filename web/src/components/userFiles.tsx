@@ -8,10 +8,16 @@ import {
   FileData,
   FullFileBrowser,
 } from 'chonky';
-import { Modal, FileInput, FileButton, Button, Loader } from '@mantine/core';
+import {
+  Modal,
+  FileInput,
+  FileButton,
+  Button,
+  Loader,
+  Image,
+} from '@mantine/core';
 import { showNotification, cleanNotifications } from '@mantine/notifications';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-
 import { useNavigate, useParams } from 'react-router-dom';
 
 import {
@@ -22,6 +28,7 @@ import {
   useMutateMoveFile,
   useMutateUpdateFileMetadata,
   useMutateUploadFile,
+  useQueryFileMetadata,
 } from '../api/file';
 import {
   useMutateCreateFolder,
@@ -29,6 +36,7 @@ import {
   useQueryFolderContents,
 } from '../api/folder';
 import { useQueryUser } from '../api/auth';
+import { useMediaQuery } from '@mantine/hooks';
 
 export type VFSProps = Partial<FileBrowserProps>;
 
@@ -56,9 +64,11 @@ const PasteFiles = defineFileAction({
 
 export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   const [fuOpened, setFuOpened] = useState(false);
+  const [fileOpened, setFileOpened] = useState('');
   const [clipboardIds, setClipboardsIds] = useState<string[]>([]);
   const params = useParams();
   const navigate = useNavigate();
+  const smallScreen = useMediaQuery('(max-width: 600px)');
 
   const qUser = useQueryUser();
   const homeFolderID: string = qUser.data?.home_folder_id || '';
@@ -117,8 +127,9 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
         data.state.selectedFilesForAction[0].id
       );
     } else if (data.id === ChonkyActions.OpenFiles.id) {
-      if (!data.state.selectedFilesForAction[0].isDir) return;
-      navigate(`/home/${data.state.selectedFilesForAction[0].id}`);
+      if (!data.state.selectedFilesForAction[0].isDir)
+        setFileOpened(data.state.selectedFilesForAction[0].id);
+      else navigate(`/home/${data.state.selectedFilesForAction[0].id}`);
     } else if ((data.id as string) === RenameFiles.id) {
       let newFileName = window.prompt(
         'Enter new file name',
@@ -170,6 +181,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   );
 
   const qFilesList = useQueryFolderContents(folderID);
+  const qActiveFile = useQueryFileMetadata(fileOpened);
 
   const mCreateFolder = useMutateCreateFolder();
   const mDeleteFolder = useMutateDeleteFolder();
@@ -244,6 +256,33 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
             )}
           </FileButton>
         </div>
+      </Modal>
+      <Modal
+        centered
+        opened={fileOpened !== ''}
+        onClose={() => setFileOpened('')}
+        title={qActiveFile.data?.file_name}
+        size={smallScreen ? '100%' : '70%'}
+      >
+        <div className="flex">
+          {qActiveFile.data?.mime_type.startsWith('image/') ? (
+            <Image src={getFileDownloadURL(fileOpened)} />
+          ) : qActiveFile.data?.mime_type.startsWith('video/') ? (
+            <video
+              controls
+              playsInline
+              src={getFileDownloadURL(fileOpened)}
+            ></video>
+          ) : null}
+        </div>
+        <Button
+          component="a"
+          href={getFileDownloadURL(fileOpened) + '?inline=1'}
+          className="bg-blue-600 mt-5"
+          color="blue"
+        >
+          Download
+        </Button>
       </Modal>
     </AppBase>
   );
