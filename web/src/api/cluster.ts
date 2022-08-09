@@ -16,7 +16,7 @@ export type ServerID = {
 
 export type DateTime = {
   rangeType: number;
-  startDate: string; // need to format
+  startDate: string; // need to format 2022-08-05T15:57:05.279Z
   endDate: string;
 };
 
