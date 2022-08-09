@@ -77,17 +77,16 @@ func (bc *BackendController) GetStorageUsed(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	var numOfFiles int64
+	var storageUsed int64
 
 	err = bc.Db.Model(&dbfs.File{}).Select("sum(size)").Where("entry_type = ?", dbfs.IsFile).
-		First(&numOfFiles).Error
+		Take(&storageUsed).Error
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
-		return
+		storageUsed = 0
 	}
 
 	// success
-	util.HttpJson(w, http.StatusOK, numOfFiles)
+	util.HttpJson(w, http.StatusOK, storageUsed)
 
 }
 
@@ -106,16 +105,15 @@ func (bc *BackendController) GetStorageUsedReplica(w http.ResponseWriter, r *htt
 		return
 	}
 
-	var numOfFiles int64
+	var storageUsedReplica int64
 
 	err = bc.Db.Model(&dbfs.FileVersion{}).Select("sum(actual_size)").
-		Where("entry_type = ? AND status <> ?", dbfs.IsFile, dbfs.FileStatusDeleted).First(&numOfFiles).Error
+		Where("entry_type = ? AND status <> ?", dbfs.IsFile, dbfs.FileStatusDeleted).Take(&storageUsedReplica).Error
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
-		return
+		storageUsedReplica = 0
 	}
 	// success
-	util.HttpJson(w, http.StatusOK, numOfFiles)
+	util.HttpJson(w, http.StatusOK, storageUsedReplica)
 
 }
 
