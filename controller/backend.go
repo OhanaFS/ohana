@@ -62,7 +62,8 @@ func NewBackend(
 	r.HandleFunc("/api/v1/file/{fileID}/move", bc.MoveFile).Methods("POST")
 	r.HandleFunc("/api/v1/file/{fileID}/copy", bc.CopyFile).Methods("POST")
 	r.HandleFunc("/api/v1/file/{fileID}/path", bc.GetPath).Methods("GET")
-	r.HandleFunc("/api/v1/file/{fileID}", bc.DownloadFileVersion).Methods("GET")
+	r.HandleFunc("/api/v1/file/{fileID}", bc.DownloadFileVersion).Methods("GET").
+		Queries("inline", "{inline}")
 	r.HandleFunc("/api/v1/file/{fileID}", bc.DeleteFile).Methods("DELETE")
 	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.GetFolderPermissions).Methods("GET")
 	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.AddPermissionsFolder).Methods("POST")
@@ -1071,7 +1072,7 @@ func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.
 		return
 	}
 
-	if inline != "true" {
+	if inline == "true" {
 		isDownload = false
 	}
 
