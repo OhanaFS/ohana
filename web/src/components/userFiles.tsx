@@ -15,6 +15,8 @@ import {
   Button,
   Loader,
   Image,
+  Drawer,
+  Table,
 } from '@mantine/core';
 import { showNotification, cleanNotifications } from '@mantine/notifications';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -23,6 +25,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   EntryType,
   getFileDownloadURL,
+  MetadataKeyMap,
   useMutateCopyFile,
   useMutateDeleteFile,
   useMutateMoveFile,
@@ -62,9 +65,25 @@ const PasteFiles = defineFileAction({
   },
 } as const);
 
+const FileProperties = defineFileAction({
+  id: 'file_properties',
+  button: {
+    name: 'Properties',
+    toolbar: true,
+    contextMenu: true,
+    group: 'Actions',
+    icon: ChonkyIconName.info,
+  },
+} as const);
+
+const keyMap = {
+  file_name: 'Name',
+};
+
 export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   const [fuOpened, setFuOpened] = useState(false);
   const [fileOpened, setFileOpened] = useState('');
+  const [filePropertiesOpened, setFilePropertiesOpened] = useState('');
   const [clipboardIds, setClipboardsIds] = useState<string[]>([]);
   const params = useParams();
   const navigate = useNavigate();
@@ -158,6 +177,8 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
           folder_id: folderID,
         });
       }
+    } else if ((data.id as string) === FileProperties.id) {
+      setFilePropertiesOpened(data.state.selectedFilesForAction[0].id);
     }
   };
 
@@ -171,6 +192,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
       ChonkyActions.CopyFiles,
       RenameFiles,
       PasteFiles,
+      FileProperties,
     ],
     []
   );
@@ -182,6 +204,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
 
   const qFilesList = useQueryFolderContents(folderID);
   const qActiveFile = useQueryFileMetadata(fileOpened);
+  const qPropsFile = useQueryFileMetadata(filePropertiesOpened);
 
   const mCreateFolder = useMutateCreateFolder();
   const mDeleteFolder = useMutateDeleteFolder();
@@ -197,7 +220,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
       name: file.file_name,
       isDir: file.entry_type === EntryType.Folder,
       modDate: file.modified_time,
-      size: file.actual_size,
+      size: file.size,
     })) || [];
 
   const ohanaFolderChain = [{ id: homeFolderID, name: 'Home', isDir: true }];
@@ -284,6 +307,44 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
           Download
         </Button>
       </Modal>
+      <Drawer
+        opened={filePropertiesOpened !== ''}
+        onClose={() => setFilePropertiesOpened('')}
+        title={qPropsFile.data?.file_name}
+        padding="lg"
+        position="right"
+        size="xl"
+      >
+        <Table>
+          <thead>
+            <tr>
+              <th>Property</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.keys(qPropsFile.data || {})
+              .map((key) => key as keyof typeof MetadataKeyMap)
+              .filter((key) =>
+                (
+                  [
+                    'file_name',
+                    'size',
+                    'created_time',
+                    'modified_time',
+                    'version_no',
+                  ] as Array<keyof typeof MetadataKeyMap>
+                ).includes(key)
+              )
+              .map((key) => (
+                <tr key={key}>
+                  <td>{MetadataKeyMap[key]}</td>
+                  <td>{(qPropsFile.data as any)[key]}</td>
+                </tr>
+              ))}
+          </tbody>
+        </Table>
+      </Drawer>
     </AppBase>
   );
 });

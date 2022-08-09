@@ -40,6 +40,29 @@ export type FileMetadata<T = EntryType> = {
   status: number;
 };
 
+export const MetadataKeyMap: { [key in keyof FileMetadata]: string } = {
+  file_id: 'File ID',
+  file_name: 'File Name',
+  mime_type: 'MIME Type',
+  entry_type: 'Entry Type',
+  parent_folder_id: 'Parent Folder ID',
+  version_no: 'Version No',
+  data_version_no: 'Data Version Number',
+  size: 'Size',
+  actual_size: 'Actual Size',
+  created_time: 'Created Time',
+  modified_user_user_id: 'Modified By (UID)',
+  modified_time: 'Last Modified',
+  versioning_mode: 'Versioning mode',
+  checksum: 'Checksum',
+  frag_count: 'Frag Count',
+  parity_count: 'Parity Count',
+  password_protected: 'Password Protected',
+  link_file_id: 'Link File ID',
+  last_checked: 'Last Checked',
+  status: 'Status',
+} as const;
+
 /**
  * Uploads a file to a folder.
  */
