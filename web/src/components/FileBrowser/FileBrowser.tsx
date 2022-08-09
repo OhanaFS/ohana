@@ -1,4 +1,4 @@
-import AppBase from './AppBase';
+import AppBase from '../AppBase';
 import {
   ChonkyActions,
   ChonkyIconName,
@@ -10,7 +10,6 @@ import {
 } from 'chonky';
 import {
   Modal,
-  FileInput,
   FileButton,
   Button,
   Loader,
@@ -21,7 +20,6 @@ import {
 import { showNotification, cleanNotifications } from '@mantine/notifications';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-
 import {
   EntryType,
   getFileDownloadURL,
@@ -32,14 +30,15 @@ import {
   useMutateUpdateFileMetadata,
   useMutateUploadFile,
   useQueryFileMetadata,
-} from '../api/file';
+} from '../../api/file';
 import {
   useMutateCreateFolder,
   useMutateDeleteFolder,
   useQueryFolderContents,
-} from '../api/folder';
-import { useQueryUser } from '../api/auth';
+} from '../../api/folder';
+import { useQueryUser } from '../../api/auth';
 import { useMediaQuery } from '@mantine/hooks';
+import { UploadFileModal } from './UploadFileModal';
 
 export type VFSProps = Partial<FileBrowserProps>;
 
@@ -76,10 +75,6 @@ const FileProperties = defineFileAction({
   },
 } as const);
 
-const keyMap = {
-  file_name: 'Name',
-};
-
 export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   const [fuOpened, setFuOpened] = useState(false);
   const [fileOpened, setFileOpened] = useState('');
@@ -98,14 +93,6 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
 
   const folderID = params.id || '';
 
-  const showNotificationFunc = (title: string, message: string) => {
-    showNotification({
-      title: title,
-      message: message,
-      onClose: () => cleanNotifications(),
-    });
-  };
-
   const handleFileAction: FileActionHandler = async (data) => {
     if (data.action === ChonkyActions.UploadFiles) {
       setFuOpened(true);
@@ -121,23 +108,19 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
     } else if (data.id === ChonkyActions.DeleteFiles.id) {
       for (const selectedItem of data.state.selectedFilesForAction) {
         if (selectedItem.isDir) {
-          mDeleteFolder
-            .mutateAsync(selectedItem.id)
-            .then(() =>
-              showNotificationFunc(
-                `${selectedItem.name} deleted`,
-                'Successfully Deleted'
-              )
-            );
+          mDeleteFolder.mutateAsync(selectedItem.id).then(() =>
+            showNotification({
+              title: `${selectedItem.name} deleted`,
+              message: 'Successfully Deleted',
+            })
+          );
         } else {
-          mDeleteFile
-            .mutateAsync(selectedItem.id)
-            .then(() =>
-              showNotificationFunc(
-                `${selectedItem.name} deleted`,
-                'Successfully Deleted'
-              )
-            );
+          mDeleteFile.mutateAsync(selectedItem.id).then(() =>
+            showNotification({
+              title: `${selectedItem.name} deleted`,
+              message: 'Successfully Deleted',
+            })
+          );
         }
       }
     } else if (data.id === ChonkyActions.DownloadFiles.id) {
@@ -237,49 +220,11 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
         />
         {/* Upload file modal */}
       </div>
-      <Modal
-        centered
-        opened={fuOpened}
+      <UploadFileModal
         onClose={() => setFuOpened(false)}
-        title="Upload a File"
-      >
-        <div className="flex">
-          {mUploadFile.isLoading ? <Loader className="mr-5" /> : null}
-          <FileButton
-            onChange={(item) => {
-              console.log('we going in');
-              if (!item) {
-                return;
-              }
-              mUploadFile
-                .mutateAsync({
-                  file: item,
-                  folder_id: folderID,
-                  frag_count: 1,
-                  parity_count: 1,
-                })
-                .then(() => setFuOpened(false))
-                .then(() =>
-                  showNotificationFunc(
-                    `${item.name} uploaded`,
-                    'File Uploaded Successfully'
-                  )
-                );
-            }}
-          >
-            {(props) => (
-              <Button
-                disabled={mUploadFile.isLoading}
-                className="bg-cyan-500"
-                color="cyan"
-                {...props}
-              >
-                Upload a File
-              </Button>
-            )}
-          </FileButton>
-        </div>
-      </Modal>
+        opened={fuOpened}
+        parentFolderId={folderID}
+      />
       <Modal
         centered
         opened={fileOpened !== ''}

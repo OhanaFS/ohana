@@ -2,7 +2,7 @@
 import { Helmet } from 'react-helmet';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import AppBase from './components/AppBase'; //switched to responsive base
-import { VFSBrowser } from './components/userFiles';
+import { VFSBrowser } from './components/FileBrowser/FileBrowser';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -41,7 +41,10 @@ export default function Demo() {
           <Route path="/" element={<LoginPage />} />
           <Route path="/insidessogroup" element={<AdminSsoGroupsInside />} />
           <Route path="/manage_keys" element={<AdminKeyManagement />} />
-          <Route path="/performmaintenance" element={<AdminPerformMaintenance />}/>
+          <Route
+            path="/performmaintenance"
+            element={<AdminPerformMaintenance />}
+          />
           <Route path="/runmaintenance" element={<AdminRunMaintenance />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="/sso" element={<AdminSsoGroups />} />
