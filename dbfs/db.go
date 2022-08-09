@@ -10,7 +10,8 @@ import (
 // InitDB Initiates the DB with gorm.db.AutoMigrate
 func InitDB(db *gorm.DB) error {
 	err := db.AutoMigrate(&User{}, &Group{}, &File{}, &FileVersion{}, &Fragment{}, &Permission{}, &PermissionHistory{},
-		&PasswordProtect{}, &Server{}, KeyValueDBPair{}, DataCopies{}, &Log{}, &Role{}, &Alert{})
+		&PasswordProtect{}, &Server{}, KeyValueDBPair{}, DataCopies{}, &Log{}, &Role{}, &Alert{},
+		&ResultsCffhc{}, &JobprogressCffhc{}, &ResultsAffhc{}, &JobprogressAffhc{})
 
 	if err != nil {
 		return err

@@ -2,20 +2,27 @@ package inc_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/OhanaFS/ohana/config"
+	"github.com/OhanaFS/ohana/controller"
 	"github.com/OhanaFS/ohana/controller/inc"
 	"github.com/OhanaFS/ohana/dbfs"
+	dbfstestutils "github.com/OhanaFS/ohana/dbfs/test_utils"
 	selfsigntestutils "github.com/OhanaFS/ohana/selfsign/test_utils"
 	"github.com/OhanaFS/ohana/util/testutil"
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -377,6 +384,148 @@ func TestFragmentHandler(t *testing.T) {
 	})
 
 	defer Inc.HttpServer.Shutdown(context.Background())
+
+}
+
+func TestStitchFragment(t *testing.T) {
+
+	db := testutil.NewMockDB(t)
+
+	debugPrint := true
+	if debugPrint {
+		fmt.Println("Debug print on")
+	}
+
+	superUser := dbfs.User{}
+
+	// Getting superuser account
+	err := db.Where("email = ?", "superuser").First(&superUser).Error
+	assert.Nil(t, err)
+
+	Assert := assert.New(t)
+	tempdir := t.TempDir()
+	Assert.Nil(err)
+
+	sharddir := filepath.Join(tempdir, "shards")
+
+	stitchConfig := config.StitchConfig{
+		ShardsLocation: sharddir,
+	}
+
+	if w, err := os.Stat(stitchConfig.ShardsLocation); os.IsNotExist(err) {
+		err := os.MkdirAll(stitchConfig.ShardsLocation, 0755)
+		if err != nil {
+			panic("ERROR. CANNOT CREATE SHARDS FOLDER.")
+		}
+	} else if !w.IsDir() {
+		panic("ERROR. SHARDS FOLDER IS NOT A DIRECTORY.")
+	}
+
+	certsPaths, err := selfsigntestutils.GenCertsTest(tempdir)
+	Assert.Nil(err)
+
+	configFile := &config.Config{Stitch: stitchConfig,
+		Inc: config.IncConfig{
+			ServerName: "testServer",
+			HostName:   "localhost",
+			Port:       "5555",
+			CaCert:     certsPaths.CaCertPath,
+			PublicCert: certsPaths.PublicCertPath,
+			PrivateKey: certsPaths.PrivateKeyPath,
+		},
+	}
+
+	Inc := inc.NewInc(configFile, db)
+	inc.RegisterIncServices(Inc)
+
+	logger := config.NewLogger(configFile)
+	bc := &controller.BackendController{
+		Db:         db,
+		Logger:     logger,
+		Path:       configFile.Stitch.ShardsLocation,
+		ServerName: configFile.Inc.ServerName,
+		Inc:        Inc,
+	}
+	bc.InitialiseShardsFolder()
+
+	// create a new file
+
+	rootFolder, err := dbfs.GetRootFolder(db)
+
+	file, err := dbfstestutils.EXAMPLECreateFile(db, &superUser, dbfstestutils.ExampleFile{
+		FileName:       "test123",
+		ParentFolderId: rootFolder.FileId,
+		Server:         configFile.Inc.ServerName,
+		FragmentPath:   configFile.Stitch.ShardsLocation,
+		FileData:       "Blah123",
+		Size:           50,
+		ActualSize:     50,
+	})
+	Assert.Nil(err)
+	Assert.NotNil(file)
+	Inc.LocalCurrentFilesFragmentsHealthCheck(1)
+
+	// damange the file
+	fragments, err := file.GetFileFragments(db, &superUser)
+	Assert.Nil(err)
+	Assert.NotNil(fragments)
+
+	err = dbfstestutils.EXAMPLECorruptFragments(
+		path.Join(configFile.Stitch.ShardsLocation, fragments[0].FileFragmentPath))
+	Assert.Nil(err)
+	Inc.LocalCurrentFilesFragmentsHealthCheck(2)
+
+	results, err := dbfs.GetResultsCffhc(db, 2)
+	Assert.Nil(err)
+	Assert.NotNil(results)
+	Assert.Equal(1, len(results))
+
+	// Check using InvidiaulFragmentHealthCheck
+	result, err := Inc.IndividualFragHealthCheck(fragments[0])
+	Assert.Nil(err)
+	Assert.NotNil(result)
+	Assert.True(len(result.BrokenBlocks) > 0)
+
+	result, err = Inc.IndividualFragHealthCheck(fragments[1])
+	Assert.Nil(err)
+	Assert.NotNil(result)
+	Assert.True(len(result.BrokenBlocks) == 0)
+
+	// Check bad fragment via route
+
+	req := httptest.NewRequest("GET",
+		strings.Replace(inc.FragmentHealthCheckPath,
+			"{fragmentPath}", fragments[0].FileFragmentPath, -1), nil)
+	w := httptest.NewRecorder()
+	req = mux.SetURLVars(req, map[string]string{
+		"fragmentPath": fragments[0].FileFragmentPath,
+	})
+	Inc.FragmentHealthCheckRoute(w, req)
+	Assert.Equal(http.StatusOK, w.Code)
+	body := w.Body.String()
+
+	err = json.Unmarshal([]byte(body), &result)
+	Assert.Nil(err)
+
+	Assert.True(len(result.BrokenBlocks) > 0)
+
+	// Check good fragment via route
+
+	req = httptest.NewRequest("GET",
+		strings.Replace(inc.FragmentHealthCheckPath,
+			"{fragmentPath}", fragments[1].FileFragmentPath, -1), nil)
+	w = httptest.NewRecorder()
+	req = mux.SetURLVars(req, map[string]string{
+		"fragmentPath": fragments[1].FileFragmentPath,
+	})
+	Inc.FragmentHealthCheckRoute(w, req)
+	Assert.Equal(http.StatusOK, w.Code)
+	body = w.Body.String()
+
+	err = json.Unmarshal([]byte(body), &result)
+	Assert.Nil(err)
+
+	Assert.True(len(result.BrokenBlocks) == 0)
 
 }
 

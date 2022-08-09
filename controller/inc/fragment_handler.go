@@ -1,13 +1,18 @@
 package inc
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/OhanaFS/ohana/dbfs"
 	"github.com/OhanaFS/ohana/util"
+	"github.com/OhanaFS/stitch"
 	"gorm.io/gorm"
+	"log"
+	"net/http"
 	"os"
 	"path"
+	"strings"
 	"time"
 )
 
@@ -179,8 +184,27 @@ func (i Inc) deleteWorker(dataIdFragmentMap map[string][]dbfs.Fragment, input <-
 					}
 				} else {
 					// call handling server
-					fmt.Println("Deleting fragment:", path, server, dataId)
-					dwss <- DeleteWorkerServerStatus{server, nil}
+					req, err := http.NewRequest(http.MethodDelete,
+						strings.Replace(FragmentPath,
+							"{fragmentPath}", path, -1), nil)
+					if err != nil {
+						fmt.Println(err)
+						return // TODO CHECK IF SHOULD BE RETURN
+					}
+					resp, err := i.HttpClient.Do(req)
+					if err != nil {
+						fmt.Println(err)
+						return // TODO CHECK IF SHOULD BE RETURN
+					}
+
+					defer resp.Body.Close()
+
+					if resp.StatusCode != http.StatusOK {
+						dwss <- DeleteWorkerServerStatus{server, errors.New("Server returned " + resp.Status)}
+					} else {
+						dwss <- DeleteWorkerServerStatus{server, nil}
+					}
+
 				}
 
 			}(fragment.FileFragmentPath, fragment.ServerName, fragment.FileVersionDataId, serversBackChan)
@@ -303,4 +327,239 @@ func (i Inc) LocalMissingShardsCheck() ([]string, error) {
 		return nil, nil
 	}
 
+}
+
+// LocalIndividualFragHealthCheck checks if the local fragment is in good condition
+func (i Inc) LocalIndividualFragHealthCheck(fragPath string) (*stitch.ShardVerificationResult, error) {
+
+	shardFile, err := os.Open(path.Join(i.ShardsLocation, fragPath))
+	// err handling
+	if err != nil {
+		return nil, err
+	}
+
+	integrity, err := stitch.VerifyShardIntegrity(shardFile)
+
+	return integrity, err
+}
+
+func (i Inc) IndividualFragHealthCheck(fragment dbfs.Fragment) (*stitch.ShardVerificationResult, error) {
+
+	var result *stitch.ShardVerificationResult
+	var err error
+
+	// Check who the /Users/adrieltan/github/stitch/cmd/stitch/cmd/pipeline_cmd.gofragment belongs to
+	if fragment.ServerName == i.ServerName {
+		// local
+		result, err = i.LocalIndividualFragHealthCheck(fragment.FileFragmentPath)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// get server to check
+		server, err := dbfs.GetServerAddress(i.Db, fragment.ServerName)
+		if err != nil {
+			return nil, err
+		}
+
+		// call handling server
+
+		resp, err := i.HttpClient.Get(server + strings.Replace(FragmentHealthCheckPath,
+			"{fragmentPath}", fragment.FileFragmentPath, -1))
+
+		defer resp.Body.Close()
+
+		if resp.StatusCode != 200 {
+			return nil, errors.New("Error: " + resp.Status)
+		}
+
+		// decode the response
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		if err != nil {
+			return nil, err
+		}
+
+	}
+
+	// mark shard health as bad
+	if len(result.BrokenBlocks) > 0 {
+		err := fragment.UpdateStatus(i.Db, dbfs.FragmentStatusBad)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return result, nil
+
+}
+
+func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) bool {
+	// db join query to get all the fragments belonging to this server current versions
+
+	type result struct {
+		FileId           string
+		FileName         string
+		DataId           string
+		FileFragmentPath string
+		ServerName       string
+	}
+
+	// store start in the JobProgress_CFFHC
+	err := i.Db.Create(&dbfs.JobprogressCffhc{
+		JobId:      jobId,
+		StartTime:  time.Now(),
+		ServerId:   i.ServerName,
+		InProgress: true,
+	}).Error
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	var results []result
+
+	var resultsCffhc []dbfs.ResultsCffhc
+
+	// Get all the fragments belonging to this server
+	// We are going to use a join
+
+	err = i.Db.Model(&dbfs.File{}).Select(
+		"files.file_id, files.file_name, files.data_id, fragments.file_fragment_path, fragments.server_name").
+		Joins("JOIN fragments ON files.data_id = fragments.file_version_data_id").
+		Where("fragments.server_name = ?", i.ServerName).Find(&results).Error
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	for _, result := range results {
+		// check the health of the fragment
+		verificationResult, err := i.LocalIndividualFragHealthCheck(result.FileFragmentPath)
+		if err != nil {
+			// mark the fragment as bad
+			resultsCffhc = append(resultsCffhc, dbfs.ResultsCffhc{
+				JobId:     jobId,
+				FileName:  result.FileName,
+				FileId:    result.FileId,
+				FragPath:  result.FileFragmentPath,
+				ServerId:  result.ServerName,
+				Error:     err.Error(),
+				ErrorType: 1,
+			})
+		} else if !verificationResult.IsAvailable {
+			resultsCffhc = append(resultsCffhc, dbfs.ResultsCffhc{
+				JobId:     jobId,
+				FileName:  result.FileName,
+				FileId:    result.FileId,
+				FragPath:  result.FileFragmentPath,
+				ServerId:  result.ServerName,
+				Error:     "Fragment is not available",
+				ErrorType: 2,
+			})
+		} else if len(verificationResult.BrokenBlocks) > 0 {
+			resultsCffhc = append(resultsCffhc, dbfs.ResultsCffhc{
+				JobId:     jobId,
+				FileName:  result.FileName,
+				FileId:    result.FileId,
+				FragPath:  result.FileFragmentPath,
+				ServerId:  result.ServerName,
+				Error:     "Fragment is broken",
+				ErrorType: 3,
+			})
+		}
+	}
+
+	// insert the results into the database
+	err = i.Db.Create(&resultsCffhc).Error
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	return true
+}
+
+func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
+	// db join query to get all the fragments belonging to this server current versions
+
+	type result struct {
+		FileId           string
+		FileName         string
+		DataId           string
+		FileFragmentPath string
+		ServerName       string
+	}
+
+	// store start in the JobprogressAffhc
+	err := i.Db.Create(&dbfs.JobprogressAffhc{
+		JobId:      jobId,
+		StartTime:  time.Now(),
+		ServerId:   i.ServerName,
+		InProgress: true,
+	}).Error
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	var results []result
+
+	var resultsAffhc []dbfs.ResultsAffhc
+
+	// Get all the fragments belonging to this server
+	// We are going to use a join
+
+	err = i.Db.Model(&dbfs.FileVersion{}).Select(
+		"file_versions.file_id, file_versions.file_name, file_versions.data_id, fragments.file_fragment_path, fragments.server_name").
+		Joins("JOIN fragments ON file_versions.data_id = fragments.file_version_data_id").
+		Where("fragments.server_name = ?", i.ServerName).Find(&results).Error
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	for _, result := range results {
+		// check the health of the fragment
+		verificationResult, err := i.LocalIndividualFragHealthCheck(result.FileFragmentPath)
+		if err != nil {
+			// mark the fragment as bad
+			resultsAffhc = append(resultsAffhc, dbfs.ResultsAffhc{
+				JobId:     jobId,
+				FileName:  result.FileName,
+				FileId:    result.FileId,
+				FragPath:  result.FileFragmentPath,
+				ServerId:  result.ServerName,
+				Error:     err.Error(),
+				ErrorType: 1,
+			})
+		} else if !verificationResult.IsAvailable {
+			resultsAffhc = append(resultsAffhc, dbfs.ResultsAffhc{
+				JobId:     jobId,
+				FileName:  result.FileName,
+				FileId:    result.FileId,
+				FragPath:  result.FileFragmentPath,
+				ServerId:  result.ServerName,
+				Error:     "Fragment is not available",
+				ErrorType: 2,
+			})
+		} else if len(verificationResult.BrokenBlocks) > 0 {
+			resultsAffhc = append(resultsAffhc, dbfs.ResultsAffhc{
+				JobId:     jobId,
+				FileName:  result.FileName,
+				FileId:    result.FileId,
+				FragPath:  result.FileFragmentPath,
+				ServerId:  result.ServerName,
+				Error:     "Fragment is broken",
+				ErrorType: 3,
+			})
+		}
+	}
+
+	// insert the results into the database
+	err = i.Db.Create(&resultsAffhc).Error
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	return true
 }
