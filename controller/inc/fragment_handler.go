@@ -485,11 +485,11 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 	// db join query to get all the fragments belonging to this server current versions
 
 	type result struct {
-		FileId           string
-		FileName         string
-		DataId           string
-		FileFragmentPath string
-		ServerName       string
+		FileId            string
+		FileName          string
+		FileVersionDataId string
+		FileFragmentPath  string
+		ServerName        string
 	}
 
 	// store start in the JobprogressAffhc. TODO: Needs to be closed by another driver.
@@ -504,97 +504,170 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 		return false
 	}
 
-	var results []result
-
-	var resultsAffhc []dbfs.ResultsAffhc
+	var fragmentsToCheck []result
 
 	// Get all the fragments belonging to this server
 	// We are going to use a join
 
-	var fragments []dbfs.Fragment
-	err = i.Db.Find(&fragments).Error
+	// We will first reference the files table so that we get the latest file names
+	// If there are stuff no longer there, it will be "" and we will find it later.
 
 	err = i.Db.Model(&dbfs.Fragment{}).Select(
 		"files.file_id, files.file_name, fragments.file_version_data_id, fragments.file_fragment_path, fragments.server_name").
 		Joins("JOIN files ON fragments.file_version_file_id = files.file_id").
-		Where("fragments.server_name = ?", i.ServerName).Find(&results).Error
+		Where("fragments.server_name = ? AND files.entry_type = ?", i.ServerName, dbfs.IsFile).Find(&fragmentsToCheck).Error
 	if err != nil {
 		log.Println(err)
 		return false
 	}
 
-	//resultsMap := make(map[string]dbfs.ResultsAffhc)
+	resultsMap := make(map[string]*dbfs.ResultsAffhc)
 
-	for _, result := range results {
-		// check the health of the fragment
-		verificationResult, err := i.LocalIndividualFragHealthCheck(result.FileFragmentPath)
-		if err != nil {
-			// mark the fragment as bad
-			resultsAffhc = append(resultsAffhc, dbfs.ResultsAffhc{
-				JobId:     jobId,
-				FileName:  result.FileName,
-				FileId:    result.FileId,
-				DataId:    result.DataId,
-				FragPath:  result.FileFragmentPath,
-				ServerId:  result.ServerName,
-				Error:     err.Error(),
-				ErrorType: 1,
-			})
-		} else if !verificationResult.IsAvailable {
-			resultsAffhc = append(resultsAffhc, dbfs.ResultsAffhc{
-				JobId:     jobId,
-				FileName:  result.FileName,
-				FileId:    result.FileId,
-				DataId:    result.DataId,
-				FragPath:  result.FileFragmentPath,
-				ServerId:  result.ServerName,
-				Error:     "Fragment is not available",
-				ErrorType: 2,
-			})
-		} else if len(verificationResult.BrokenBlocks) > 0 {
-			resultsAffhc = append(resultsAffhc, dbfs.ResultsAffhc{
-				JobId:     jobId,
-				FileName:  result.FileName,
-				FileId:    result.FileId,
-				DataId:    result.DataId,
-				FragPath:  result.FileFragmentPath,
-				ServerId:  result.ServerName,
-				Error:     "Fragment is broken",
-				ErrorType: 3,
-			})
-		}
-	}
+	for _, frag := range fragmentsToCheck {
 
-	// Check if any of the fragments are missing filenames or file_ids, in which, we grab them from
-	// the file version table. This is done to ensure that we always get the latest version of the file
-	// in the case that the file has been updated. And to ensure that it works properly with postgres
+		// Check if any of the fragments are missing filenames or file_ids, in which, we grab them from
+		// the file version table. This is done to ensure that we always get the latest version of the file
+		// in the case that the file has been updated. And to ensure that it works properly with postgres
 
-	for _, badFragment := range resultsAffhc {
+		multipleFileIds := make([]string, 0)
+		multipleFileNames := make([]string, 0)
 
-		if badFragment.FileName == "" || badFragment.FileId == "" {
-			// query the db for the latest
+		if frag.FileId == "" || frag.FileName == "" {
 
-			var fileVersion dbfs.FileVersion
+			var fileVersions []dbfs.FileVersion
 			err = i.Db.Where("data_id = ? and status NOT IN ?",
-				badFragment.DataId, []int8{dbfs.FileStatusToBeDeleted, dbfs.FileStatusDeleted}).
-				Order("created_at desc").First(&fileVersion).Error
+				frag.FileVersionDataId, []int8{dbfs.FileStatusToBeDeleted, dbfs.FileStatusDeleted}).
+				Order("created_at desc").Find(&fileVersions).Error
+			if err != nil {
+				log.Println(err)
+				return false
+			}
+			if len(fileVersions) == 0 {
+				continue // likely deleted file so we don't care about it
+			} else if len(fileVersions) == 1 {
+				frag.FileId = fileVersions[0].FileId
+				frag.FileName = fileVersions[0].FileName
 
-			badFragment.FileId = fileVersion.FileId
-			badFragment.FileName = fileVersion.FileName
+				fileIdsJSON, _ := json.Marshal([]string{frag.FileId})
+				fileNamesJSON, _ := json.Marshal([]string{frag.FileName})
 
-			// else the file is probably meant to be deleted, so it doesn't matter if it's bad.
+				frag.FileId = string(fileIdsJSON)
+				frag.FileName = string(fileNamesJSON)
+			} else if len(fileVersions) > 1 {
+				for _, fileVersion := range fileVersions {
+					multipleFileIds = append(multipleFileIds, fileVersion.FileId)
+					multipleFileNames = append(multipleFileNames, fileVersion.FileName)
+				}
 
-			badFragment.ErrorType = 4 // file is likely deleted, skip.
+				// JSON-ify FileName and FileId
+				fileNamesJSON, _ := json.Marshal(multipleFileNames)
+				fileIdsJSON, _ := json.Marshal(multipleFileIds)
+
+				frag.FileId = string(fileIdsJSON)
+				frag.FileName = string(fileNamesJSON)
+			}
+		} else { // still need to json-ify the file_id and file_name
+			fileIdsJSON, _ := json.Marshal([]string{frag.FileId})
+			fileNamesJSON, _ := json.Marshal([]string{frag.FileName})
+
+			frag.FileId = string(fileIdsJSON)
+			frag.FileName = string(fileNamesJSON)
+		}
+
+		// If we have checked before, skip and just append file name and file id to the existing results
+		existsFlag := false
+		if _, ok := resultsMap[frag.FileVersionDataId]; ok {
+			existsFlag = true
+		}
+
+		if !existsFlag {
+
+			// check the health of the fragment
+			verificationResult, err := i.LocalIndividualFragHealthCheck(frag.FileFragmentPath)
+			if err != nil {
+				// mark the fragment as bad
+				resultsMap[frag.FileVersionDataId] = &dbfs.ResultsAffhc{
+					JobId:     jobId,
+					FileName:  frag.FileName,
+					FileId:    frag.FileId,
+					DataId:    frag.FileVersionDataId,
+					FragPath:  frag.FileFragmentPath,
+					ServerId:  frag.ServerName,
+					Error:     err.Error(),
+					ErrorType: 1,
+				}
+
+			} else if !verificationResult.IsAvailable {
+				resultsMap[frag.FileVersionDataId] = &dbfs.ResultsAffhc{
+					JobId:     jobId,
+					FileName:  frag.FileName,
+					FileId:    frag.FileId,
+					DataId:    frag.FileVersionDataId,
+					FragPath:  frag.FileFragmentPath,
+					ServerId:  frag.ServerName,
+					Error:     "Fragment is not available",
+					ErrorType: 2,
+				}
+
+			} else if len(verificationResult.BrokenBlocks) > 0 {
+
+				resultsMap[frag.FileVersionDataId] = &dbfs.ResultsAffhc{
+					JobId:     jobId,
+					FileName:  frag.FileName,
+					FileId:    frag.FileId,
+					DataId:    frag.FileVersionDataId,
+					FragPath:  frag.FileFragmentPath,
+					ServerId:  frag.ServerName,
+					Error:     "Fragment is broken",
+					ErrorType: 3,
+				}
+			}
+
+		} else {
+
+			// get the previous result
+			existingResult := resultsMap[frag.FileVersionDataId]
+
+			tempStrings := make([]string, 0)
+
+			// FileName
+			err := json.Unmarshal([]byte(existingResult.FileName), &tempStrings)
+			if err != nil {
+				continue
+			}
+
+			tempStrings = append(tempStrings, frag.FileName)
+			tempStringsByte, err := json.Marshal(tempStrings)
+			if err != nil {
+				continue
+			}
+
+			existingResult.FileName = string(tempStringsByte)
+
+			// FileId
+
+			err = json.Unmarshal([]byte(existingResult.FileId), &tempStrings)
+			if err != nil {
+				continue
+			}
+
+			tempStrings = append(tempStrings, frag.FileId)
+			tempStringsByte, err = json.Marshal(tempStrings)
+			if err != nil {
+				continue
+			}
+
+			existingResult.FileId = string(tempStringsByte)
+
 		}
 
 	}
 
-	for _, badFragment := range resultsAffhc {
-		if badFragment.ErrorType == 4 { // skip as the file is likely deleted
-			continue
-		}
-		err := i.Db.Create(&badFragment).Error
+	// Insert the results into the database
+	for _, result := range resultsMap {
+		err = i.Db.Create(result).Error
 		if err != nil {
+			log.Println(err)
 			return false
 		}
 	}

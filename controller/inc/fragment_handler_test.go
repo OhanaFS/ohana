@@ -589,7 +589,7 @@ func TestStitchFragment(t *testing.T) {
 		results2, err := dbfs.GetResultsAffhc(db, 5)
 		Assert.Nil(err)
 		Assert.NotNil(results2)
-		Assert.Equal(0, len(results2))
+		Assert.Equal(1, len(results2))
 
 	})
 
