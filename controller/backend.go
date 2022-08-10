@@ -63,15 +63,13 @@ func NewBackend(
 	r.HandleFunc("/api/v1/file/{fileID}/move", bc.MoveFile).Methods("POST")
 	r.HandleFunc("/api/v1/file/{fileID}/copy", bc.CopyFile).Methods("POST")
 	r.HandleFunc("/api/v1/file/{fileID}/path", bc.GetPath).Methods("GET")
-	r.HandleFunc("/api/v1/file/{fileID}", bc.DownloadFileVersion).Methods("GET").
-		Queries("inline", "{inline}")
+	r.HandleFunc("/api/v1/file/{fileID}", bc.DownloadFileVersion).Methods("GET")
 	r.HandleFunc("/api/v1/file/{fileID}", bc.DeleteFile).Methods("DELETE")
 	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.GetFolderPermissions).Methods("GET")
 	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.AddPermissionsFolder).Methods("POST")
 	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.UpdateFolderMetadata).Methods("PATCH")
 	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}/metadata", bc.GetFileVersionMetadata).Methods("GET")
-	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}", bc.DownloadFileVersion).Methods("GET").
-		Queries("inline", "{inline}")
+	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}", bc.DownloadFileVersion).Methods("GET")
 	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}", bc.DeleteFileVersion).Methods("DELETE")
 	r.HandleFunc("/api/v1/file/{fileID}/versions/", bc.GetFileVersionHistory).Methods("GET")
 
@@ -123,7 +121,6 @@ func (bc *BackendController) InitialiseShardsFolder() {
 
 // UploadFile allows a user to upload a file to the system
 func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) {
-
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
 		util.HttpError(w, http.StatusUnauthorized, err.Error())
@@ -251,7 +248,9 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 
 	// Open the output writers
 	for i := 0; i < totalShards; i++ {
-		shardWriter, err := bc.Inc.NewShardWriter(bc.ServerName, shardNames[i])
+		// TODO: currently this only streams to the current server. Need to replace
+		// bc.ServerName with names of other servers chosen by some method.
+		shardWriter, err := bc.Inc.NewShardWriter(r.Context(), bc.ServerName, shardNames[i])
 		if err != nil {
 			util.HttpError(w,
 				http.StatusInternalServerError,
@@ -299,7 +298,7 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 			fragId := int(i)
 			fragmentPath := shardNames[i-1]
 
-			if err := dbfs.CreateFragment(bc.Db,
+			if err := dbfs.CreateFragment(tx,
 				dbfsFile.FileId, dbfsFile.DataId, dbfsFile.VersionNo,
 				fragId, bc.ServerName, fragmentPath); err != nil {
 				return err
@@ -337,7 +336,6 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 
 // UpdateFile allows a user to upload a file to the system
 func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) {
-
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
 		util.HttpError(w, http.StatusUnauthorized, err.Error())
@@ -408,46 +406,60 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 
 	// Open the output files
 	shardWriters := make([]io.Writer, totalShards)
-	shardFiles := make([]*os.File, totalShards)
 	shardNames := make([]string, totalShards)
+
+	// Generate names for the shards
 	for i := 0; i < totalShards; i++ {
-		shardNames[i] = bc.Path + dbfsFile.DataId + ".shard" + strconv.Itoa(i)
-	}
-	for i := 0; i < totalShards; i++ {
-		shardFile, err := os.Create(shardNames[i])
-		if err != nil {
-			util.HttpError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		defer shardFile.Close()
-		shardWriters[i] = shardFile
-		shardFiles[i] = shardFile
+		shardNames[i] = dbfsFile.DataId + ".shard" + strconv.Itoa(i)
 	}
 
+	// Open the output writers
+	for i := 0; i < totalShards; i++ {
+		// TODO: currently this only streams to the current server. Need to replace
+		// bc.ServerName with names of other servers chosen by some method.
+		shardWriter, err := bc.Inc.NewShardWriter(r.Context(), bc.ServerName, shardNames[i])
+		if err != nil {
+			util.HttpError(w,
+				http.StatusInternalServerError,
+				fmt.Sprintf("failed to initialize shard writer: %s", err.Error()),
+			)
+			return
+		}
+		shardWriters[i] = shardWriter
+	}
+
+	// Decode the data key and iv
 	dataKeyBytes, err := hex.DecodeString(dataKey)
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusInternalServerError,
+			fmt.Sprintf("failed to decode data key: %s", err.Error()))
 		return
 	}
 	dataIvBytes, err := hex.DecodeString(dataIv)
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusInternalServerError,
+			fmt.Sprintf("failed to decode data iv: %s", err.Error()))
 		return
 	}
 
+	// Encode the file
 	result, err := encoder.Encode(file, shardWriters, dataKeyBytes, dataIvBytes)
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusInternalServerError,
+			fmt.Sprintf("failed to encode file: %s", err.Error()))
 		return
 	}
 
-	for i := 0; i < totalShards; i++ {
-		if err = encoder.FinalizeHeader(shardFiles[i]); err != nil {
-			util.HttpError(w, http.StatusInternalServerError, err.Error())
+	// Close the writers
+	for _, writer := range shardWriters {
+		if err := writer.(io.WriteCloser).Close(); err != nil {
+			util.HttpError(w, http.StatusInternalServerError,
+				fmt.Sprintf("failed to close shard writer: %s", err.Error()))
 			return
 		}
 	}
 
+	// Insert fragments into the database
 	for i := 1; i <= int(dbfsFile.TotalShards); i++ {
 		fragId := int(i)
 		fragmentPath := shardNames[i-1]
@@ -1076,7 +1088,9 @@ func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.
 	vars := mux.Vars(r)
 	fileID := vars["fileID"]
 	versionID := vars["versionID"]
-	inline := vars["inline"]
+
+	queries := r.URL.Query()
+	inline := queries.Get("inline")
 
 	isDownload := true
 
@@ -1084,7 +1098,7 @@ func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.
 	password := r.Header.Get("password")
 
 	if fileID == "" {
-		util.HttpError(w, http.StatusBadRequest, "No fileID  provided")
+		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
 		return
 	}
 
@@ -1131,20 +1145,17 @@ func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.
 		return
 	}
 
-	// TODO: Now assuming that all fragments are on the same server, else you need to query multiple
-	// servers for the file fragments
-
 	// Opening input files
 	var shards []io.ReadSeeker
-	var shardFiles []*os.File
 	for _, shardMeta := range shardsMeta {
-		shardFile, err := os.Open(shardMeta.FileFragmentPath)
+		shardReader, err := bc.Inc.NewShardReader(
+			r.Context(), shardMeta.ServerName, shardMeta.FileFragmentPath)
 		if err != nil {
-			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			util.HttpError(w, http.StatusInternalServerError,
+				fmt.Sprintf("failed to create shard reader: %s", err.Error()))
 			return
 		}
-		shards = append(shards, shardFile)
-		shardFiles = append(shardFiles, shardFile)
+		shards = append(shards, shardReader)
 	}
 
 	hexKey, hexIv, err := version.GetDecryptionKey(bc.Db, user, password)
@@ -1190,14 +1201,6 @@ func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
-	}
-
-	for _, shardFile := range shardFiles {
-		err := shardFile.Close()
-		if err != nil {
-			util.HttpError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
 	}
 }
 

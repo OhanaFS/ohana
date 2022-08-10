@@ -47,6 +47,9 @@ func TestBackendController(t *testing.T) {
 			CaCert:     certs.CaCertPath,
 			PublicCert: certs.PublicCertPath,
 			PrivateKey: certs.PrivateKeyPath,
+			ServerName: "localhost",
+			HostName:   "localhost",
+			Port:       "65432",
 		},
 	}
 	logger := config.NewLogger(configFile)
@@ -174,7 +177,7 @@ func TestBackendController(t *testing.T) {
 		body = w.Body.String()
 		err = json.Unmarshal([]byte(body), &files)
 
-		assert.Equal(4, len(files))
+		assert.Equal(4, len(files), body)
 
 		// Getting file ID
 		for _, file := range files {
@@ -186,6 +189,8 @@ func TestBackendController(t *testing.T) {
 			}
 		}
 
+		assert.NotEqual("", newFileID)
+
 		// Download File
 		req = httptest.NewRequest("GET", "/api/v1/file/", nil).WithContext(
 			ctxutil.WithUser(context.Background(), user))
@@ -195,9 +200,7 @@ func TestBackendController(t *testing.T) {
 		})
 		w = httptest.NewRecorder()
 		bc.DownloadFileVersion(w, req)
-		assert.Equal(http.StatusOK, w.Code)
-
-		fmt.Println(w.Body.String())
+		assert.Equal(http.StatusOK, w.Code, w.Body.String())
 	})
 
 	t.Run("Copy File", func(t *testing.T) {
@@ -256,10 +259,7 @@ func TestBackendController(t *testing.T) {
 		})
 		w = httptest.NewRecorder()
 		bc.DownloadFileVersion(w, req)
-		assert.Equal(http.StatusOK, w.Code)
-
-		fmt.Println(w.Body.String())
-
+		assert.Equal(http.StatusOK, w.Code, w.Body.String())
 	})
 
 	t.Run("Copy Folder", func(t *testing.T) {
@@ -535,9 +535,7 @@ func TestBackendController(t *testing.T) {
 		})
 		w = httptest.NewRecorder()
 		bc.DownloadFileVersion(w, req)
-		assert.Equal(http.StatusOK, w.Code)
-
-		fmt.Println(w.Body.String())
+		assert.Equal(http.StatusOK, w.Code, w.Body.String())
 	})
 
 	t.Run("Versioning File", func(t *testing.T) {
@@ -591,9 +589,7 @@ func TestBackendController(t *testing.T) {
 		})
 		w = httptest.NewRecorder()
 		bc.DownloadFileVersion(w, req)
-		assert.Equal(http.StatusOK, w.Code)
-
-		fmt.Println(w.Body.String())
+		assert.Equal(http.StatusOK, w.Code, w.Body.String())
 
 		// Deleting the original file version
 		req = httptest.NewRequest("DELETE", "/api/v1/file/"+newFileID+"/versions/"+"0", nil).WithContext(

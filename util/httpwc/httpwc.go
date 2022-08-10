@@ -1,6 +1,7 @@
 package httpwc
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,7 +13,7 @@ type HttpWriteCloser struct {
 	wg *sync.WaitGroup
 }
 
-func NewHttpWriteCloser(client *http.Client, method, url string) io.WriteCloser {
+func NewHttpWriteCloser(ctx context.Context, client *http.Client, method, url string) io.WriteCloser {
 	// Set up pipes and a WaitGroup
 	rd, wr := io.Pipe()
 	wg := &sync.WaitGroup{}
@@ -23,7 +24,7 @@ func NewHttpWriteCloser(client *http.Client, method, url string) io.WriteCloser 
 		defer wg.Done()
 
 		// Construct a new request
-		req, err := http.NewRequest(method, url, rd)
+		req, err := http.NewRequestWithContext(ctx, method, url, rd)
 		if err != nil {
 			rd.CloseWithError(err)
 			return

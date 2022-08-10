@@ -35,7 +35,7 @@ func TestHttpRS(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	hrs, err := httprs.NewHttpRS(ctx, server.URL+"/test.txt")
+	hrs, err := httprs.NewHttpRS(ctx, &http.Client{}, server.URL+"/test.txt")
 	assert.NoError(err)
 
 	// Read

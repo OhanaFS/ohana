@@ -1,6 +1,7 @@
 package inc
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/OhanaFS/ohana/dbfs"
 	"github.com/OhanaFS/ohana/util"
+	"github.com/OhanaFS/ohana/util/httprs"
 	"github.com/OhanaFS/ohana/util/httpwc"
 	"github.com/OhanaFS/stitch"
 	"github.com/gorilla/mux"
@@ -35,6 +37,7 @@ func (i *Inc) handleShardStream(w http.ResponseWriter, r *http.Request) {
 			util.HttpError(w, http.StatusInternalServerError, "Error opening file")
 			return
 		}
+		defer file.Close()
 
 		// Serve the file
 		stat, err := file.Stat()
@@ -51,6 +54,7 @@ func (i *Inc) handleShardStream(w http.ResponseWriter, r *http.Request) {
 			util.HttpError(w, http.StatusInternalServerError, "Error opening file")
 			return
 		}
+		defer file.Close()
 
 		// Copy the file
 		if _, err = io.Copy(file, r.Body); err != nil {
@@ -77,16 +81,35 @@ func (i *Inc) handleShardStream(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// NewShardWriter returns an io.WriteCloser to write a shard remotely to a server.
-func (i *Inc) NewShardWriter(serverName, shardId string) (io.WriteCloser, error) {
+// getShardURL returns the URL of a shard on a server.
+func (i *Inc) getShardURL(serverName, shardId string) (string, error) {
 	// Get the address of the server
 	host, err := dbfs.GetServerAddress(i.Db, serverName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get server address: %v", err)
+		return "", fmt.Errorf("failed to get server address: %v", err)
 	}
 
-	// Create the writer
-	addr := fmt.Sprintf("https://%s/api/v1/node/shard/%s", host, shardId)
-	wc := httpwc.NewHttpWriteCloser(i.HttpClient, http.MethodPut, addr)
+	// Return the URL
+	return fmt.Sprintf("https://%s/api/v1/node/shard/%s", host, shardId), nil
+}
+
+// NewShardWriter returns an io.WriteCloser to write a shard remotely to a server.
+func (i *Inc) NewShardWriter(ctx context.Context, serverName, shardId string) (io.WriteCloser, error) {
+	addr, err := i.getShardURL(serverName, shardId)
+	if err != nil {
+		return nil, err
+	}
+
+	wc := httpwc.NewHttpWriteCloser(ctx, i.HttpClient, http.MethodPut, addr)
 	return wc, nil
+}
+
+// NewShardReader returns an io.ReadSeeker to read a shard remotely from a server.
+func (i *Inc) NewShardReader(ctx context.Context, serverName, shardId string) (io.ReadSeeker, error) {
+	addr, err := i.getShardURL(serverName, shardId)
+	if err != nil {
+		return nil, err
+	}
+
+	return httprs.NewHttpRS(ctx, i.HttpClient, addr)
 }
