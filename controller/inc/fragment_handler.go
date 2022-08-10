@@ -366,6 +366,9 @@ func (i Inc) IndividualFragHealthCheck(fragment dbfs.Fragment) (*stitch.ShardVer
 
 		resp, err := i.HttpClient.Get(server + strings.Replace(FragmentHealthCheckPath,
 			"{fragmentPath}", fragment.FileFragmentPath, -1))
+		if err != nil {
+			return nil, err
+		}
 
 		defer resp.Body.Close()
 
@@ -415,9 +418,7 @@ func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) bool {
 		return false
 	}
 
-	var results []result
-
-	var resultsCffhc []dbfs.ResultsCffhc
+	var fragmentsToCheck []result
 
 	// Get all the fragments belonging to this server
 	// We are going to use a join
@@ -425,57 +426,118 @@ func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) bool {
 	err = i.Db.Model(&dbfs.File{}).Select(
 		"files.file_id, files.file_name, files.data_id, fragments.file_fragment_path, fragments.server_name").
 		Joins("JOIN fragments ON files.data_id = fragments.file_version_data_id").
-		Where("fragments.server_name = ?", i.ServerName).Find(&results).Error
+		Where("fragments.server_name = ? AND files.entry_type = ?", i.ServerName, dbfs.IsFile).
+		Find(&fragmentsToCheck).Error
 	if err != nil {
 		log.Println(err)
 		return false
 	}
 
-	for _, result := range results {
-		// check the health of the fragment
-		verificationResult, err := i.LocalIndividualFragHealthCheck(result.FileFragmentPath)
-		if err != nil {
-			// mark the fragment as bad
-			resultsCffhc = append(resultsCffhc, dbfs.ResultsCffhc{
-				JobId:     jobId,
-				FileName:  result.FileName,
-				FileId:    result.FileId,
-				FragPath:  result.FileFragmentPath,
-				ServerId:  result.ServerName,
-				Error:     err.Error(),
-				ErrorType: 1,
-			})
-		} else if !verificationResult.IsAvailable {
-			resultsCffhc = append(resultsCffhc, dbfs.ResultsCffhc{
-				JobId:     jobId,
-				FileName:  result.FileName,
-				FileId:    result.FileId,
-				FragPath:  result.FileFragmentPath,
-				ServerId:  result.ServerName,
-				Error:     "Fragment is not available",
-				ErrorType: 2,
-			})
-		} else if len(verificationResult.BrokenBlocks) > 0 {
-			resultsCffhc = append(resultsCffhc, dbfs.ResultsCffhc{
-				JobId:     jobId,
-				FileName:  result.FileName,
-				FileId:    result.FileId,
-				FragPath:  result.FileFragmentPath,
-				ServerId:  result.ServerName,
-				Error:     "Fragment is broken",
-				ErrorType: 3,
-			})
+	type keyStruct struct {
+		FileFragmentPath string
+		FragmentServer   string
+	}
+
+	resultsMap := make(map[keyStruct]*dbfs.ResultsCffhc)
+
+	for _, frag := range fragmentsToCheck {
+
+		key := keyStruct{
+			FileFragmentPath: frag.FileFragmentPath,
+			FragmentServer:   frag.ServerName,
+		}
+
+		existsFlag := false
+		if _, ok := resultsMap[key]; ok {
+			existsFlag = true
+		}
+
+		fileIdsJSONBytes, _ := json.Marshal([]string{frag.FileId})
+		fileNamesJSONBytes, _ := json.Marshal([]string{frag.FileName})
+
+		fileIdsJSON := string(fileIdsJSONBytes)
+		fileNamesJSON := string(fileNamesJSONBytes)
+
+		if !existsFlag {
+			verificationResult, err := i.LocalIndividualFragHealthCheck(frag.FileFragmentPath)
+
+			if err != nil {
+				// mark the fragment as bad
+				resultsMap[key] = &dbfs.ResultsCffhc{
+					JobId:     jobId,
+					FileName:  fileNamesJSON,
+					FileId:    fileIdsJSON,
+					DataId:    frag.DataId,
+					FragPath:  frag.FileFragmentPath,
+					ServerId:  frag.ServerName,
+					Error:     err.Error(),
+					ErrorType: 1,
+				}
+			} else if !verificationResult.IsAvailable {
+				resultsMap[key] = &dbfs.ResultsCffhc{
+					JobId:     jobId,
+					FileName:  fileNamesJSON,
+					FileId:    fileIdsJSON,
+					DataId:    frag.DataId,
+					FragPath:  frag.FileFragmentPath,
+					ServerId:  frag.ServerName,
+					Error:     "Fragment is not available",
+					ErrorType: 2,
+				}
+			} else if len(verificationResult.BrokenBlocks) > 0 {
+				resultsMap[key] = &dbfs.ResultsCffhc{
+					JobId:     jobId,
+					FileName:  fileNamesJSON,
+					FileId:    fileIdsJSON,
+					DataId:    frag.DataId,
+					FragPath:  frag.FileFragmentPath,
+					ServerId:  frag.ServerName,
+					Error:     "Fragment is broken",
+					ErrorType: 3,
+				}
+			}
+
+		} else {
+			existingResult := resultsMap[key]
+
+			tempStrings := make([]string, 0)
+
+			// FileName
+			if json.Unmarshal([]byte(existingResult.FileName), &tempStrings) != nil {
+				continue
+			}
+
+			tempStrings = append(tempStrings, frag.FileName)
+			tempStringsByte, err := json.Marshal(tempStrings)
+			if err != nil {
+				continue
+			}
+
+			existingResult.FileName = string(tempStringsByte)
+
+			// FileId
+
+			if json.Unmarshal([]byte(existingResult.FileId), &tempStrings) != nil {
+				continue
+			}
+
+			tempStrings = append(tempStrings, frag.FileId)
+			tempStringsByte, err = json.Marshal(tempStrings)
+			if err != nil {
+				continue
+			}
+
+			existingResult.FileId = string(tempStringsByte)
+
 		}
 	}
 
 	// insert the results into the database
-	err = i.Db.Create(&resultsCffhc).Error
-	if err != nil {
-		if strings.Contains(err.Error(), "empty slice found") {
-			return true
+	for _, result := range resultsMap {
+		if i.Db.Create(result).Error != nil {
+			log.Println(err)
+			return false
 		}
-		log.Println(err)
-		return false
 	}
 
 	return true
@@ -521,7 +583,12 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 		return false
 	}
 
-	resultsMap := make(map[string]*dbfs.ResultsAffhc)
+	type keyStruct struct {
+		FileFragmentPath string
+		FragmentServer   string
+	}
+
+	resultsMap := make(map[keyStruct]*dbfs.ResultsAffhc)
 
 	for _, frag := range fragmentsToCheck {
 
@@ -529,8 +596,15 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 		// the file version table. This is done to ensure that we always get the latest version of the file
 		// in the case that the file has been updated. And to ensure that it works properly with postgres
 
+		key := keyStruct{
+			FileFragmentPath: frag.FileFragmentPath,
+			FragmentServer:   frag.ServerName,
+		}
+
 		multipleFileIds := make([]string, 0)
 		multipleFileNames := make([]string, 0)
+
+		var fileIdsJSON, fileNamesJSON string
 
 		if frag.FileId == "" || frag.FileName == "" {
 
@@ -548,11 +622,11 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 				frag.FileId = fileVersions[0].FileId
 				frag.FileName = fileVersions[0].FileName
 
-				fileIdsJSON, _ := json.Marshal([]string{frag.FileId})
-				fileNamesJSON, _ := json.Marshal([]string{frag.FileName})
+				fileNamesJSONBytes, _ := json.Marshal([]string{frag.FileName})
+				fileIdsJSONBytes, _ := json.Marshal([]string{frag.FileId})
+				fileNamesJSON = string(fileNamesJSONBytes)
+				fileIdsJSON = string(fileIdsJSONBytes)
 
-				frag.FileId = string(fileIdsJSON)
-				frag.FileName = string(fileNamesJSON)
 			} else if len(fileVersions) > 1 {
 				for _, fileVersion := range fileVersions {
 					multipleFileIds = append(multipleFileIds, fileVersion.FileId)
@@ -560,23 +634,25 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 				}
 
 				// JSON-ify FileName and FileId
-				fileNamesJSON, _ := json.Marshal(multipleFileNames)
-				fileIdsJSON, _ := json.Marshal(multipleFileIds)
+				fileNamesJSONBytes, _ := json.Marshal(multipleFileNames)
+				fileIdsJSONBytes, _ := json.Marshal(multipleFileIds)
 
-				frag.FileId = string(fileIdsJSON)
-				frag.FileName = string(fileNamesJSON)
+				fileNamesJSON = string(fileNamesJSONBytes)
+				fileIdsJSON = string(fileIdsJSONBytes)
+
 			}
 		} else { // still need to json-ify the file_id and file_name
-			fileIdsJSON, _ := json.Marshal([]string{frag.FileId})
-			fileNamesJSON, _ := json.Marshal([]string{frag.FileName})
+			fileIdsJSONBytes, _ := json.Marshal([]string{frag.FileId})
+			fileNamesJSONBytes, _ := json.Marshal([]string{frag.FileName})
 
-			frag.FileId = string(fileIdsJSON)
-			frag.FileName = string(fileNamesJSON)
+			fileIdsJSON = string(fileIdsJSONBytes)
+			fileNamesJSON = string(fileNamesJSONBytes)
+
 		}
 
 		// If we have checked before, skip and just append file name and file id to the existing results
 		existsFlag := false
-		if _, ok := resultsMap[frag.FileVersionDataId]; ok {
+		if _, ok := resultsMap[key]; ok {
 			existsFlag = true
 		}
 
@@ -586,10 +662,10 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 			verificationResult, err := i.LocalIndividualFragHealthCheck(frag.FileFragmentPath)
 			if err != nil {
 				// mark the fragment as bad
-				resultsMap[frag.FileVersionDataId] = &dbfs.ResultsAffhc{
+				resultsMap[key] = &dbfs.ResultsAffhc{
 					JobId:     jobId,
-					FileName:  frag.FileName,
-					FileId:    frag.FileId,
+					FileName:  fileNamesJSON,
+					FileId:    fileIdsJSON,
 					DataId:    frag.FileVersionDataId,
 					FragPath:  frag.FileFragmentPath,
 					ServerId:  frag.ServerName,
@@ -598,10 +674,10 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 				}
 
 			} else if !verificationResult.IsAvailable {
-				resultsMap[frag.FileVersionDataId] = &dbfs.ResultsAffhc{
+				resultsMap[key] = &dbfs.ResultsAffhc{
 					JobId:     jobId,
-					FileName:  frag.FileName,
-					FileId:    frag.FileId,
+					FileName:  fileNamesJSON,
+					FileId:    fileIdsJSON,
 					DataId:    frag.FileVersionDataId,
 					FragPath:  frag.FileFragmentPath,
 					ServerId:  frag.ServerName,
@@ -611,10 +687,10 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 
 			} else if len(verificationResult.BrokenBlocks) > 0 {
 
-				resultsMap[frag.FileVersionDataId] = &dbfs.ResultsAffhc{
+				resultsMap[key] = &dbfs.ResultsAffhc{
 					JobId:     jobId,
-					FileName:  frag.FileName,
-					FileId:    frag.FileId,
+					FileName:  fileNamesJSON,
+					FileId:    fileIdsJSON,
 					DataId:    frag.FileVersionDataId,
 					FragPath:  frag.FileFragmentPath,
 					ServerId:  frag.ServerName,
@@ -626,7 +702,7 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 		} else {
 
 			// get the previous result
-			existingResult := resultsMap[frag.FileVersionDataId]
+			existingResult := resultsMap[key]
 
 			tempStrings := make([]string, 0)
 

@@ -16,6 +16,7 @@ type ResultsCffhc struct {
 	JobId     int
 	FileName  string
 	FileId    string
+	DataId    string
 	FragPath  string
 	ServerId  string
 	Error     string

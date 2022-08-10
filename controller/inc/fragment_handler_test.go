@@ -540,7 +540,9 @@ func TestStitchFragment(t *testing.T) {
 	})
 
 	t.Run("Checking health of all fragments", func(t *testing.T) {
+
 		Assert := assert.New(t)
+		strings := make([]string, 0)
 
 		// We are going to update the file we created and corrupted earlier.
 		// This should cause the health check to fail for LocalAllFilesFragmentsHealthCheck
@@ -564,9 +566,11 @@ func TestStitchFragment(t *testing.T) {
 		Assert.True(Inc.LocalCurrentFilesFragmentsHealthCheck(3))
 
 		results, err := dbfs.GetResultsCffhc(db, 3)
-		Assert.Nil(err)
-		Assert.NotNil(results)
-		Assert.Equal(2, len(results))
+		Assert.NoError(err)
+		Assert.Equal(1, len(results), results)
+		Assert.NoError(json.Unmarshal([]byte(results[0].FileId), &strings))
+		Assert.Equal(2, len(strings))
+		Assert.True(strings[0] != strings[1])
 
 		Assert.NoError(dbfstestutils.EXAMPLEUpdateFile(db, file, dbfstestutils.ExampleUpdate{
 			NewSize:       50,
@@ -580,9 +584,10 @@ func TestStitchFragment(t *testing.T) {
 		Assert.True(Inc.LocalCurrentFilesFragmentsHealthCheck(4))
 
 		results, err = dbfs.GetResultsCffhc(db, 4)
-		Assert.Nil(err)
-		Assert.NotNil(results)
-		Assert.Equal(1, len(results))
+		Assert.NoError(err)
+		Assert.Equal(1, len(results), results)
+		Assert.NoError(json.Unmarshal([]byte(results[0].FileId), &strings))
+		Assert.Equal(1, len(strings))
 
 		Assert.True(Inc.LocalAllFilesFragmentsHealthCheck(5))
 
@@ -590,6 +595,8 @@ func TestStitchFragment(t *testing.T) {
 		Assert.Nil(err)
 		Assert.NotNil(results2)
 		Assert.Equal(1, len(results2))
+		Assert.NoError(json.Unmarshal([]byte(results[0].FileId), &strings))
+		Assert.Equal(1, len(strings))
 
 	})
 
