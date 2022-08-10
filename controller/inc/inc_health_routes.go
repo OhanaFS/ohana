@@ -1,11 +1,13 @@
 package inc
 
 import (
+	"github.com/OhanaFS/ohana/dbfs"
 	"github.com/OhanaFS/ohana/util"
 	"github.com/gorilla/mux"
 	"net/http"
 	"os"
 	"path"
+	"strconv"
 )
 
 const (
@@ -62,29 +64,66 @@ func (i Inc) DeleteFragmentRoute(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (i Inc) OrphanedFragmentsRoute(w http.ResponseWriter, r *http.Request) {
+func (i Inc) OrphanedShardsRoute(w http.ResponseWriter, r *http.Request) {
 
-	result, err := i.LocalOrphanedShardsCheck()
-	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+	// get job_id from header
+	jobId := r.Header.Get("job_id")
+	if jobId == "" {
+		util.HttpError(w, http.StatusBadRequest, "Missing job_id")
 		return
 	}
 
+	// convert job_id to int
+	jobIdInt, err := strconv.Atoi(jobId)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "Invalid job_id")
+		return
+	}
+
+	go func() {
+		_, err := i.LocalOrphanedShardsCheck(jobIdInt, true)
+		if err != nil {
+			// close the JobProgressMissingShard
+			i.Db.Model(&dbfs.JobProgressOrphanedShard{}).
+				Where("job_id = ? and server_id = ?", jobId, i.ServerName).
+				Updates(map[string]interface{}{"in_progress": false, "msg": err.Error()})
+
+		}
+	}()
+
 	// marshal check to json and return
-	util.HttpJson(w, http.StatusOK, result)
+	util.HttpJson(w, http.StatusOK, true)
 
 }
 
-func (i Inc) MissingFragmentsRoute(w http.ResponseWriter, r *http.Request) {
+func (i Inc) MissingShardsRoute(w http.ResponseWriter, r *http.Request) {
 
-	result, err := i.LocalMissingShardsCheck()
-	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+	// get job_id from header
+	jobId := r.Header.Get("job_id")
+	if jobId == "" {
+		util.HttpError(w, http.StatusBadRequest, "Missing job_id")
 		return
 	}
 
-	// marshal check to json and return
-	util.HttpJson(w, http.StatusOK, result)
+	// convert job_id to int
+	jobIdInt, err := strconv.Atoi(jobId)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "Invalid job_id")
+		return
+	}
+
+	go func() {
+		_, err := i.LocalMissingShardsCheck(jobIdInt, true)
+		if err != nil {
+			// close the JobProgressMissingShard
+			i.Db.Model(&dbfs.JobProgressMissingShard{}).
+				Where("job_id = ? and server_id = ?", jobId, i.ServerName).
+				Updates(map[string]interface{}{"in_progress": false, "msg": err.Error()})
+
+		}
+	}()
+
+	util.HttpJson(w, http.StatusOK, true)
 }
 
 func (i Inc) ShutdownRoute(w http.ResponseWriter, r *http.Request) {

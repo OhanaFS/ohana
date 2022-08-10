@@ -252,7 +252,20 @@ func (i Inc) deleteWorker(dataIdFragmentMap map[string][]dbfs.Fragment, input <-
 
 // LocalOrphanedShardsCheck checks if there are any orphaned shards files in the local server
 // If there are, it returns the file paths of the orphaned shards
-func (i Inc) LocalOrphanedShardsCheck() ([]string, error) {
+func (i Inc) LocalOrphanedShardsCheck(jobId int, storeResults bool) ([]string, error) {
+
+	if storeResults {
+		// create JobProgressOrphanedShard
+		jobProgressOrphanedShard := dbfs.JobProgressOrphanedShard{
+			JobId:      jobId,
+			StartTime:  time.Now(),
+			ServerId:   i.ServerName,
+			InProgress: true,
+		}
+		if i.Db.Create(&jobProgressOrphanedShard).Error != nil {
+			return nil, errors.New("failed to create JobProgressOrphanedShard")
+		}
+	}
 
 	// Get all the shards/fragments belonging to this server
 	fragments, err := dbfs.GetFragmentByServer(i.Db, i.ServerName)
@@ -280,8 +293,36 @@ func (i Inc) LocalOrphanedShardsCheck() ([]string, error) {
 		}
 	}
 
+	if storeResults {
+		// dump it into ResultsOrphanedShard
+
+		var resultsOrphanedShards = make([]dbfs.ResultsOrphanedShard, len(orphanedShards))
+
+		for j, orphanedShard := range orphanedShards {
+			resultsOrphanedShards[j] = dbfs.ResultsOrphanedShard{
+				JobId:    jobId,
+				ServerId: i.ServerName,
+				FileName: orphanedShard,
+			}
+		}
+
+		if len(resultsOrphanedShards) > 0 {
+			if i.Db.Create(&resultsOrphanedShards).Error != nil {
+				return nil, errors.New("Failed to create ResultsOrphanedShard")
+			}
+		}
+
+		// update JobProgressOrphanedShard
+		if i.Db.Model(&dbfs.JobProgressOrphanedShard{}).
+			Where("job_id = ? and server_id = ?", jobId, i.ServerName).
+			Update("in_progress", false).Error != nil {
+			return nil, errors.New("Failed to update JobProgressOrphanedShard")
+		}
+
+	}
+
 	if len(orphanedShards) > 0 {
-		return orphanedShards, ErrOrphanedShardsFound
+		return orphanedShards, nil
 	} else {
 		return nil, nil
 	}
@@ -289,8 +330,21 @@ func (i Inc) LocalOrphanedShardsCheck() ([]string, error) {
 }
 
 // LocalMissingShardsCheck checks if there are any shards or fragment files missing in the local server
-// returns a list of missing files if any
-func (i Inc) LocalMissingShardsCheck() ([]string, error) {
+// doesn't store results into database.
+func (i Inc) LocalMissingShardsCheck(jobId int, storeResults bool) ([]dbfs.ResultsMissingShard, error) {
+
+	if storeResults {
+		// create JobProgressMissingShard
+		jobProgressMissingShard := dbfs.JobProgressMissingShard{
+			JobId:      jobId,
+			StartTime:  time.Now(),
+			ServerId:   i.ServerName,
+			InProgress: true,
+		}
+		if i.Db.Create(&jobProgressMissingShard).Error != nil {
+			return nil, errors.New("failed to create JobProgressMissingShard")
+		}
+	}
 
 	// Get all the shards/fragments belonging to this server
 	fragments, err := dbfs.GetFragmentByServer(i.Db, i.ServerName)
@@ -312,17 +366,60 @@ func (i Inc) LocalMissingShardsCheck() ([]string, error) {
 	}
 
 	// Array of missing Fragment data id
-	missingFragments := make([]string, 0)
+	var missingShards []dbfs.ResultsMissingShard
 
 	// Check if the local files are in the list of fragments
 	for _, fragment := range fragments {
 		if !localFiles.Has(fragment.FileFragmentPath) {
-			missingFragments = append(missingFragments, fragment.FileVersionDataId)
+
+			// Get FileName if shard is bad
+
+			var fileVersions []dbfs.FileVersion
+			err := i.Db.Where("data_id = ?", fragment.FileVersionDataId).Find(&fileVersions).Error
+			if err != nil {
+				return nil, err
+			}
+
+			filenames := make([]string, len(fileVersions))
+			fileids := make([]string, len(fileVersions))
+			for i, fileVersion := range fileVersions {
+				filenames[i] = fileVersion.FileName
+				fileids[i] = fileVersion.FileId
+			}
+
+			jsonFilenameBytes, _ := json.Marshal(filenames)
+			jsonFileIdBytes, _ := json.Marshal(fileids)
+
+			missingShards = append(missingShards, dbfs.ResultsMissingShard{
+				JobId:     jobId,
+				FileName:  string(jsonFilenameBytes),
+				FileId:    string(jsonFileIdBytes),
+				DataId:    fragment.FileVersionDataId,
+				FragPath:  fragment.FileFragmentPath,
+				ServerId:  i.ServerName,
+				Error:     "Missing shard",
+				ErrorType: 1,
+			})
 		}
 	}
 
-	if len(missingFragments) > 0 {
-		return missingFragments, ErrMissingShardsFound
+	if storeResults {
+		// dump it into ResultsMissingShard
+		if len(missingShards) > 0 {
+			if i.Db.Create(&missingShards).Error != nil {
+				return nil, errors.New("Failed to create ResultsMissingShard")
+			}
+		}
+		// update JobProgressMissingShard
+		if i.Db.Model(&dbfs.JobProgressMissingShard{}).
+			Where("job_id = ? and server_id = ?", jobId, i.ServerName).
+			Update("in_progress", false).Error != nil {
+			return nil, errors.New("Failed to update JobProgressMissingShard")
+		}
+	}
+
+	if len(missingShards) > 0 {
+		return missingShards, nil
 	} else {
 		return nil, nil
 	}
@@ -406,7 +503,7 @@ func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) bool {
 		ServerName       string
 	}
 
-	// store start in the JobProgress_CFFHC. TODO: Needs to be closed by another driver.
+	// store start in the JobProgress_CFFHC.
 	err := i.Db.Create(&dbfs.JobprogressCffhc{
 		JobId:      jobId,
 		StartTime:  time.Now(),
@@ -539,6 +636,11 @@ func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) bool {
 			return false
 		}
 	}
+
+	// Close the job progress
+	i.Db.Model(&dbfs.JobprogressCffhc{}).
+		Where("job_id = ? AND server_id = ?", jobId, i.ServerName).
+		Update("in_progress", false)
 
 	return true
 }
@@ -747,6 +849,11 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 			return false
 		}
 	}
+
+	// Close the job progress
+	i.Db.Model(&dbfs.JobprogressAffhc{}).
+		Where("job_id = ? AND server_id = ?", jobId, i.ServerName).
+		Update("in_progress", false)
 
 	return true
 }

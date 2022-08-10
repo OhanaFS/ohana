@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -338,8 +339,23 @@ func TestFragmentHandler(t *testing.T) {
 
 		Assert := assert.New(t)
 
-		_, err := Inc.LocalOrphanedShardsCheck()
+		results, err := Inc.LocalOrphanedShardsCheck(-1, false)
 		Assert.NoError(err)
+		Assert.Len(results, 0)
+
+		// Test via routes
+
+		req := httptest.NewRequest(http.MethodGet,
+			inc.FragmentOrphanedPath, nil)
+		w := httptest.NewRecorder()
+		req.Header.Add("job_id", "0") // TODO: Create a value incrementer
+		Inc.OrphanedShardsRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		time.Sleep(time.Second / 2)
+		results2, err := dbfs.GetResultsOrphanedShard(db, 0)
+		Assert.Nil(err)
+		Assert.Equal(0, len(results2), results2)
 
 		// add a weird file into the shards folder
 
@@ -354,8 +370,23 @@ func TestFragmentHandler(t *testing.T) {
 		Assert.NoError(shardFile.Close())
 
 		// check to see if it is in the list of orphaned shards
-		_, err = Inc.LocalOrphanedShardsCheck()
-		Assert.ErrorIs(err, inc.ErrOrphanedShardsFound)
+		results, err = Inc.LocalOrphanedShardsCheck(-1, false)
+		Assert.NoError(err)
+		Assert.Len(results, 1)
+
+		// Test via routes
+
+		req = httptest.NewRequest(http.MethodGet,
+			inc.FragmentOrphanedPath, nil)
+		w = httptest.NewRecorder()
+		req.Header.Add("job_id", "1") // TODO: Create a value incrementer
+		Inc.OrphanedShardsRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		time.Sleep(time.Second / 2)
+		results2, err = dbfs.GetResultsOrphanedShard(db, 1)
+		Assert.Nil(err)
+		Assert.Equal(1, len(results2), results2)
 
 		// Delete that weird file
 		Assert.NoError(os.Remove(shardPath))
@@ -366,15 +397,44 @@ func TestFragmentHandler(t *testing.T) {
 
 		Assert := assert.New(t)
 
-		_, err := Inc.LocalMissingShardsCheck()
+		results, err := Inc.LocalMissingShardsCheck(-2, false)
 		Assert.NoError(err)
+		Assert.Len(results, 0)
 
+		// Testing via route
+		req := httptest.NewRequest(http.MethodGet,
+			inc.FragmentMissingPath, nil)
+		w := httptest.NewRecorder()
+		req.Header.Add("job_id", "-1")
+		Inc.MissingShardsRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		time.Sleep(time.Second / 2)
+		results, err = dbfs.GetResultsMissingShard(db, -1)
+		Assert.Nil(err)
+		Assert.Equal(0, len(results), results)
+
+		// Delete
 		dir, err := os.ReadDir(Inc.ShardsLocation)
 		Assert.NoError(err)
 		Assert.NoError(os.Remove(path.Join(Inc.ShardsLocation, dir[0].Name())))
 
-		_, err = Inc.LocalMissingShardsCheck()
-		Assert.ErrorIs(err, inc.ErrMissingShardsFound)
+		results, err = Inc.LocalMissingShardsCheck(-1, false)
+		Assert.NoError(err)
+		Assert.Len(results, 1)
+
+		// Testing via route
+		req = httptest.NewRequest(http.MethodGet,
+			inc.FragmentMissingPath, nil)
+		w = httptest.NewRecorder()
+		req.Header.Add("job_id", "0")
+		Inc.MissingShardsRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		time.Sleep(time.Second / 2)
+		results, err = dbfs.GetResultsMissingShard(db, 0)
+		Assert.Nil(err)
+		Assert.Equal(1, len(results), results)
 
 	})
 
@@ -597,6 +657,59 @@ func TestStitchFragment(t *testing.T) {
 		Assert.Equal(1, len(results2))
 		Assert.NoError(json.Unmarshal([]byte(results[0].FileId), &strings))
 		Assert.Equal(1, len(strings))
+
+	})
+
+	t.Run("Deleteing a fragment with the Route", func(t *testing.T) {
+
+		Assert := assert.New(t)
+
+		// Get the number of files in the directory
+		files, err := ioutil.ReadDir(configFile.Stitch.ShardsLocation)
+		Assert.NoError(err)
+		Assert.True(len(files) > 0, files)
+
+		// original count of files
+		originalCount := len(files)
+		firstFileName := files[0].Name()
+
+		req := httptest.NewRequest("DELETE",
+			strings.Replace(inc.FragmentPath,
+				"{fragmentPath}", firstFileName, -1), nil)
+		w := httptest.NewRecorder()
+		req = mux.SetURLVars(req, map[string]string{
+			"fragmentPath": firstFileName,
+		})
+		Inc.DeleteFragmentRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+		Assert.True(strings.Contains(w.Body.String(), "true"), w.Body.String())
+
+		// Make sure it's actually deleted
+
+		files, err = ioutil.ReadDir(configFile.Stitch.ShardsLocation)
+		Assert.NoError(err)
+		Assert.True(len(files) == originalCount-1, files)
+		Assert.NotEqualf(firstFileName, files[0].Name(), "File not deleted")
+
+	})
+
+	t.Run("Missing shards check", func(t *testing.T) {
+
+		// In the previous test, we should have deleted a fragment, thus it should be missing
+		// now we are going to check if the missing fragment check works
+		Assert := assert.New(t)
+
+		req := httptest.NewRequest(http.MethodGet,
+			inc.FragmentMissingPath, nil)
+		w := httptest.NewRecorder()
+		req.Header.Add("job_id", "6")
+		Inc.MissingShardsRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		time.Sleep(time.Second / 2)
+		results, err := dbfs.GetResultsMissingShard(db, 6)
+		Assert.Nil(err)
+		Assert.Equal(1, len(results), results)
 
 	})
 
