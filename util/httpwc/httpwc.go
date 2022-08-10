@@ -1,6 +1,7 @@
 package httpwc
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"sync"
@@ -31,6 +32,11 @@ func NewHttpWriteCloser(client *http.Client, method, url string) io.WriteCloser 
 		resp, err := client.Do(req)
 		if err != nil {
 			rd.CloseWithError(err)
+		}
+
+		// Close with error if the response is not OK
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			rd.CloseWithError(fmt.Errorf("HTTP error: %d", resp.StatusCode))
 		}
 
 		// Discard all output

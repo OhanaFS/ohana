@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -234,79 +235,85 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 		return nil
 	})
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusInternalServerError,
+			fmt.Sprintf("failed to create file metadata: %s", err.Error()))
 		return
 	}
 
 	// Open the output files
 	shardWriters := make([]io.Writer, totalShards)
-	// shardFiles := make([]*os.File, totalShards)
 	shardNames := make([]string, totalShards)
-	for i := 0; i < totalShards; i++ {
-		shardNames[i] = bc.Path + dbfsFile.DataId + ".shard" + strconv.Itoa(i)
-	}
-	for i := 0; i < totalShards; i++ {
-		/*
-			shardFile, err := os.Create(shardNames[i])
-			if err != nil {
-				util.HttpError(w, http.StatusInternalServerError, err.Error())
-				return
-			}
-			defer shardFile.Close()
-			shardWriters[i] = shardFile
-			shardFiles[i] = shardFile
-		*/
 
+	// Generate names for the shards
+	for i := 0; i < totalShards; i++ {
+		shardNames[i] = dbfsFile.DataId + ".shard" + strconv.Itoa(i)
+	}
+
+	// Open the output writers
+	for i := 0; i < totalShards; i++ {
 		shardWriter, err := bc.Inc.NewShardWriter(bc.ServerName, shardNames[i])
 		if err != nil {
-			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			util.HttpError(w,
+				http.StatusInternalServerError,
+				fmt.Sprintf("failed to initialize shard writer: %s", err.Error()),
+			)
 			return
 		}
-		defer shardWriter.Close()
 		shardWriters[i] = shardWriter
-		// shardFiles[i] = shardWriter
 	}
 
+	// Decode the data key and iv
 	dataKeyBytes, err := hex.DecodeString(dataKey)
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusInternalServerError,
+			fmt.Sprintf("failed to decode data key: %s", err.Error()))
 		return
 	}
 	dataIvBytes, err := hex.DecodeString(dataIv)
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusInternalServerError,
+			fmt.Sprintf("failed to decode data iv: %s", err.Error()))
 		return
 	}
 
+	// Encode the file
 	result, err := encoder.Encode(file, shardWriters, dataKeyBytes, dataIvBytes)
-
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusInternalServerError,
+			fmt.Sprintf("failed to encode file: %s", err.Error()))
 		return
 	}
 
-	for i := 0; i < totalShards; i++ {
-		if err = encoder.FinalizeHeader(shardFiles[i]); err != nil {
-			util.HttpError(w, http.StatusInternalServerError, err.Error())
+	// Close the writers
+	for _, writer := range shardWriters {
+		if err := writer.(io.WriteCloser).Close(); err != nil {
+			util.HttpError(w, http.StatusInternalServerError,
+				fmt.Sprintf("failed to close shard writer: %s", err.Error()))
 			return
 		}
 	}
 
-	for i := 1; i <= int(dbfsFile.TotalShards); i++ {
-		fragId := int(i)
-		fragmentPath := shardNames[i-1]
+	// Insert fragments into the database
+	err = bc.Db.Transaction(func(tx *gorm.DB) error {
+		for i := 1; i <= int(dbfsFile.TotalShards); i++ {
+			fragId := int(i)
+			fragmentPath := shardNames[i-1]
 
-		err = dbfs.CreateFragment(bc.Db, dbfsFile.FileId, dbfsFile.DataId, dbfsFile.VersionNo, fragId, bc.ServerName, fragmentPath)
-		if err != nil {
-			err2 := dbfsFile.Delete(bc.Db, user, bc.ServerName)
-			if err2 != nil {
-				util.HttpError(w, http.StatusInternalServerError, err.Error())
-				return
+			if err := dbfs.CreateFragment(bc.Db,
+				dbfsFile.FileId, dbfsFile.DataId, dbfsFile.VersionNo,
+				fragId, bc.ServerName, fragmentPath); err != nil {
+				return err
 			}
-
+		}
+		return nil
+	})
+	if err != nil {
+		if err := dbfsFile.Delete(bc.Db, user, bc.ServerName); err != nil {
 			util.HttpError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	// checksum

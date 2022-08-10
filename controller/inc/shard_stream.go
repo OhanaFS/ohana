@@ -86,7 +86,7 @@ func (i *Inc) NewShardWriter(serverName, shardId string) (io.WriteCloser, error)
 	}
 
 	// Create the writer
-	addr := fmt.Sprintf("http://%s/api/v1/node/shard/%s", host, shardId)
+	addr := fmt.Sprintf("https://%s/api/v1/node/shard/%s", host, shardId)
 	wc := httpwc.NewHttpWriteCloser(i.HttpClient, http.MethodPut, addr)
 	return wc, nil
 }
