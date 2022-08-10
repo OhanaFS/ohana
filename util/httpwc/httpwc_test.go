@@ -1,6 +1,7 @@
 package httpwc_test
 
 import (
+	"context"
 	"crypto/rand"
 	"io"
 	"net/http"
@@ -32,7 +33,8 @@ func TestHttpWC(t *testing.T) {
 
 	// Create a client
 	t.Logf("Creating client")
-	writer := httpwc.NewHttpWriteCloser(&http.Client{}, "POST", server.URL)
+	writer := httpwc.NewHttpWriteCloser(
+		context.Background(), &http.Client{}, "POST", server.URL)
 
 	// Write the data
 	t.Logf("Writing data")

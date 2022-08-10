@@ -5,14 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/OhanaFS/ohana/config"
-	"github.com/OhanaFS/ohana/controller"
-	"github.com/OhanaFS/ohana/controller/middleware"
-	"github.com/OhanaFS/ohana/dbfs"
-	"github.com/OhanaFS/ohana/util/ctxutil"
-	"github.com/OhanaFS/ohana/util/testutil"
-	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -21,16 +13,45 @@ import (
 	"path"
 	"testing"
 	"time"
+
+	"github.com/OhanaFS/ohana/config"
+	"github.com/OhanaFS/ohana/controller"
+	"github.com/OhanaFS/ohana/controller/inc"
+	"github.com/OhanaFS/ohana/controller/middleware"
+	"github.com/OhanaFS/ohana/dbfs"
+	selfsigntestutils "github.com/OhanaFS/ohana/selfsign/test_utils"
+	"github.com/OhanaFS/ohana/util/ctxutil"
+	"github.com/OhanaFS/ohana/util/testutil"
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBackendController(t *testing.T) {
 	assert := assert.New(t)
 
+	// Generate dummy certificates for Inc
+	tmpDir, err := os.MkdirTemp("", "ohana-test-")
+	assert.NoError(err)
+	defer os.RemoveAll(tmpDir)
+	certs, err := selfsigntestutils.GenCertsTest(tmpDir)
+	assert.NoError(err)
+	shardsLocation := path.Join(tmpDir, "shards")
+	assert.NoError(os.MkdirAll(shardsLocation, 0755))
+
 	//Set up mock Db and session store
-	stitchConfig := config.StitchConfig{
-		ShardsLocation: "shards/",
+	configFile := &config.Config{
+		Stitch: config.StitchConfig{
+			ShardsLocation: shardsLocation,
+		},
+		Inc: config.IncConfig{
+			CaCert:     certs.CaCertPath,
+			PublicCert: certs.PublicCertPath,
+			PrivateKey: certs.PrivateKeyPath,
+			ServerName: "localhost",
+			HostName:   "localhost",
+			Port:       "65432",
+		},
 	}
-	configFile := &config.Config{Stitch: stitchConfig}
 	logger := config.NewLogger(configFile)
 	db := testutil.NewMockDB(t)
 	session := testutil.NewMockSession(t)
@@ -41,7 +62,12 @@ func TestBackendController(t *testing.T) {
 		Logger:     logger,
 		Path:       configFile.Stitch.ShardsLocation,
 		ServerName: "localhost",
+		Inc:        inc.NewInc(configFile, db),
 	}
+
+	// Register inc services
+	inc.RegisterIncServices(bc.Inc)
+	time.Sleep(time.Second * 3)
 
 	bc.InitialiseShardsFolder()
 
@@ -151,7 +177,7 @@ func TestBackendController(t *testing.T) {
 		body = w.Body.String()
 		err = json.Unmarshal([]byte(body), &files)
 
-		assert.Equal(4, len(files))
+		assert.Equal(4, len(files), body)
 
 		// Getting file ID
 		for _, file := range files {
@@ -163,6 +189,8 @@ func TestBackendController(t *testing.T) {
 			}
 		}
 
+		assert.NotEqual("", newFileID)
+
 		// Download File
 		req = httptest.NewRequest("GET", "/api/v1/file/", nil).WithContext(
 			ctxutil.WithUser(context.Background(), user))
@@ -172,9 +200,7 @@ func TestBackendController(t *testing.T) {
 		})
 		w = httptest.NewRecorder()
 		bc.DownloadFileVersion(w, req)
-		assert.Equal(http.StatusOK, w.Code)
-
-		fmt.Println(w.Body.String())
+		assert.Equal(http.StatusOK, w.Code, w.Body.String())
 	})
 
 	t.Run("Copy File", func(t *testing.T) {
@@ -233,10 +259,7 @@ func TestBackendController(t *testing.T) {
 		})
 		w = httptest.NewRecorder()
 		bc.DownloadFileVersion(w, req)
-		assert.Equal(http.StatusOK, w.Code)
-
-		fmt.Println(w.Body.String())
-
+		assert.Equal(http.StatusOK, w.Code, w.Body.String())
 	})
 
 	t.Run("Copy Folder", func(t *testing.T) {
@@ -512,9 +535,7 @@ func TestBackendController(t *testing.T) {
 		})
 		w = httptest.NewRecorder()
 		bc.DownloadFileVersion(w, req)
-		assert.Equal(http.StatusOK, w.Code)
-
-		fmt.Println(w.Body.String())
+		assert.Equal(http.StatusOK, w.Code, w.Body.String())
 	})
 
 	t.Run("Versioning File", func(t *testing.T) {
@@ -568,9 +589,7 @@ func TestBackendController(t *testing.T) {
 		})
 		w = httptest.NewRecorder()
 		bc.DownloadFileVersion(w, req)
-		assert.Equal(http.StatusOK, w.Code)
-
-		fmt.Println(w.Body.String())
+		assert.Equal(http.StatusOK, w.Code, w.Body.String())
 
 		// Deleting the original file version
 		req = httptest.NewRequest("DELETE", "/api/v1/file/"+newFileID+"/versions/"+"0", nil).WithContext(

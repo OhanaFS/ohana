@@ -10,10 +10,7 @@ import (
 )
 
 // NewHttpRS creates a new HttpRS object.
-func NewHttpRS(ctx context.Context, url string) (io.ReadSeeker, error) {
-	// Initialize an HTTP client
-	client := &http.Client{}
-
+func NewHttpRS(ctx context.Context, client *http.Client, url string) (io.ReadSeeker, error) {
 	// Initialize the HTTPReaderAt.
 	getReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {

@@ -3,13 +3,14 @@ package inc
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/OhanaFS/ohana/dbfs"
 	"github.com/OhanaFS/ohana/util"
 	"golang.org/x/sys/unix"
 	"gorm.io/gorm"
-	"net/http"
-	"os"
-	"time"
 )
 
 // RegisterServer registers a server as online in the database.
@@ -185,25 +186,27 @@ func (i Inc) ShutdownServer(w http.ResponseWriter, r *http.Request) {
 
 // RegisterIncServices registers the inc services.
 func RegisterIncServices(i *Inc) {
-	time.Sleep(time.Second * 2)
-	ticker := time.NewTicker(5 * time.Minute)
-	err := i.RegisterServer(true)
-	if err != nil {
-		i.Shutdown <- true
-	}
 	go func() {
-		for {
-			select {
-			case <-i.Shutdown:
-				ticker.Stop()
-				fmt.Println("Shutdown signal received. Exiting in 5 seconds...")
-				time.Sleep(time.Second * 5)
-				os.Exit(0)
-				// deregister services
-				return
-			case <-ticker.C:
-				_ = i.RegisterServer(false)
-			}
+		time.Sleep(time.Second * 2)
+		ticker := time.NewTicker(5 * time.Minute)
+		err := i.RegisterServer(true)
+		if err != nil {
+			i.Shutdown <- true
 		}
+		go func() {
+			for {
+				select {
+				case <-i.Shutdown:
+					ticker.Stop()
+					fmt.Println("Shutdown signal received. Exiting in 5 seconds...")
+					time.Sleep(time.Second * 5)
+					os.Exit(0)
+					// deregister services
+					return
+				case <-ticker.C:
+					_ = i.RegisterServer(false)
+				}
+			}
+		}()
 	}()
 }

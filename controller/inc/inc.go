@@ -4,11 +4,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+
 	"github.com/OhanaFS/ohana/config"
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
-	"io/ioutil"
-	"net/http"
 )
 
 type Inc struct {
@@ -92,6 +93,7 @@ func NewInc(config *config.Config, db *gorm.DB) *Inc {
 
 	router.HandleFunc("/api/v1/node/ping", Pong)
 	router.HandleFunc("/api/v1/node/details", newInc.ReturnServerDetails)
+	router.HandleFunc("/api/v1/node/shard/{shardId}", newInc.handleShardStream)
 
 	// start server
 	go func() {
