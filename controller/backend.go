@@ -4,13 +4,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"github.com/OhanaFS/ohana/controller/inc"
 	"io"
 	"net/http"
 	"os"
 	"strconv"
 
 	"github.com/OhanaFS/ohana/config"
+	"github.com/OhanaFS/ohana/controller/inc"
 	"github.com/OhanaFS/ohana/controller/middleware"
 	"github.com/OhanaFS/ohana/dbfs"
 	"github.com/OhanaFS/ohana/util"
@@ -170,8 +170,8 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 	encoder := stitch.NewEncoder(&stitch.EncoderOptions{
 		DataShards:   uint8(dataShards),
 		ParityShards: uint8(parityShards),
-		KeyThreshold: uint8(keyThreshold)},
-	)
+		KeyThreshold: uint8(keyThreshold),
+	})
 
 	// This is the fileKey and fileIV for the passwordProtect
 	fileKey, fileIv, err := dbfs.GenerateKeyIV()
@@ -216,21 +216,19 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 	}
 
 	err = bc.Db.Transaction(func(tx *gorm.DB) error {
-
-		err := dbfs.CreateInitialFile(tx, &dbfsFile, fileKey, fileIv, dataKey, dataIv, user)
-		if err != nil {
+		if err := dbfs.CreateInitialFile(tx, &dbfsFile,
+			fileKey, fileIv, dataKey, dataIv, user); err != nil {
 			return err
 		}
 
-		err = tx.Create(&passwordProtect).Error
-		if err != nil {
+		if err := tx.Create(&passwordProtect).Error; err != nil {
 			return err
 		}
 
-		err = dbfs.CreatePermissions(tx, &dbfsFile)
-		if err != nil {
-			// By right, there should be no error possible? If any error happens, it's likely a system error.
-			// However, in the case there is an error, we will revert the transaction (thus deleting the file entry)
+		if err := dbfs.CreatePermissions(tx, &dbfsFile); err != nil {
+			// By right, there should be no error possible? If any error happens, it's
+			// likely a system error. However, in the case there is an error, we will
+			// revert the transaction (thus deleting the file entry).
 			return err
 		}
 		return nil
@@ -242,20 +240,31 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 
 	// Open the output files
 	shardWriters := make([]io.Writer, totalShards)
-	shardFiles := make([]*os.File, totalShards)
+	// shardFiles := make([]*os.File, totalShards)
 	shardNames := make([]string, totalShards)
 	for i := 0; i < totalShards; i++ {
 		shardNames[i] = bc.Path + dbfsFile.DataId + ".shard" + strconv.Itoa(i)
 	}
 	for i := 0; i < totalShards; i++ {
-		shardFile, err := os.Create(shardNames[i])
+		/*
+			shardFile, err := os.Create(shardNames[i])
+			if err != nil {
+				util.HttpError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			defer shardFile.Close()
+			shardWriters[i] = shardFile
+			shardFiles[i] = shardFile
+		*/
+
+		shardWriter, err := bc.Inc.NewShardWriter(bc.ServerName, shardNames[i])
 		if err != nil {
 			util.HttpError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		defer shardFile.Close()
-		shardWriters[i] = shardFile
-		shardFiles[i] = shardFile
+		defer shardWriter.Close()
+		shardWriters[i] = shardWriter
+		// shardFiles[i] = shardWriter
 	}
 
 	dataKeyBytes, err := hex.DecodeString(dataKey)
