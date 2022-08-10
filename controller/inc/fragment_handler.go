@@ -189,12 +189,12 @@ func (i Inc) deleteWorker(dataIdFragmentMap map[string][]dbfs.Fragment, input <-
 							"{fragmentPath}", path, -1), nil)
 					if err != nil {
 						fmt.Println(err)
-						return // TODO CHECK IF SHOULD BE RETURN
+						return
 					}
 					resp, err := i.HttpClient.Do(req)
 					if err != nil {
 						fmt.Println(err)
-						return // TODO CHECK IF SHOULD BE RETURN
+						return
 					}
 
 					defer resp.Body.Close()
@@ -492,7 +492,7 @@ func (i Inc) IndividualFragHealthCheck(fragment dbfs.Fragment) (*stitch.ShardVer
 
 }
 
-func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) bool {
+func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) error {
 	// db join query to get all the fragments belonging to this server current versions
 
 	type result struct {
@@ -512,7 +512,7 @@ func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) bool {
 	}).Error
 	if err != nil {
 		log.Println(err)
-		return false
+		return err
 	}
 
 	var fragmentsToCheck []result
@@ -527,7 +527,7 @@ func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) bool {
 		Find(&fragmentsToCheck).Error
 	if err != nil {
 		log.Println(err)
-		return false
+		return err
 	}
 
 	type keyStruct struct {
@@ -633,7 +633,7 @@ func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) bool {
 	for _, result := range resultsMap {
 		if i.Db.Create(result).Error != nil {
 			log.Println(err)
-			return false
+			return err
 		}
 	}
 
@@ -642,10 +642,10 @@ func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) bool {
 		Where("job_id = ? AND server_id = ?", jobId, i.ServerName).
 		Update("in_progress", false)
 
-	return true
+	return nil
 }
 
-func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
+func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) error {
 	// db join query to get all the fragments belonging to this server current versions
 
 	type result struct {
@@ -656,7 +656,7 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 		ServerName        string
 	}
 
-	// store start in the JobprogressAffhc. TODO: Needs to be closed by another driver.
+	// store start in the JobprogressAffhc.
 	err := i.Db.Create(&dbfs.JobprogressAffhc{
 		JobId:      jobId,
 		StartTime:  time.Now(),
@@ -665,7 +665,7 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 	}).Error
 	if err != nil {
 		log.Println(err)
-		return false
+		return err
 	}
 
 	var fragmentsToCheck []result
@@ -682,7 +682,7 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 		Where("fragments.server_name = ? AND files.entry_type = ?", i.ServerName, dbfs.IsFile).Find(&fragmentsToCheck).Error
 	if err != nil {
 		log.Println(err)
-		return false
+		return err
 	}
 
 	type keyStruct struct {
@@ -716,7 +716,7 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 				Order("created_at desc").Find(&fileVersions).Error
 			if err != nil {
 				log.Println(err)
-				return false
+				return err
 			}
 			if len(fileVersions) == 0 {
 				continue // likely deleted file so we don't care about it
@@ -846,7 +846,7 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 		err = i.Db.Create(result).Error
 		if err != nil {
 			log.Println(err)
-			return false
+			return err
 		}
 	}
 
@@ -855,5 +855,5 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) bool {
 		Where("job_id = ? AND server_id = ?", jobId, i.ServerName).
 		Update("in_progress", false)
 
-	return true
+	return nil
 }

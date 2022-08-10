@@ -521,29 +521,78 @@ func TestStitchFragment(t *testing.T) {
 		ActualSize:     50,
 	})
 
+	jobIdNo := 0
+
 	t.Run("Checking health of fragments", func(t *testing.T) {
 		Assert := assert.New(t)
 
+		// Test that all fragments are healthy
+
+		jobIdNo = jobIdNo + 1
+
 		Assert.Nil(err)
 		Assert.NotNil(file)
-		Inc.LocalCurrentFilesFragmentsHealthCheck(1)
+		err := Inc.LocalCurrentFilesFragmentsHealthCheck(jobIdNo)
 
-		var fragments1 []dbfs.Fragment
-		err = db.Find(&fragments1).Error
-		fmt.Println(err)
+		results, err := dbfs.GetResultsCffhc(db, jobIdNo)
+		Assert.NoError(err)
+		Assert.NotNil(results)
+		Assert.Equal(0, len(results))
+
+		// Testing via route
+
+		jobIdNo = jobIdNo + 1
+
+		req := httptest.NewRequest(http.MethodGet,
+			inc.CurrentFilesHealthPath, nil)
+		w := httptest.NewRecorder()
+		req.Header.Add("job_id", strconv.Itoa(jobIdNo))
+		Inc.CurrentFilesFragmentsHealthCheckRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		time.Sleep(time.Second / 2)
+
+		results, err = dbfs.GetResultsCffhc(db, jobIdNo)
+		Assert.NoError(err)
+		Assert.NotNil(results)
+		Assert.Equal(0, len(results))
 
 		// damange the file
 		fragments, err := file.GetFileFragments(db, &superUser)
-		Assert.Nil(err)
+		Assert.NoError(err)
 		Assert.NotNil(fragments)
+
+		// Check again.
+
+		jobIdNo = jobIdNo + 1
 
 		err = dbfstestutils.EXAMPLECorruptFragments(
 			path.Join(configFile.Stitch.ShardsLocation, fragments[0].FileFragmentPath))
 		Assert.Nil(err)
-		Inc.LocalCurrentFilesFragmentsHealthCheck(2)
 
-		results, err := dbfs.GetResultsCffhc(db, 2)
+		err = Inc.LocalCurrentFilesFragmentsHealthCheck(jobIdNo)
+		Assert.NoError(err)
+
+		results, err = dbfs.GetResultsCffhc(db, jobIdNo)
 		Assert.Nil(err)
+		Assert.NotNil(results)
+		Assert.Equal(1, len(results))
+
+		// Checking via route
+
+		jobIdNo = jobIdNo + 1
+
+		req = httptest.NewRequest(http.MethodGet,
+			inc.CurrentFilesHealthPath, nil)
+		w = httptest.NewRecorder()
+		req.Header.Add("job_id", strconv.Itoa(jobIdNo))
+		Inc.CurrentFilesFragmentsHealthCheckRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		time.Sleep(time.Second / 2)
+
+		results, err = dbfs.GetResultsCffhc(db, jobIdNo)
+		Assert.NoError(err)
 		Assert.NotNil(results)
 		Assert.Equal(1, len(results))
 
@@ -560,10 +609,10 @@ func TestStitchFragment(t *testing.T) {
 
 		// Check bad fragment via route
 
-		req := httptest.NewRequest("GET",
+		req = httptest.NewRequest("GET",
 			strings.Replace(inc.FragmentHealthCheckPath,
 				"{fragmentPath}", fragments[0].FileFragmentPath, -1), nil)
-		w := httptest.NewRecorder()
+		w = httptest.NewRecorder()
 		req = mux.SetURLVars(req, map[string]string{
 			"fragmentPath": fragments[0].FileFragmentPath,
 		})
@@ -623,9 +672,11 @@ func TestStitchFragment(t *testing.T) {
 		// Get the copied file
 		_, err = dbfs.GetFileByPath(db, "/blah/test123", &superUser, false)
 
-		Assert.True(Inc.LocalCurrentFilesFragmentsHealthCheck(3))
+		jobIdNo = jobIdNo + 1
 
-		results, err := dbfs.GetResultsCffhc(db, 3)
+		Assert.NoError(Inc.LocalCurrentFilesFragmentsHealthCheck(jobIdNo))
+
+		results, err := dbfs.GetResultsCffhc(db, jobIdNo)
 		Assert.NoError(err)
 		Assert.Equal(1, len(results), results)
 		Assert.NoError(json.Unmarshal([]byte(results[0].FileId), &strings))
@@ -641,17 +692,43 @@ func TestStitchFragment(t *testing.T) {
 			Password:      "",
 		}, &superUser))
 
-		Assert.True(Inc.LocalCurrentFilesFragmentsHealthCheck(4))
+		jobIdNo = jobIdNo + 1
 
-		results, err = dbfs.GetResultsCffhc(db, 4)
+		Assert.Nil(Inc.LocalCurrentFilesFragmentsHealthCheck(jobIdNo))
+
+		results, err = dbfs.GetResultsCffhc(db, jobIdNo)
 		Assert.NoError(err)
 		Assert.Equal(1, len(results), results)
 		Assert.NoError(json.Unmarshal([]byte(results[0].FileId), &strings))
 		Assert.Equal(1, len(strings))
 
-		Assert.True(Inc.LocalAllFilesFragmentsHealthCheck(5))
+		jobIdNo = jobIdNo + 1
 
-		results2, err := dbfs.GetResultsAffhc(db, 5)
+		// Checking All File Fragments
+
+		Assert.NoError(Inc.LocalAllFilesFragmentsHealthCheck(jobIdNo))
+
+		results2, err := dbfs.GetResultsAffhc(db, jobIdNo)
+		Assert.Nil(err)
+		Assert.NotNil(results2)
+		Assert.Equal(1, len(results2))
+		Assert.NoError(json.Unmarshal([]byte(results[0].FileId), &strings))
+		Assert.Equal(1, len(strings))
+
+		// Testing via route
+
+		jobIdNo = jobIdNo + 1
+
+		req := httptest.NewRequest(http.MethodGet,
+			inc.AllFilesHealthPath, nil)
+		w := httptest.NewRecorder()
+		req.Header.Add("job_id", strconv.Itoa(jobIdNo))
+		Inc.AllFilesFragmentsHealthCheckRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		time.Sleep(time.Second / 2)
+
+		results2, err = dbfs.GetResultsAffhc(db, jobIdNo)
 		Assert.Nil(err)
 		Assert.NotNil(results2)
 		Assert.Equal(1, len(results2))
@@ -699,15 +776,17 @@ func TestStitchFragment(t *testing.T) {
 		// now we are going to check if the missing fragment check works
 		Assert := assert.New(t)
 
+		jobIdNo = jobIdNo + 1
+
 		req := httptest.NewRequest(http.MethodGet,
 			inc.FragmentMissingPath, nil)
 		w := httptest.NewRecorder()
-		req.Header.Add("job_id", "6")
+		req.Header.Add("job_id", strconv.Itoa(jobIdNo))
 		Inc.MissingShardsRoute(w, req)
 		Assert.Equal(http.StatusOK, w.Code)
 
 		time.Sleep(time.Second / 2)
-		results, err := dbfs.GetResultsMissingShard(db, 6)
+		results, err := dbfs.GetResultsMissingShard(db, jobIdNo)
 		Assert.Nil(err)
 		Assert.Equal(1, len(results), results)
 
