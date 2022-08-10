@@ -26,17 +26,20 @@ func NewHttpWriteCloser(client *http.Client, method, url string) io.WriteCloser 
 		req, err := http.NewRequest(method, url, rd)
 		if err != nil {
 			rd.CloseWithError(err)
+			return
 		}
 
 		// Perform the request
 		resp, err := client.Do(req)
 		if err != nil {
 			rd.CloseWithError(err)
+			return
 		}
 
 		// Close with error if the response is not OK
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			rd.CloseWithError(fmt.Errorf("HTTP error: %d", resp.StatusCode))
+			return
 		}
 
 		// Discard all output

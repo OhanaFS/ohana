@@ -5,14 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/OhanaFS/ohana/config"
-	"github.com/OhanaFS/ohana/controller"
-	"github.com/OhanaFS/ohana/controller/middleware"
-	"github.com/OhanaFS/ohana/dbfs"
-	"github.com/OhanaFS/ohana/util/ctxutil"
-	"github.com/OhanaFS/ohana/util/testutil"
-	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -21,16 +13,42 @@ import (
 	"path"
 	"testing"
 	"time"
+
+	"github.com/OhanaFS/ohana/config"
+	"github.com/OhanaFS/ohana/controller"
+	"github.com/OhanaFS/ohana/controller/inc"
+	"github.com/OhanaFS/ohana/controller/middleware"
+	"github.com/OhanaFS/ohana/dbfs"
+	selfsigntestutils "github.com/OhanaFS/ohana/selfsign/test_utils"
+	"github.com/OhanaFS/ohana/util/ctxutil"
+	"github.com/OhanaFS/ohana/util/testutil"
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBackendController(t *testing.T) {
 	assert := assert.New(t)
 
+	// Generate dummy certificates for Inc
+	tmpDir, err := os.MkdirTemp("", "ohana-test-")
+	assert.NoError(err)
+	defer os.RemoveAll(tmpDir)
+	certs, err := selfsigntestutils.GenCertsTest(tmpDir)
+	assert.NoError(err)
+	shardsLocation := path.Join(tmpDir, "shards")
+	assert.NoError(os.MkdirAll(shardsLocation, 0755))
+
 	//Set up mock Db and session store
-	stitchConfig := config.StitchConfig{
-		ShardsLocation: "shards/",
+	configFile := &config.Config{
+		Stitch: config.StitchConfig{
+			ShardsLocation: shardsLocation,
+		},
+		Inc: config.IncConfig{
+			CaCert:     certs.CaCertPath,
+			PublicCert: certs.PublicCertPath,
+			PrivateKey: certs.PrivateKeyPath,
+		},
 	}
-	configFile := &config.Config{Stitch: stitchConfig}
 	logger := config.NewLogger(configFile)
 	db := testutil.NewMockDB(t)
 	session := testutil.NewMockSession(t)
@@ -41,7 +59,12 @@ func TestBackendController(t *testing.T) {
 		Logger:     logger,
 		Path:       configFile.Stitch.ShardsLocation,
 		ServerName: "localhost",
+		Inc:        inc.NewInc(configFile, db),
 	}
+
+	// Register inc services
+	inc.RegisterIncServices(bc.Inc)
+	time.Sleep(time.Second * 3)
 
 	bc.InitialiseShardsFolder()
 

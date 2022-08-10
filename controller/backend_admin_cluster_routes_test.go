@@ -4,6 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strconv"
+	"testing"
+	"time"
+
 	"github.com/OhanaFS/ohana/config"
 	"github.com/OhanaFS/ohana/controller"
 	"github.com/OhanaFS/ohana/controller/inc"
@@ -15,14 +24,6 @@ import (
 	"github.com/OhanaFS/ohana/util/testutil"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"path/filepath"
-	"strconv"
-	"testing"
-	"time"
 )
 
 var certsConfigured = false
@@ -60,6 +61,9 @@ func TestAdminClusterRoutes(t *testing.T) {
 	sessionId, err := session.Create(nil, "superuser", time.Hour)
 	Inc := inc.NewInc(configFile, db)
 	inc.RegisterIncServices(Inc)
+
+	// Wait for inc to start
+	time.Sleep(time.Second * 3)
 
 	// Setting up controller
 	bc := &controller.BackendController{
