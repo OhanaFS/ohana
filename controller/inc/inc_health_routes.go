@@ -128,11 +128,6 @@ func (i Inc) MissingShardsRoute(w http.ResponseWriter, r *http.Request) {
 	util.HttpJson(w, http.StatusOK, true)
 }
 
-func (i Inc) ShutdownRoute(w http.ResponseWriter, r *http.Request) {
-	util.HttpJson(w, http.StatusOK, true)
-	i.Shutdown <- true
-}
-
 func (i Inc) CurrentFilesFragmentsHealthCheckRoute(w http.ResponseWriter, r *http.Request) {
 
 	// get job_id from header
