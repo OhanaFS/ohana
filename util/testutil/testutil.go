@@ -71,9 +71,9 @@ func NewPostgresDB(t *testing.T, dbString string) *gorm.DB {
 	assert.NoError(err)
 
 	// Test connection
-	_db, err := db.DB()
+	testDbPing, err := db.DB()
 	assert.NoError(err)
-	assert.NoError(_db.Ping())
+	assert.NoError(testDbPing.Ping())
 
 	// Init
 	assert.NoError(dbfs.InitDB(db))

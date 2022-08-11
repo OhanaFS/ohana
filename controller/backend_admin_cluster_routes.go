@@ -29,7 +29,7 @@ func (bc *BackendController) CronDeleteFragments(w http.ResponseWriter, r *http.
 		return
 	}
 
-	s, err := bc.Inc.CronJobDeleteFragments(true)
+	s, err := bc.Inc.CronJobDeleteShards(true)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return

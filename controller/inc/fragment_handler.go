@@ -27,14 +27,14 @@ type DeleteWorkerServerStatus struct {
 	err    error
 }
 
-// DeleteFragmentsByPath deletes the path of a shard file
-func (i Inc) DeleteFragmentsByPath(pathOfShard string) error {
+// DeleteShardsByPath deletes the path of a shard file
+func (i Inc) DeleteShardsByPath(pathOfShard string) error {
 	return os.Remove(path.Join(i.ShardsLocation, pathOfShard))
 }
 
-// CronJobDeleteFragments scans the DB and nodes for any fragments that should be deleted
+// CronJobDeleteShards scans the DB and nodes for any fragments that should be deleted
 // to clear up space.
-func (i Inc) CronJobDeleteFragments(manualRun bool) (string, error) {
+func (i Inc) CronJobDeleteShards(manualRun bool) (string, error) {
 
 	// Checks if the job is currently being done.
 
@@ -176,7 +176,7 @@ func (i Inc) deleteWorker(dataIdFragmentMap map[string][]dbfs.Fragment, input <-
 
 				if server == i.ServerName {
 					// local
-					err := i.DeleteFragmentsByPath(path)
+					err := i.DeleteShardsByPath(path)
 					if err != nil {
 						dwss <- DeleteWorkerServerStatus{server, err}
 					} else {
@@ -426,10 +426,10 @@ func (i Inc) LocalMissingShardsCheck(jobId int, storeResults bool) ([]dbfs.Resul
 
 }
 
-// LocalIndividualFragHealthCheck checks if the local fragment is in good condition
-func (i Inc) LocalIndividualFragHealthCheck(fragPath string) (*stitch.ShardVerificationResult, error) {
+// LocalIndividualShardHealthCheck checks if the local shard is in good condition
+func (i Inc) LocalIndividualShardHealthCheck(shardPath string) (*stitch.ShardVerificationResult, error) {
 
-	shardFile, err := os.Open(path.Join(i.ShardsLocation, fragPath))
+	shardFile, err := os.Open(path.Join(i.ShardsLocation, shardPath))
 	// err handling
 	if err != nil {
 		return nil, err
@@ -440,15 +440,18 @@ func (i Inc) LocalIndividualFragHealthCheck(fragPath string) (*stitch.ShardVerif
 	return integrity, err
 }
 
-func (i Inc) IndividualFragHealthCheck(fragment dbfs.Fragment) (*stitch.ShardVerificationResult, error) {
+// IndividualShardHealthCheck will check if the shard is in good condition
+// It will ping other servers to check if the shard does not belong to that server
+// It is in charge of updating DBFS with the status of the fragment.
+func (i Inc) IndividualShardHealthCheck(fragment dbfs.Fragment) (*stitch.ShardVerificationResult, error) {
 
 	var result *stitch.ShardVerificationResult
 	var err error
 
-	// Check who the /Users/adrieltan/github/stitch/cmd/stitch/cmd/pipeline_cmd.gofragment belongs to
+	// Check who the shard belongs to
 	if fragment.ServerName == i.ServerName {
 		// local
-		result, err = i.LocalIndividualFragHealthCheck(fragment.FileFragmentPath)
+		result, err = i.LocalIndividualShardHealthCheck(fragment.FileFragmentPath)
 		if err != nil {
 			return nil, err
 		}
@@ -492,7 +495,9 @@ func (i Inc) IndividualFragHealthCheck(fragment dbfs.Fragment) (*stitch.ShardVer
 
 }
 
-func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) error {
+// LocalCurrentFilesShardsHealthCheck will check if the local shards are in good condition
+// Stores results directly into DBFS due to the long nature of the operation
+func (i Inc) LocalCurrentFilesShardsHealthCheck(jobId int) error {
 	// db join query to get all the fragments belonging to this server current versions
 
 	type result struct {
@@ -515,16 +520,14 @@ func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) error {
 		return err
 	}
 
-	var fragmentsToCheck []result
+	var shardsCheck []result
 
-	// Get all the fragments belonging to this server
-	// We are going to use a join
-
+	// Get all the fragments belonging to this server that is current version
 	err = i.Db.Model(&dbfs.File{}).Select(
 		"files.file_id, files.file_name, files.data_id, fragments.file_fragment_path, fragments.server_name").
 		Joins("JOIN fragments ON files.data_id = fragments.file_version_data_id").
 		Where("fragments.server_name = ? AND files.entry_type = ?", i.ServerName, dbfs.IsFile).
-		Find(&fragmentsToCheck).Error
+		Find(&shardsCheck).Error
 	if err != nil {
 		log.Println(err)
 		return err
@@ -535,96 +538,81 @@ func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) error {
 		FragmentServer   string
 	}
 
+	// resultsMap stores the results of the health check (basically only errors)
+	// seenSet stores all the fragments that have been seen
 	resultsMap := make(map[keyStruct]*dbfs.ResultsCFSHC)
+	seenSet := util.NewSet[keyStruct]()
 
-	for _, frag := range fragmentsToCheck {
+	for _, frag := range shardsCheck {
 
 		key := keyStruct{
 			FileFragmentPath: frag.FileFragmentPath,
 			FragmentServer:   frag.ServerName,
 		}
 
-		existsFlag := false
+		existsError := false
 		if _, ok := resultsMap[key]; ok {
-			existsFlag = true
+			existsError = true
 		}
 
-		fileIdsJSONBytes, _ := json.Marshal([]string{frag.FileId})
-		fileNamesJSONBytes, _ := json.Marshal([]string{frag.FileName})
+		if !existsError {
 
-		fileIdsJSON := string(fileIdsJSONBytes)
-		fileNamesJSON := string(fileNamesJSONBytes)
+			if seenSet.Has(key) {
+				continue
+			}
+			seenSet.Add(key)
 
-		if !existsFlag {
-			verificationResult, err := i.LocalIndividualFragHealthCheck(frag.FileFragmentPath)
+			verificationResult, err := i.LocalIndividualShardHealthCheck(frag.FileFragmentPath)
 
+			// Only saved if there is an error
+			fileIdsJSON, err := util.AddItemToJSONArray[string]("[]", frag.FileId)
+			fileNamesJSON, err := util.AddItemToJSONArray[string]("[]", frag.FileName)
+			tempResult := dbfs.ResultsCFSHC{
+				JobId:    jobId,
+				FileName: fileNamesJSON,
+				FileId:   fileIdsJSON,
+				DataId:   frag.DataId,
+				FragPath: frag.FileFragmentPath,
+				ServerId: frag.ServerName,
+			}
+
+			// Checking if there is an error or bad health
+			// Save if so
 			if err != nil {
-				// mark the fragment as bad
-				resultsMap[key] = &dbfs.ResultsCFSHC{
-					JobId:     jobId,
-					FileName:  fileNamesJSON,
-					FileId:    fileIdsJSON,
-					DataId:    frag.DataId,
-					FragPath:  frag.FileFragmentPath,
-					ServerId:  frag.ServerName,
-					Error:     err.Error(),
-					ErrorType: 1,
-				}
+				// save the error and result
+				tempResult.Error = err.Error()
+				tempResult.ErrorType = dbfs.CronErrorTypeInternalError
+				resultsMap[key] = &tempResult
+
 			} else if !verificationResult.IsAvailable {
-				resultsMap[key] = &dbfs.ResultsCFSHC{
-					JobId:     jobId,
-					FileName:  fileNamesJSON,
-					FileId:    fileIdsJSON,
-					DataId:    frag.DataId,
-					FragPath:  frag.FileFragmentPath,
-					ServerId:  frag.ServerName,
-					Error:     "Fragment is not available",
-					ErrorType: 2,
-				}
+
+				tempResult.Error = "Shard is not available"
+				tempResult.ErrorType = dbfs.CronErrorTypeNotAvailable
+				resultsMap[key] = &tempResult
+
 			} else if len(verificationResult.BrokenBlocks) > 0 {
-				resultsMap[key] = &dbfs.ResultsCFSHC{
-					JobId:     jobId,
-					FileName:  fileNamesJSON,
-					FileId:    fileIdsJSON,
-					DataId:    frag.DataId,
-					FragPath:  frag.FileFragmentPath,
-					ServerId:  frag.ServerName,
-					Error:     "Fragment is broken",
-					ErrorType: 3,
-				}
+
+				tempResult.Error = "Shard is corrupted"
+				tempResult.ErrorType = dbfs.CronErrorTypeCorrupted
+				resultsMap[key] = &tempResult
 			}
 
 		} else {
+			// If the fragment is already in the map, we have already checked it
+			// Thus we don't need to rescan it, we just need to add the other file items
+			// associated to that bad fragment to the existing result entry.
+
 			existingResult := resultsMap[key]
 
-			tempStrings := make([]string, 0)
-
-			// FileName
-			if json.Unmarshal([]byte(existingResult.FileName), &tempStrings) != nil {
-				continue
-			}
-
-			tempStrings = append(tempStrings, frag.FileName)
-			tempStringsByte, err := json.Marshal(tempStrings)
+			existingResult.FileName, err = util.AddItemToJSONArray[string](existingResult.FileName, frag.FileName)
 			if err != nil {
-				continue
+				return err
 			}
 
-			existingResult.FileName = string(tempStringsByte)
-
-			// FileId
-
-			if json.Unmarshal([]byte(existingResult.FileId), &tempStrings) != nil {
-				continue
-			}
-
-			tempStrings = append(tempStrings, frag.FileId)
-			tempStringsByte, err = json.Marshal(tempStrings)
+			existingResult.FileId, err = util.AddItemToJSONArray[string](existingResult.FileId, frag.FileId)
 			if err != nil {
-				continue
+				return err
 			}
-
-			existingResult.FileId = string(tempStringsByte)
 
 		}
 	}
@@ -645,8 +633,9 @@ func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) error {
 	return nil
 }
 
-func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) error {
-	// db join query to get all the fragments belonging to this server current versions
+// LocalAllFilesShardsHealthCheck will check if the local shards are in good condition
+// Stores results directly into DBFS due to the long nature of the operation
+func (i Inc) LocalAllFilesShardsHealthCheck(jobId int) error {
 
 	type result struct {
 		FileId            string
@@ -668,18 +657,16 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) error {
 		return err
 	}
 
-	var fragmentsToCheck []result
+	var shardsToCheck []result
 
 	// Get all the fragments belonging to this server
-	// We are going to use a join
 
 	// We will first reference the files table so that we get the latest file names
 	// If there are stuff no longer there, it will be "" and we will find it later.
-
 	err = i.Db.Model(&dbfs.Fragment{}).Select(
 		"files.file_id, files.file_name, fragments.file_version_data_id, fragments.file_fragment_path, fragments.server_name").
 		Joins("JOIN files ON fragments.file_version_file_id = files.file_id").
-		Where("fragments.server_name = ? AND files.entry_type = ?", i.ServerName, dbfs.IsFile).Find(&fragmentsToCheck).Error
+		Where("fragments.server_name = ? AND files.entry_type = ?", i.ServerName, dbfs.IsFile).Find(&shardsToCheck).Error
 	if err != nil {
 		log.Println(err)
 		return err
@@ -690,152 +677,116 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) error {
 		FragmentServer   string
 	}
 
+	// resultsMap stores the results of the health check (basically only errors)
+	// seenSet stores all the fragments that have been seen
 	resultsMap := make(map[keyStruct]*dbfs.ResultsAFSHC)
+	seenSet := util.NewSet[keyStruct]()
 
-	for _, frag := range fragmentsToCheck {
-
-		// Check if any of the fragments are missing filenames or file_ids, in which, we grab them from
-		// the file version table. This is done to ensure that we always get the latest version of the file
-		// in the case that the file has been updated. And to ensure that it works properly with postgres
+	for _, shard := range shardsToCheck {
 
 		key := keyStruct{
-			FileFragmentPath: frag.FileFragmentPath,
-			FragmentServer:   frag.ServerName,
-		}
-
-		multipleFileIds := make([]string, 0)
-		multipleFileNames := make([]string, 0)
-
-		var fileIdsJSON, fileNamesJSON string
-
-		if frag.FileId == "" || frag.FileName == "" {
-
-			var fileVersions []dbfs.FileVersion
-			err = i.Db.Where("data_id = ? and status NOT IN ?",
-				frag.FileVersionDataId, []int8{dbfs.FileStatusToBeDeleted, dbfs.FileStatusDeleted}).
-				Order("created_at desc").Find(&fileVersions).Error
-			if err != nil {
-				log.Println(err)
-				return err
-			}
-			if len(fileVersions) == 0 {
-				continue // likely deleted file so we don't care about it
-			} else if len(fileVersions) == 1 {
-				frag.FileId = fileVersions[0].FileId
-				frag.FileName = fileVersions[0].FileName
-
-				fileNamesJSONBytes, _ := json.Marshal([]string{frag.FileName})
-				fileIdsJSONBytes, _ := json.Marshal([]string{frag.FileId})
-				fileNamesJSON = string(fileNamesJSONBytes)
-				fileIdsJSON = string(fileIdsJSONBytes)
-
-			} else if len(fileVersions) > 1 {
-				for _, fileVersion := range fileVersions {
-					multipleFileIds = append(multipleFileIds, fileVersion.FileId)
-					multipleFileNames = append(multipleFileNames, fileVersion.FileName)
-				}
-
-				// JSON-ify FileName and FileId
-				fileNamesJSONBytes, _ := json.Marshal(multipleFileNames)
-				fileIdsJSONBytes, _ := json.Marshal(multipleFileIds)
-
-				fileNamesJSON = string(fileNamesJSONBytes)
-				fileIdsJSON = string(fileIdsJSONBytes)
-
-			}
-		} else { // still need to json-ify the file_id and file_name
-			fileIdsJSONBytes, _ := json.Marshal([]string{frag.FileId})
-			fileNamesJSONBytes, _ := json.Marshal([]string{frag.FileName})
-
-			fileIdsJSON = string(fileIdsJSONBytes)
-			fileNamesJSON = string(fileNamesJSONBytes)
-
+			FileFragmentPath: shard.FileFragmentPath,
+			FragmentServer:   shard.ServerName,
 		}
 
 		// If we have checked before, skip and just append file name and file id to the existing results
-		existsFlag := false
+		existsError := false
 		if _, ok := resultsMap[key]; ok {
-			existsFlag = true
+			existsError = true
 		}
 
-		if !existsFlag {
+		if !existsError {
+
+			if seenSet.Has(key) {
+				continue
+			}
+			seenSet.Add(key)
+
+			var fileIdsJSON, fileNamesJSON string
+
+			if shard.FileId == "" || shard.FileName == "" {
+				// Check if any of the fragments are missing filenames or file_ids, in which, we grab them from
+				// the file version table. This is done to ensure that we always get the latest version of the file
+				// in the case that the file has been updated. And to ensure that it works properly with postgres
+
+				var fileVersions []dbfs.FileVersion
+				err = i.Db.Where("data_id = ? and status NOT IN ?",
+					shard.FileVersionDataId, []int8{dbfs.FileStatusToBeDeleted, dbfs.FileStatusDeleted}).
+					Order("created_at desc").Find(&fileVersions).Error
+				if err != nil {
+					log.Println(err)
+					return err
+				}
+				if len(fileVersions) == 0 {
+					continue
+					// If there are no file versions, it's likely that the fragment was destined to be deleted
+					// thus we don't really need to report about it.
+				} else {
+					for _, fileVersion := range fileVersions {
+						fileIdsJSON, err = util.AddItemToJSONArray[string](fileIdsJSON, fileVersion.FileId)
+						if err != nil {
+							log.Println(err)
+							return err
+						}
+						fileNamesJSON, err = util.AddItemToJSONArray[string](fileNamesJSON, fileVersion.FileName)
+						if err != nil {
+							log.Println(err)
+							return err
+						}
+					}
+				}
+			} else {
+				// If we have filenames and file_ids, we can just json-ify them
+				fileIdsJSON, err = util.AddItemToJSONArray[string](fileIdsJSON, shard.FileId)
+				fileNamesJSON, err = util.AddItemToJSONArray[string](fileNamesJSON, shard.FileName)
+			}
 
 			// check the health of the fragment
-			verificationResult, err := i.LocalIndividualFragHealthCheck(frag.FileFragmentPath)
+			verificationResult, err := i.LocalIndividualShardHealthCheck(shard.FileFragmentPath)
+
+			tempResult := dbfs.ResultsAFSHC{
+				JobId:    jobId,
+				FileName: fileNamesJSON,
+				FileId:   fileIdsJSON,
+				DataId:   shard.FileVersionDataId,
+				FragPath: shard.FileFragmentPath,
+				ServerId: shard.ServerName,
+			}
+
+			// Checking if there is an error or bad health
+			// Save if so
 			if err != nil {
-				// mark the fragment as bad
-				resultsMap[key] = &dbfs.ResultsAFSHC{
-					JobId:     jobId,
-					FileName:  fileNamesJSON,
-					FileId:    fileIdsJSON,
-					DataId:    frag.FileVersionDataId,
-					FragPath:  frag.FileFragmentPath,
-					ServerId:  frag.ServerName,
-					Error:     err.Error(),
-					ErrorType: 1,
-				}
-
+				// save the error and result
+				tempResult.Error = err.Error()
+				tempResult.ErrorType = dbfs.CronErrorTypeInternalError
+				resultsMap[key] = &tempResult
 			} else if !verificationResult.IsAvailable {
-				resultsMap[key] = &dbfs.ResultsAFSHC{
-					JobId:     jobId,
-					FileName:  fileNamesJSON,
-					FileId:    fileIdsJSON,
-					DataId:    frag.FileVersionDataId,
-					FragPath:  frag.FileFragmentPath,
-					ServerId:  frag.ServerName,
-					Error:     "Fragment is not available",
-					ErrorType: 2,
-				}
-
+				tempResult.Error = "Shard is not available"
+				tempResult.ErrorType = dbfs.CronErrorTypeNotAvailable
+				resultsMap[key] = &tempResult
 			} else if len(verificationResult.BrokenBlocks) > 0 {
-
-				resultsMap[key] = &dbfs.ResultsAFSHC{
-					JobId:     jobId,
-					FileName:  fileNamesJSON,
-					FileId:    fileIdsJSON,
-					DataId:    frag.FileVersionDataId,
-					FragPath:  frag.FileFragmentPath,
-					ServerId:  frag.ServerName,
-					Error:     "Fragment is broken",
-					ErrorType: 3,
-				}
+				tempResult.Error = "Shard is corrupted"
+				tempResult.ErrorType = dbfs.CronErrorTypeCorrupted
+				resultsMap[key] = &tempResult
 			}
 
 		} else {
 
-			// get the previous result
+			// If the fragment is already in the map, we have already checked it
+			// Thus we don't need to rescan it, we just need to add the other file items
+			// associated to that bad fragment to the existing result entry.
+
 			existingResult := resultsMap[key]
 
-			tempStrings := make([]string, 0)
-
-			// FileName
-			err := json.Unmarshal([]byte(existingResult.FileName), &tempStrings)
+			existingResult.FileName, err = util.AddItemToJSONArray[string](existingResult.FileName, shard.FileName)
 			if err != nil {
-				continue
+				return err
 			}
 
-			tempStrings = append(tempStrings, frag.FileName)
-			tempStringsByte, err := json.Marshal(tempStrings)
+			existingResult.FileId, err = util.AddItemToJSONArray[string](existingResult.FileId, shard.FileId)
 			if err != nil {
-				continue
+				return err
 			}
-
-			existingResult.FileName = string(tempStringsByte)
-
-			// FileId
-
-			err = json.Unmarshal([]byte(existingResult.FileId), &tempStrings)
-			if err != nil {
-				continue
-			}
-
-			tempStrings = append(tempStrings, frag.FileId)
-			tempStringsByte, err = json.Marshal(tempStrings)
-			if err != nil {
-				continue
-			}
-
-			existingResult.FileId = string(tempStringsByte)
 
 		}
 

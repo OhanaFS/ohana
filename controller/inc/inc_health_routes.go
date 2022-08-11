@@ -11,34 +11,36 @@ import (
 )
 
 const (
-	FragmentHealthCheckPath = "/api/v1/node/fragment/{fragmentPath}/health"
-	FragmentPath            = "/api/v1/node/fragment/{fragmentPath}"
+	FragmentHealthCheckPath = "/api/v1/node/shard/{shardPath}/health"
+	FragmentPath            = "/api/v1/node/shard/{shardPath}"
 	FragmentOrphanedPath    = "/api/v1/node/orphaned"
 	FragmentMissingPath     = "/api/v1/node/missing"
 	ShutdownPath            = "/api/v1/node/shutdown"
 	CurrentFilesHealthPath  = "/api/v1/node/health_current_files"
 	AllFilesHealthPath      = "/api/v1/node/health_all_files"
+	PathReplaceShardString  = "{shardPath}"
+	PathFindString          = "shardPath"
 )
 
-// FragmentHealthCheckRoute calls FragmentHealthCheck on the local server
+// ShardHealthCheckRoute calls FragmentHealthCheck on the local server
 // to ensure that the fragment is healthy.
-// Expects fragmentPath in the URL
+// Expects shardPath in the URL
 // Returns a JSON report based on the marshalling of stitch.ShardVerificationResult
-func (i Inc) FragmentHealthCheckRoute(w http.ResponseWriter, r *http.Request) {
+func (i Inc) ShardHealthCheckRoute(w http.ResponseWriter, r *http.Request) {
 
 	// check if fragment exists on the server
 
 	vars := mux.Vars(r)
-	fragmentPath := vars["fragmentPath"]
+	shardPath := vars[PathFindString]
 
-	if fragmentPath == "" {
+	if shardPath == "" {
 		util.HttpError(w, http.StatusBadRequest, "Missing fragment path")
 		return
 	}
 
 	// check if fragment exists
 
-	check, err := i.LocalIndividualFragHealthCheck(fragmentPath)
+	check, err := i.LocalIndividualShardHealthCheck(shardPath)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError,
 			"failed to get fragment "+err.Error())
@@ -50,20 +52,20 @@ func (i Inc) FragmentHealthCheckRoute(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// DeleteFragmentRoute deletes a fragment from the local server.
-// Expects fragmentPath in the URL
+// DeleteShardRoute deletes a shard from the local server.
+// Expects shardPath in the URL
 // Returns a http.StatusOK if successful
-// Returns a http.StatusBadRequest if the fragmentPath is missing
-func (i Inc) DeleteFragmentRoute(w http.ResponseWriter, r *http.Request) {
+// Returns a http.StatusBadRequest if the shardPath is missing
+func (i Inc) DeleteShardRoute(w http.ResponseWriter, r *http.Request) {
 
 	// check if fragment exists on the server
 
 	vars := mux.Vars(r)
-	fragmentPath := vars["fragmentPath"]
+	shardPath := vars[PathFindString]
 
 	// Delete
 
-	filePath := path.Join(i.ShardsLocation, fragmentPath)
+	filePath := path.Join(i.ShardsLocation, shardPath)
 	err := os.Remove(filePath)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError,
@@ -166,7 +168,7 @@ func (i Inc) CurrentFilesFragmentsHealthCheckRoute(w http.ResponseWriter, r *htt
 
 	// run the job
 	go func() {
-		err := i.LocalCurrentFilesFragmentsHealthCheck(jobIdInt)
+		err := i.LocalCurrentFilesShardsHealthCheck(jobIdInt)
 		if err != nil {
 			// close the JobProgressMissingShard
 			i.Db.Model(&dbfs.JobProgressCFSHC{}).
@@ -201,7 +203,7 @@ func (i Inc) AllFilesFragmentsHealthCheckRoute(w http.ResponseWriter, r *http.Re
 
 	// run the job
 	go func() {
-		err := i.LocalAllFilesFragmentsHealthCheck(jobIdInt)
+		err := i.LocalAllFilesShardsHealthCheck(jobIdInt)
 		if err != nil {
 			// close the JobProgressMissingShard
 			i.Db.Model(&dbfs.JobProgressAFSHC{}).

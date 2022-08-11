@@ -193,7 +193,7 @@ func TestFragmentHandler(t *testing.T) {
 
 		err = dbfs.SetHowLongToKeepFileVersions(db, 1)
 		Assert.NoError(err)
-		s, err := Inc.CronJobDeleteFragments(true)
+		s, err := Inc.CronJobDeleteShards(true)
 		Assert.NoError(err)
 		fmt.Println(s)
 
@@ -268,7 +268,7 @@ func TestFragmentHandler(t *testing.T) {
 
 		Inc.Db = db.Begin()
 
-		s, err := Inc.CronJobDeleteFragments(true)
+		s, err := Inc.CronJobDeleteShards(true)
 		Assert.NoError(err)
 		fmt.Println("*******")
 		fmt.Println(s)
@@ -311,7 +311,7 @@ func TestFragmentHandler(t *testing.T) {
 
 		Inc.Db = db.Begin()
 
-		s, err := Inc.CronJobDeleteFragments(true)
+		s, err := Inc.CronJobDeleteShards(true)
 		Assert.NoError(err)
 		fmt.Println("*******")
 		fmt.Println(s)
@@ -532,7 +532,7 @@ func TestStitchFragment(t *testing.T) {
 
 		Assert.Nil(err)
 		Assert.NotNil(file)
-		err := Inc.LocalCurrentFilesFragmentsHealthCheck(jobIdNo)
+		err := Inc.LocalCurrentFilesShardsHealthCheck(jobIdNo)
 
 		results, err := dbfs.GetResultsCFSHC(db, jobIdNo)
 		Assert.NoError(err)
@@ -570,7 +570,7 @@ func TestStitchFragment(t *testing.T) {
 			path.Join(configFile.Stitch.ShardsLocation, fragments[0].FileFragmentPath))
 		Assert.Nil(err)
 
-		err = Inc.LocalCurrentFilesFragmentsHealthCheck(jobIdNo)
+		err = Inc.LocalCurrentFilesShardsHealthCheck(jobIdNo)
 		Assert.NoError(err)
 
 		results, err = dbfs.GetResultsCFSHC(db, jobIdNo)
@@ -597,12 +597,12 @@ func TestStitchFragment(t *testing.T) {
 		Assert.Equal(1, len(results))
 
 		// Check using InvidiaulFragmentHealthCheck
-		result, err := Inc.IndividualFragHealthCheck(fragments[0])
+		result, err := Inc.IndividualShardHealthCheck(fragments[0])
 		Assert.Nil(err)
 		Assert.NotNil(result)
 		Assert.True(len(result.BrokenBlocks) > 0)
 
-		result, err = Inc.IndividualFragHealthCheck(fragments[1])
+		result, err = Inc.IndividualShardHealthCheck(fragments[1])
 		Assert.Nil(err)
 		Assert.NotNil(result)
 		Assert.True(len(result.BrokenBlocks) == 0)
@@ -611,13 +611,13 @@ func TestStitchFragment(t *testing.T) {
 
 		req = httptest.NewRequest("GET",
 			strings.Replace(inc.FragmentHealthCheckPath,
-				"{fragmentPath}", fragments[0].FileFragmentPath, -1), nil)
+				inc.PathReplaceShardString, fragments[0].FileFragmentPath, -1), nil)
 		w = httptest.NewRecorder()
 		req = mux.SetURLVars(req, map[string]string{
-			"fragmentPath": fragments[0].FileFragmentPath,
+			inc.PathFindString: fragments[0].FileFragmentPath,
 		})
 		fmt.Println(fragments[0].FileFragmentPath)
-		Inc.FragmentHealthCheckRoute(w, req)
+		Inc.ShardHealthCheckRoute(w, req)
 		Assert.Equal(http.StatusOK, w.Code)
 		body := w.Body.String()
 
@@ -630,12 +630,12 @@ func TestStitchFragment(t *testing.T) {
 
 		req = httptest.NewRequest("GET",
 			strings.Replace(inc.FragmentHealthCheckPath,
-				"{fragmentPath}", fragments[1].FileFragmentPath, -1), nil)
+				inc.PathReplaceShardString, fragments[1].FileFragmentPath, -1), nil)
 		w = httptest.NewRecorder()
 		req = mux.SetURLVars(req, map[string]string{
-			"fragmentPath": fragments[1].FileFragmentPath,
+			inc.PathFindString: fragments[1].FileFragmentPath,
 		})
-		Inc.FragmentHealthCheckRoute(w, req)
+		Inc.ShardHealthCheckRoute(w, req)
 		Assert.Equal(http.StatusOK, w.Code)
 		body = w.Body.String()
 
@@ -654,8 +654,8 @@ func TestStitchFragment(t *testing.T) {
 		strings := make([]string, 0)
 
 		// We are going to update the file we created and corrupted earlier.
-		// This should cause the health check to fail for LocalAllFilesFragmentsHealthCheck
-		// but not for LocalCurrentFilesFragmentsHealthCheck
+		// This should cause the health check to fail for LocalAllFilesShardsHealthCheck
+		// but not for LocalCurrentFilesShardsHealthCheck
 
 		// We are also going to create the edge case, where a file that is corrupted is coppied
 		// (thus the new file is linked to the same data ID and fragments)
@@ -674,7 +674,7 @@ func TestStitchFragment(t *testing.T) {
 
 		jobIdNo = jobIdNo + 1
 
-		Assert.NoError(Inc.LocalCurrentFilesFragmentsHealthCheck(jobIdNo))
+		Assert.NoError(Inc.LocalCurrentFilesShardsHealthCheck(jobIdNo))
 
 		results, err := dbfs.GetResultsCFSHC(db, jobIdNo)
 		Assert.NoError(err)
@@ -694,7 +694,7 @@ func TestStitchFragment(t *testing.T) {
 
 		jobIdNo = jobIdNo + 1
 
-		Assert.Nil(Inc.LocalCurrentFilesFragmentsHealthCheck(jobIdNo))
+		Assert.Nil(Inc.LocalCurrentFilesShardsHealthCheck(jobIdNo))
 
 		results, err = dbfs.GetResultsCFSHC(db, jobIdNo)
 		Assert.NoError(err)
@@ -706,13 +706,13 @@ func TestStitchFragment(t *testing.T) {
 
 		// Checking All File Fragments
 
-		Assert.NoError(Inc.LocalAllFilesFragmentsHealthCheck(jobIdNo))
+		Assert.NoError(Inc.LocalAllFilesShardsHealthCheck(jobIdNo))
 
 		results2, err := dbfs.GetResultsAFSHC(db, jobIdNo)
 		Assert.Nil(err)
 		Assert.NotNil(results2)
 		Assert.Equal(1, len(results2))
-		Assert.NoError(json.Unmarshal([]byte(results[0].FileId), &strings))
+		Assert.NoError(json.Unmarshal([]byte(results2[0].FileId), &strings))
 		Assert.Equal(1, len(strings))
 
 		// Testing via route
@@ -752,12 +752,12 @@ func TestStitchFragment(t *testing.T) {
 
 		req := httptest.NewRequest("DELETE",
 			strings.Replace(inc.FragmentPath,
-				"{fragmentPath}", firstFileName, -1), nil)
+				inc.PathReplaceShardString, firstFileName, -1), nil)
 		w := httptest.NewRecorder()
 		req = mux.SetURLVars(req, map[string]string{
-			"fragmentPath": firstFileName,
+			inc.PathFindString: firstFileName,
 		})
-		Inc.DeleteFragmentRoute(w, req)
+		Inc.DeleteShardRoute(w, req)
 		Assert.Equal(http.StatusOK, w.Code)
 		Assert.True(strings.Contains(w.Body.String(), "true"), w.Body.String())
 
