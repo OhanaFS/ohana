@@ -20,6 +20,10 @@ const (
 	AllFilesHealthPath      = "/api/v1/node/health_all_files"
 )
 
+// FragmentHealthCheckRoute calls FragmentHealthCheck on the local server
+// to ensure that the fragment is healthy.
+// Expects fragmentPath in the URL
+// Returns a JSON report based on the marshalling of stitch.ShardVerificationResult
 func (i Inc) FragmentHealthCheckRoute(w http.ResponseWriter, r *http.Request) {
 
 	// check if fragment exists on the server
@@ -36,7 +40,8 @@ func (i Inc) FragmentHealthCheckRoute(w http.ResponseWriter, r *http.Request) {
 
 	check, err := i.LocalIndividualFragHealthCheck(fragmentPath)
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusInternalServerError,
+			"failed to get fragment "+err.Error())
 		return
 	}
 
@@ -45,6 +50,10 @@ func (i Inc) FragmentHealthCheckRoute(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// DeleteFragmentRoute deletes a fragment from the local server.
+// Expects fragmentPath in the URL
+// Returns a http.StatusOK if successful
+// Returns a http.StatusBadRequest if the fragmentPath is missing
 func (i Inc) DeleteFragmentRoute(w http.ResponseWriter, r *http.Request) {
 
 	// check if fragment exists on the server
@@ -57,7 +66,8 @@ func (i Inc) DeleteFragmentRoute(w http.ResponseWriter, r *http.Request) {
 	filePath := path.Join(i.ShardsLocation, fragmentPath)
 	err := os.Remove(filePath)
 	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusInternalServerError,
+			"failed to delete shard"+err.Error())
 		return
 	}
 
@@ -66,6 +76,9 @@ func (i Inc) DeleteFragmentRoute(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// OrphanedShardsRoute starts a job to checked for orphaned shards.
+// Expects job_id in the header
+// Returns a http.StatusOK once job starts
 func (i Inc) OrphanedShardsRoute(w http.ResponseWriter, r *http.Request) {
 
 	// get job_id from header
@@ -98,6 +111,9 @@ func (i Inc) OrphanedShardsRoute(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// MissingShardsRoute starts a job to checked for missing shards.
+// Expects job_id in the header
+// Returns a http.StatusOK once job starts
 func (i Inc) MissingShardsRoute(w http.ResponseWriter, r *http.Request) {
 
 	// get job_id from header
@@ -128,6 +144,10 @@ func (i Inc) MissingShardsRoute(w http.ResponseWriter, r *http.Request) {
 	util.HttpJson(w, http.StatusOK, true)
 }
 
+// CurrentFilesFragmentsHealthCheckRoute starts a job to check the health of
+// current file shards
+// Expects job_id in the header
+// Returns a http.StatusOK once job starts
 func (i Inc) CurrentFilesFragmentsHealthCheckRoute(w http.ResponseWriter, r *http.Request) {
 
 	// get job_id from header
@@ -149,7 +169,7 @@ func (i Inc) CurrentFilesFragmentsHealthCheckRoute(w http.ResponseWriter, r *htt
 		err := i.LocalCurrentFilesFragmentsHealthCheck(jobIdInt)
 		if err != nil {
 			// close the JobProgressMissingShard
-			i.Db.Model(&dbfs.JobprogressCffhc{}).
+			i.Db.Model(&dbfs.JobProgressCFSHC{}).
 				Where("job_id = ? and server_id = ?", jobId, i.ServerName).
 				Updates(map[string]interface{}{"in_progress": false, "msg": err.Error()})
 
@@ -159,6 +179,10 @@ func (i Inc) CurrentFilesFragmentsHealthCheckRoute(w http.ResponseWriter, r *htt
 	util.HttpJson(w, http.StatusOK, true)
 }
 
+// AllFilesFragmentsHealthCheckRoute starts a job to check the health of
+// all file shards
+// Expects job_id in the header
+// Returns a http.StatusOK once job starts
 func (i Inc) AllFilesFragmentsHealthCheckRoute(w http.ResponseWriter, r *http.Request) {
 
 	// get job_id from header
@@ -180,7 +204,7 @@ func (i Inc) AllFilesFragmentsHealthCheckRoute(w http.ResponseWriter, r *http.Re
 		err := i.LocalAllFilesFragmentsHealthCheck(jobIdInt)
 		if err != nil {
 			// close the JobProgressMissingShard
-			i.Db.Model(&dbfs.JobprogressAffhc{}).
+			i.Db.Model(&dbfs.JobProgressAFSHC{}).
 				Where("job_id = ? and server_id = ?", jobId, i.ServerName).
 				Updates(map[string]interface{}{"in_progress": false, "msg": err.Error()})
 

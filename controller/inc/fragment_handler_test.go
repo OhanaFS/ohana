@@ -459,16 +459,16 @@ func TestStitchFragment(t *testing.T) {
 	superUser := dbfs.User{}
 
 	// Getting superuser account
-	err := db.Where("email = ?", "superuser").First(&superUser).Error
-	assert.Nil(t, err)
+	assert.Nil(t, db.Where("email = ?", "superuser").
+		First(&superUser).Error)
 
-	tempdir := t.TempDir()
-	assert.Nil(t, err)
+	// Creating temp directories and environments
 
-	sharddir := filepath.Join(tempdir, "shards")
+	tempDir := t.TempDir()
+	shardDir := filepath.Join(tempDir, "shards")
 
 	stitchConfig := config.StitchConfig{
-		ShardsLocation: sharddir,
+		ShardsLocation: shardDir,
 	}
 
 	if w, err := os.Stat(stitchConfig.ShardsLocation); os.IsNotExist(err) {
@@ -480,7 +480,7 @@ func TestStitchFragment(t *testing.T) {
 		panic("ERROR. SHARDS FOLDER IS NOT A DIRECTORY.")
 	}
 
-	certsPaths, err := selfsigntestutils.GenCertsTest(tempdir)
+	certsPaths, err := selfsigntestutils.GenCertsTest(tempDir)
 	assert.Nil(t, err)
 
 	configFile := &config.Config{Stitch: stitchConfig,
@@ -534,7 +534,7 @@ func TestStitchFragment(t *testing.T) {
 		Assert.NotNil(file)
 		err := Inc.LocalCurrentFilesFragmentsHealthCheck(jobIdNo)
 
-		results, err := dbfs.GetResultsCffhc(db, jobIdNo)
+		results, err := dbfs.GetResultsCFSHC(db, jobIdNo)
 		Assert.NoError(err)
 		Assert.NotNil(results)
 		Assert.Equal(0, len(results))
@@ -552,7 +552,7 @@ func TestStitchFragment(t *testing.T) {
 
 		time.Sleep(time.Second / 2)
 
-		results, err = dbfs.GetResultsCffhc(db, jobIdNo)
+		results, err = dbfs.GetResultsCFSHC(db, jobIdNo)
 		Assert.NoError(err)
 		Assert.NotNil(results)
 		Assert.Equal(0, len(results))
@@ -573,7 +573,7 @@ func TestStitchFragment(t *testing.T) {
 		err = Inc.LocalCurrentFilesFragmentsHealthCheck(jobIdNo)
 		Assert.NoError(err)
 
-		results, err = dbfs.GetResultsCffhc(db, jobIdNo)
+		results, err = dbfs.GetResultsCFSHC(db, jobIdNo)
 		Assert.Nil(err)
 		Assert.NotNil(results)
 		Assert.Equal(1, len(results))
@@ -591,7 +591,7 @@ func TestStitchFragment(t *testing.T) {
 
 		time.Sleep(time.Second / 2)
 
-		results, err = dbfs.GetResultsCffhc(db, jobIdNo)
+		results, err = dbfs.GetResultsCFSHC(db, jobIdNo)
 		Assert.NoError(err)
 		Assert.NotNil(results)
 		Assert.Equal(1, len(results))
@@ -676,7 +676,7 @@ func TestStitchFragment(t *testing.T) {
 
 		Assert.NoError(Inc.LocalCurrentFilesFragmentsHealthCheck(jobIdNo))
 
-		results, err := dbfs.GetResultsCffhc(db, jobIdNo)
+		results, err := dbfs.GetResultsCFSHC(db, jobIdNo)
 		Assert.NoError(err)
 		Assert.Equal(1, len(results), results)
 		Assert.NoError(json.Unmarshal([]byte(results[0].FileId), &strings))
@@ -696,7 +696,7 @@ func TestStitchFragment(t *testing.T) {
 
 		Assert.Nil(Inc.LocalCurrentFilesFragmentsHealthCheck(jobIdNo))
 
-		results, err = dbfs.GetResultsCffhc(db, jobIdNo)
+		results, err = dbfs.GetResultsCFSHC(db, jobIdNo)
 		Assert.NoError(err)
 		Assert.Equal(1, len(results), results)
 		Assert.NoError(json.Unmarshal([]byte(results[0].FileId), &strings))
@@ -708,7 +708,7 @@ func TestStitchFragment(t *testing.T) {
 
 		Assert.NoError(Inc.LocalAllFilesFragmentsHealthCheck(jobIdNo))
 
-		results2, err := dbfs.GetResultsAffhc(db, jobIdNo)
+		results2, err := dbfs.GetResultsAFSHC(db, jobIdNo)
 		Assert.Nil(err)
 		Assert.NotNil(results2)
 		Assert.Equal(1, len(results2))
@@ -728,7 +728,7 @@ func TestStitchFragment(t *testing.T) {
 
 		time.Sleep(time.Second / 2)
 
-		results2, err = dbfs.GetResultsAffhc(db, jobIdNo)
+		results2, err = dbfs.GetResultsAFSHC(db, jobIdNo)
 		Assert.Nil(err)
 		Assert.NotNil(results2)
 		Assert.Equal(1, len(results2))

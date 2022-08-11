@@ -504,7 +504,7 @@ func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) error {
 	}
 
 	// store start in the JobProgress_CFFHC.
-	err := i.Db.Create(&dbfs.JobprogressCffhc{
+	err := i.Db.Create(&dbfs.JobProgressCFSHC{
 		JobId:      jobId,
 		StartTime:  time.Now(),
 		ServerId:   i.ServerName,
@@ -535,7 +535,7 @@ func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) error {
 		FragmentServer   string
 	}
 
-	resultsMap := make(map[keyStruct]*dbfs.ResultsCffhc)
+	resultsMap := make(map[keyStruct]*dbfs.ResultsCFSHC)
 
 	for _, frag := range fragmentsToCheck {
 
@@ -560,7 +560,7 @@ func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) error {
 
 			if err != nil {
 				// mark the fragment as bad
-				resultsMap[key] = &dbfs.ResultsCffhc{
+				resultsMap[key] = &dbfs.ResultsCFSHC{
 					JobId:     jobId,
 					FileName:  fileNamesJSON,
 					FileId:    fileIdsJSON,
@@ -571,7 +571,7 @@ func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) error {
 					ErrorType: 1,
 				}
 			} else if !verificationResult.IsAvailable {
-				resultsMap[key] = &dbfs.ResultsCffhc{
+				resultsMap[key] = &dbfs.ResultsCFSHC{
 					JobId:     jobId,
 					FileName:  fileNamesJSON,
 					FileId:    fileIdsJSON,
@@ -582,7 +582,7 @@ func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) error {
 					ErrorType: 2,
 				}
 			} else if len(verificationResult.BrokenBlocks) > 0 {
-				resultsMap[key] = &dbfs.ResultsCffhc{
+				resultsMap[key] = &dbfs.ResultsCFSHC{
 					JobId:     jobId,
 					FileName:  fileNamesJSON,
 					FileId:    fileIdsJSON,
@@ -638,7 +638,7 @@ func (i Inc) LocalCurrentFilesFragmentsHealthCheck(jobId int) error {
 	}
 
 	// Close the job progress
-	i.Db.Model(&dbfs.JobprogressCffhc{}).
+	i.Db.Model(&dbfs.JobProgressCFSHC{}).
 		Where("job_id = ? AND server_id = ?", jobId, i.ServerName).
 		Update("in_progress", false)
 
@@ -656,8 +656,8 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) error {
 		ServerName        string
 	}
 
-	// store start in the JobprogressAffhc.
-	err := i.Db.Create(&dbfs.JobprogressAffhc{
+	// store start in the JobProgressAFSHC.
+	err := i.Db.Create(&dbfs.JobProgressAFSHC{
 		JobId:      jobId,
 		StartTime:  time.Now(),
 		ServerId:   i.ServerName,
@@ -690,7 +690,7 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) error {
 		FragmentServer   string
 	}
 
-	resultsMap := make(map[keyStruct]*dbfs.ResultsAffhc)
+	resultsMap := make(map[keyStruct]*dbfs.ResultsAFSHC)
 
 	for _, frag := range fragmentsToCheck {
 
@@ -764,7 +764,7 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) error {
 			verificationResult, err := i.LocalIndividualFragHealthCheck(frag.FileFragmentPath)
 			if err != nil {
 				// mark the fragment as bad
-				resultsMap[key] = &dbfs.ResultsAffhc{
+				resultsMap[key] = &dbfs.ResultsAFSHC{
 					JobId:     jobId,
 					FileName:  fileNamesJSON,
 					FileId:    fileIdsJSON,
@@ -776,7 +776,7 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) error {
 				}
 
 			} else if !verificationResult.IsAvailable {
-				resultsMap[key] = &dbfs.ResultsAffhc{
+				resultsMap[key] = &dbfs.ResultsAFSHC{
 					JobId:     jobId,
 					FileName:  fileNamesJSON,
 					FileId:    fileIdsJSON,
@@ -789,7 +789,7 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) error {
 
 			} else if len(verificationResult.BrokenBlocks) > 0 {
 
-				resultsMap[key] = &dbfs.ResultsAffhc{
+				resultsMap[key] = &dbfs.ResultsAFSHC{
 					JobId:     jobId,
 					FileName:  fileNamesJSON,
 					FileId:    fileIdsJSON,
@@ -851,7 +851,7 @@ func (i Inc) LocalAllFilesFragmentsHealthCheck(jobId int) error {
 	}
 
 	// Close the job progress
-	i.Db.Model(&dbfs.JobprogressAffhc{}).
+	i.Db.Model(&dbfs.JobProgressAFSHC{}).
 		Where("job_id = ? AND server_id = ?", jobId, i.ServerName).
 		Update("in_progress", false)
 

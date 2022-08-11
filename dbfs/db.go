@@ -12,7 +12,7 @@ func InitDB(db *gorm.DB) error {
 	err := db.AutoMigrate(&User{}, &Group{}, &File{}, &FileVersion{}, &Fragment{}, &Permission{}, &PermissionHistory{},
 		&PasswordProtect{}, &Server{}, KeyValueDBPair{}, DataCopies{}, &Log{}, &Role{}, &Alert{},
 		// Cron Jobs
-		&ResultsCffhc{}, &JobprogressCffhc{}, &ResultsAffhc{}, &JobprogressAffhc{},
+		&ResultsCFSHC{}, &JobProgressCFSHC{}, &ResultsAFSHC{}, &JobProgressAFSHC{},
 		&ResultsMissingShard{}, &JobProgressMissingShard{}, &ResultsOrphanedShard{}, &JobProgressOrphanedShard{})
 
 	if err != nil {

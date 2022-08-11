@@ -17,8 +17,8 @@ var (
 	ErrorCronJobDoesNotExist = errors.New("cron job does not exist")
 )
 
-// ResultsCffhc Result Current Files Fragment Health Check result
-type ResultsCffhc struct {
+// ResultsCFSHC Current files shards health check result
+type ResultsCFSHC struct {
 	JobId     int
 	FileName  string
 	FileId    string
@@ -29,8 +29,8 @@ type ResultsCffhc struct {
 	ErrorType int
 }
 
-// JobprogressCffhc Current Files Fragment Health Check job progress
-type JobprogressCffhc struct {
+// JobProgressCFSHC Current files shards health check job progress
+type JobProgressCFSHC struct {
 	JobId      int
 	StartTime  time.Time
 	ServerId   string
@@ -38,8 +38,8 @@ type JobprogressCffhc struct {
 	Msg        string
 }
 
-// ResultsAffhc Result All Fragments Health Check result
-type ResultsAffhc struct {
+// ResultsAFSHC All file shards health check result
+type ResultsAFSHC struct {
 	JobId     int
 	FileName  string
 	FileId    string
@@ -50,8 +50,8 @@ type ResultsAffhc struct {
 	ErrorType int
 }
 
-// JobprogressAffhc All Files Fragment Health Check job progress
-type JobprogressAffhc struct {
+// JobProgressAFSHC All files fragment health check job progress
+type JobProgressAFSHC struct {
 	JobId      int
 	StartTime  time.Time
 	ServerId   string
@@ -59,7 +59,7 @@ type JobprogressAffhc struct {
 	Msg        string
 }
 
-// ResultsMissingShard Result All Fragments Health Check result
+// ResultsMissingShard All Fragments health check result
 type ResultsMissingShard struct {
 	JobId     int
 	FileName  string
@@ -71,7 +71,7 @@ type ResultsMissingShard struct {
 	ErrorType int
 }
 
-// JobProgressMissingShard All Files Fragment Health Check job progress
+// JobProgressMissingShard Missing shards job progress
 type JobProgressMissingShard struct {
 	JobId      int
 	StartTime  time.Time
@@ -80,14 +80,14 @@ type JobProgressMissingShard struct {
 	Msg        string
 }
 
-// ResultsOrphanedShard Result All Fragments Health Check result
+// ResultsOrphanedShard Orphaned shards result
 type ResultsOrphanedShard struct {
 	JobId    int
 	ServerId string
 	FileName string
 }
 
-// JobProgressOrphanedShard All Files Fragment Health Check job progress
+// JobProgressOrphanedShard Orphaned shards job progress
 type JobProgressOrphanedShard struct {
 	JobId      int
 	StartTime  time.Time
@@ -96,10 +96,12 @@ type JobProgressOrphanedShard struct {
 	Msg        string
 }
 
-func GetResultsCffhc(tx *gorm.DB, jobId int) ([]ResultsCffhc, error) {
+// GetResultsCFSHC Returns the results of a Current Files Shards Health Check job based on jobId
+// Will return error if the job doesn't exist or if the job is still running
+func GetResultsCFSHC(tx *gorm.DB, jobId int) ([]ResultsCFSHC, error) {
 
 	// Check if the job is still running or exists
-	var job JobprogressCffhc
+	var job JobProgressCFSHC
 	err := tx.Where("job_id = ?", jobId).First(&job).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -111,15 +113,17 @@ func GetResultsCffhc(tx *gorm.DB, jobId int) ([]ResultsCffhc, error) {
 		}
 	}
 
-	var results []ResultsCffhc
+	var results []ResultsCFSHC
 	err = tx.Where("job_id = ?", jobId).Find(&results).Error
 	return results, err
 }
 
-func GetResultsAffhc(tx *gorm.DB, jobId int) ([]ResultsAffhc, error) {
+// GetResultsAFSHC Returns the results of an All Files Shards Health Check job based on jobId
+// Will return error if the job doesn't exist or if the job is still running
+func GetResultsAFSHC(tx *gorm.DB, jobId int) ([]ResultsAFSHC, error) {
 
 	// Check if the job is still running or exists
-	var job JobprogressAffhc
+	var job JobProgressAFSHC
 	err := tx.Where("job_id = ?", jobId).First(&job).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -131,11 +135,13 @@ func GetResultsAffhc(tx *gorm.DB, jobId int) ([]ResultsAffhc, error) {
 		}
 	}
 
-	var results []ResultsAffhc
+	var results []ResultsAFSHC
 	err = tx.Where("job_id = ?", jobId).Find(&results).Error
 	return results, err
 }
 
+// GetResultsMissingShard Returns the results of a missing shard job based on jobId
+// Will return error if the job doesn't exist or if the job is still running
 func GetResultsMissingShard(tx *gorm.DB, jobId int) ([]ResultsMissingShard, error) {
 
 	var job JobProgressMissingShard
@@ -155,6 +161,8 @@ func GetResultsMissingShard(tx *gorm.DB, jobId int) ([]ResultsMissingShard, erro
 	return results, err
 }
 
+// GetResultsOrphanedShard Returns the results of an orphaned shard job based on jobId
+// Will return error if the job doesn't exist or if the job is still running
 func GetResultsOrphanedShard(tx *gorm.DB, jobId int) ([]ResultsOrphanedShard, error) {
 
 	// Check if the job is still running or exists
