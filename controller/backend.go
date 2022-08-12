@@ -394,7 +394,10 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 
 	// Stream file
 	file, header, err := r.FormFile("file")
-	defer file.Close()
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	fileSize := header.Size
 
 	err = dbfsFile.UpdateFile(bc.Db, int(fileSize), int(fileSize), "TODO:CHECKSUM",

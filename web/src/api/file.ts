@@ -76,9 +76,7 @@ export const useMutateUploadFile = () => {
       return APIClient.post<FileMetadata<EntryType.File>>(
         '/api/v1/file',
         form,
-        {
-          headers: { ...headers },
-        }
+        { headers: { ...headers } }
       )
         .then((res) => res.data)
         .catch(typedError);
@@ -106,16 +104,30 @@ export type FileUpdateRequest = {
 /**
  * Upload a newer version of a file.
  */
-export const useMutateUpdateFile = () =>
-  useMutation(async ({ file, file_id, ...headers }: FileUpdateRequest) => {
-    return APIClient.post<FileMetadata<EntryType.File>>(
-      `/api/v1/file/${file_id}/update`,
-      file,
-      { headers: { ...headers } }
-    )
-      .then((res) => res.data)
-      .catch(typedError);
-  });
+export const useMutateUpdateFile = () => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    async ({ file, file_id, ...headers }: FileUpdateRequest) => {
+      const form = new FormData();
+      form.append('file', file);
+
+      return (
+        APIClient.post<FileMetadata<EntryType.File>>(
+          `/api/v1/file/${file_id}/update`,
+          form,
+          { headers: { ...headers } }
+        )
+          .then((res) => res.data)
+          .catch(typedError),
+        {
+          onSuccess: () => {
+            queryClient.clear();
+          },
+        }
+      );
+    }
+  );
+};
 
 /**
  * Get a file's metadata.
@@ -150,10 +162,7 @@ export const useMutateUpdateFileMetadata = () => {
     ({ file_id, ...body }: FileMetadataUpdateRequest) =>
       APIClient.patch<FileMetadata<EntryType.File>>(
         `/api/v1/file/${file_id}/metadata`,
-        null,
-        {
-          headers: { ...body },
-        }
+        body
       )
         .then((res) => res.data)
         .catch(typedError),

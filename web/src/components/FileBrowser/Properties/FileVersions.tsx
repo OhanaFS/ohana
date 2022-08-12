@@ -37,22 +37,24 @@ const FileVersions = (props: FileVersionsProps) => {
           </tr>
         </thead>
         <tbody>
-          {qFileVersionHistory.data?.map((version) => (
-            <tr>
-              <td>{version.version_no}</td>
-              <td>{version.modified_time}</td>
-              <td>
-                <ActionIcon>
-                  <Trash color="red" />
-                </ActionIcon>
-              </td>
-              <td>
-                <ActionIcon>
-                  <Download color="blue" />
-                </ActionIcon>
-              </td>
-            </tr>
-          ))}
+          {qFileVersionHistory.data
+            ?.sort((a, b) => b.version_no - a.version_no)
+            .map((version, key) => (
+              <tr key={key}>
+                <td>{version.version_no}</td>
+                <td>{version.modified_time}</td>
+                <td>
+                  <ActionIcon>
+                    <Trash color="red" />
+                  </ActionIcon>
+                </td>
+                <td>
+                  <ActionIcon>
+                    <Download color="blue" />
+                  </ActionIcon>
+                </td>
+              </tr>
+            ))}
         </tbody>
       </Table>
     </>
