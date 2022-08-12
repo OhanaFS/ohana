@@ -15,22 +15,22 @@ import {
 import AppBase from './components/AppBase';
 import '../src/assets/styles.css';
 import {
-  getnumOfFiles,
-  getnumOfHistoricalFiles,
-  getstorageUsed,
-  gethistoricalStorageUsed,
-  getstorageUsedWithParity,
-  gethistoricalStorageUsedWithParity,
-  getAlerts,
-  clearAlerts,
-  getAlertsID,
-  clearAlertsID,
-  getserverLogs,
-  clearserverLogs,
-  getserverLogsID,
-  getserverStatuses,
-  getserverStatusesID,
-  deleteserverStatusesID,
+  useQueryGetnumOfFiles,
+  useQueryGetnumOfHistoricalFiles,
+  useQueryGetstorageUsed,
+  useQueryGethistoricalStorageUsed,
+  useQueryGetstorageUsedWithParity,
+  useQueryGethistoricalStorageUsedWithParity,
+  useQueryGetAlerts,
+  useQueryClearAlerts,
+  useQueryGetAlertsID,
+  useQueryClearAlertsID,
+  useQueryGetserverLogs,
+  useQueryClearserverLogs,
+  useQueryGetserverLogsID,
+  useQueryGetserverStatuses,
+  useQueryGetserverStatusesID,
+  useQueryDeleteserverStatusesID,
 } from './api/cluster';
 
 export function AdminDashboard() {
@@ -38,25 +38,25 @@ export function AdminDashboard() {
   const barColors = ['#1f77b4', '#ff0000'];
   const RADIAN = Math.PI / 180;
 
-  const getnumfiles = getnumOfFiles();
+  const getnumfiles = useQueryGetnumOfFiles();
   //500const getnumofhistoricalfiles = getnumOfHistoricalFiles();
   //500const getstorageused = getstorageUsed();
   //500 - (backend_admin_cluster_routes.go:112 ERROR: column "file_versions.file_id" must appear in the GROUP BY clause or be used in an aggregate function )
   //const gethistoricalstorageused = gethistoricalStorageUsed();
   //const getstorageusedwithparity = getstorageUsedWithParity();
   //431 - const gethistoricalstorageusedwithparity = gethistoricalStorageUsedWithParity();
-  const getalerts = getAlerts();
-  const getalertsid = getAlertsID(1);
-  const getserverlogs = getserverLogs();
-  const getserverlogsID = getserverLogsID(1);
-  const getserverstatuses = getserverStatuses();
-  const getserverstatusesID = getserverStatusesID('alpaca');
-  const deleteserverstatusesID = deleteserverStatusesID('alpaca');
-  const clearalerts = clearAlerts();
-  const clearserverlogs = clearserverLogs();
-  const clearalertsID = clearAlertsID(1);
+  //const getalerts = ();
+  //const getalertsid = useQueryGetAlertsID(1);
+  //const getserverlogs = useQueryGetserverLogs()
+  //const getserverlogsID = useQueryGetserverLogsID(1);
+  //const getserverstatuses = getserverStatuses();
+  //const getserverstatusesID = getserverStatusesID('alpaca');
+  //const deleteserverstatusesID = deleteserverStatusesID('alpaca');
+  //const clearalerts = clearAlerts();
+  //const clearserverlogs = clearserverLogs();
+  //const clearalertsID = clearAlertsID(1);
 
-  console.log('Rahul', getserverlogsID.data);
+  console.log('Test', getnumfiles.data);
 
   const renderCustomizedLabel = ({
     cx,
