@@ -56,7 +56,7 @@ const PasteFiles = defineFileAction({
 const FileProperties = defineFileAction({
   id: 'file_properties',
   button: {
-    name: 'Properties',
+    name: 'More',
     toolbar: true,
     contextMenu: true,
     group: 'Actions',

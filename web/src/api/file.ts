@@ -150,7 +150,10 @@ export const useMutateUpdateFileMetadata = () => {
     ({ file_id, ...body }: FileMetadataUpdateRequest) =>
       APIClient.patch<FileMetadata<EntryType.File>>(
         `/api/v1/file/${file_id}/metadata`,
-        body
+        null,
+        {
+          headers: { ...body },
+        }
       )
         .then((res) => res.data)
         .catch(typedError),

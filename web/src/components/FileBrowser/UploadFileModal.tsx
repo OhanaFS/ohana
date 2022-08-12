@@ -1,7 +1,7 @@
 import { Modal, FileButton, Button } from '@mantine/core';
 import { showNotification } from '@mantine/notifications';
 import { Loader } from 'tabler-icons-react';
-import { useMutateUploadFile } from '../../api/file';
+import { useMutateUpdateFile, useMutateUploadFile } from '../../api/file';
 
 export type UploadFileModalProps = {
   onClose: () => void;
@@ -11,6 +11,7 @@ export type UploadFileModalProps = {
 
 const UploadFileModal = (props: UploadFileModalProps) => {
   const mUploadFile = useMutateUploadFile();
+  const mUpdateFile = useMutateUpdateFile();
 
   return (
     <Modal
@@ -23,7 +24,6 @@ const UploadFileModal = (props: UploadFileModalProps) => {
         {mUploadFile.isLoading ? <Loader className="mr-5" /> : null}
         <FileButton
           onChange={(item) => {
-            console.log('we going in');
             if (!item) {
               return;
             }
