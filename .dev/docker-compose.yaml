@@ -11,7 +11,6 @@ services:
       args:
         MY_UID: ${MY_UID}
         MY_GID: ${MY_GID}
-    user: ${MY_UID}:${MY_GID}
     network_mode: host
     environment:
       GIN_PORT: 8001
@@ -27,7 +26,6 @@ services:
       args:
         MY_UID: ${MY_UID}
         MY_GID: ${MY_GID}
-    user: ${MY_UID}:${MY_GID}
     network_mode: host
     environment:
       GIN_PORT: 8002

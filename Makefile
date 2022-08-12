@@ -63,6 +63,7 @@ dev-down:
 
 .PHONY: dev
 dev:
+	-rm ./bin/*.gin ./bin/tmp.*
 	MY_UID=`id -u` MY_GID=`id -g` \
 		docker-compose -f .dev/docker-compose.yaml up --build
 
