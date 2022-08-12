@@ -83,166 +83,17 @@ func (bc *BackendController) GetNumOfFilesHistorical(w http.ResponseWriter, r *h
 	startDate := r.Header.Get("start_date")
 	endDate := r.Header.Get("end_date")
 
-	// Process startDate and endDate
-
-	if timePeriod == "" {
-		util.HttpError(w, http.StatusBadRequest, "Missing time period")
-		return
-	}
-
-	// Converting to int the type timePeriod
-	timePeriodInt, err := strconv.Atoi(timePeriod)
+	result, err := dbfs.GetHistoricalData(bc.Db, timePeriod, startDate, endDate, dbfs.HistoricalNumOfFiles)
 	if err != nil {
-		util.HttpError(w, http.StatusBadRequest, "Invalid time period. "+
-			"Expect 1 for day, 2 for week, 3 for month")
+		if errors.Is(err, dbfs.ErrorInvalidTimePeriod) || errors.Is(err, dbfs.ErrorMissingTimePeriod) {
+			util.HttpError(w, http.StatusBadRequest, err.Error())
+		} else {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 
-	// Check if the time period is valid
-	if timePeriodInt < dbfs.HistoricalRangeDay || timePeriodInt > dbfs.HistoricalRangeMonth {
-		util.HttpError(w, http.StatusBadRequest, "Invalid time period"+
-			"Expect 1 for day, 2 for week, 3 for month")
-		return
-	}
-
-	var NumOfFiles []dbfs.HistoricalStats
-	var startDateTime, endDateTime time.Time
-
-	switch timePeriodInt {
-	case dbfs.HistoricalRangeDay:
-		{
-			// If there is no time period specified, return the last 10 days
-			if startDate == "" {
-				startDateTime = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(),
-					0, 0, 0, 0, time.UTC)
-				startDateTime = startDateTime.AddDate(0, 0, -9)
-			} else {
-				// truncate to just get date part
-				startDateTime, err = time.Parse("2006-01-02", startDate[:10])
-			}
-			if endDate == "" {
-				endDateTime = time.Now()
-			} else {
-				endDateTime, err = time.Parse("2006-01-02", endDate[:10])
-			}
-
-			// Get the number of files for each day in the week
-			for startDateTime.Before(endDateTime) || startDateTime.Equal(endDateTime) {
-				// manually loop
-				var tempFile dbfs.HistoricalStats
-				err := bc.Db.Model(&dbfs.HistoricalStats{}).Where("day = ? AND month = ? and year = ?",
-					startDateTime.Day(), int(startDateTime.Month()), startDateTime.Year()).Find(&tempFile).Error
-
-				if err != nil {
-					if errors.Is(err, gorm.ErrRecordNotFound) {
-						// the record isn't found so continue
-						continue
-					}
-					util.HttpError(w, http.StatusInternalServerError, "Couldn't extract data: "+err.Error())
-					return
-				}
-
-				NumOfFiles = append(NumOfFiles, tempFile)
-
-				startDateTime = startDateTime.AddDate(0, 0, 1)
-			}
-
-		}
-	case dbfs.HistoricalRangeWeek:
-		{
-			// for week, we'll just grab each sunday's data, else we'll grab the last day
-			if endDate == "" {
-				endDateTime = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(),
-					0, 0, 0, 0, time.UTC)
-				if endDateTime.Weekday() != time.Sunday {
-					endDateTime = endDateTime.AddDate(0, 0, -int(endDateTime.Weekday()))
-				}
-			} else {
-				endDateTime, err = time.Parse("2006-01-02", endDate[:10])
-
-				if endDateTime.Weekday() != time.Sunday {
-					endDateTime = endDateTime.AddDate(0, 0, -int(endDateTime.Weekday()))
-				}
-			}
-			if startDate == "" {
-				startDateTime = time.Date(endDateTime.Year(), endDateTime.Month(), endDateTime.Day(),
-					0, 0, 0, 0, time.UTC)
-				startDateTime = startDateTime.AddDate(0, 0, -(7 * 9))
-			} else {
-				startDateTime, err = time.Parse("2006-01-02", startDate[:10])
-				if startDateTime.Weekday() != time.Sunday {
-					startDateTime = startDateTime.AddDate(0, 0, -int(startDateTime.Weekday()))
-				}
-			}
-
-			// Get the number of files for each day in the week
-			for startDateTime.Before(endDateTime) || startDateTime.Equal(endDateTime) {
-				// manually loop
-				var tempFile dbfs.HistoricalStats
-				err := bc.Db.Model(&dbfs.HistoricalStats{}).Where("day = ? AND month = ? and year = ?",
-					startDateTime.Day(), int(startDateTime.Month()), startDateTime.Year()).Find(&tempFile).Error
-
-				if err != nil {
-					if errors.Is(err, gorm.ErrRecordNotFound) {
-						// the record isn't found so continue
-						continue
-					}
-					util.HttpError(w, http.StatusInternalServerError, "Couldn't extract data: "+err.Error())
-					return
-				}
-
-				NumOfFiles = append(NumOfFiles, tempFile)
-
-				startDateTime = startDateTime.AddDate(0, 0, 7)
-			}
-
-		}
-	case dbfs.HistoricalRangeMonth:
-		{
-			// for month, we'll just grab each first day of the month
-			if endDate == "" {
-				endDateTime = time.Date(time.Now().Year(), time.Now().Month(), 1,
-					0, 0, 0, 0, time.UTC)
-			} else {
-				endDateTime, err = time.Parse("2006-01-02", endDate[:10])
-				endDateTime = time.Date(endDateTime.Year(), endDateTime.Month(), 1,
-					0, 0, 0, 0, time.UTC)
-			}
-			if startDate == "" {
-				startDateTime = time.Date(endDateTime.Year(), endDateTime.Month(), 1,
-					0, 0, 0, 0, time.UTC)
-				startDateTime = startDateTime.AddDate(0, -9, 0)
-			} else {
-				startDateTime, err = time.Parse("2006-01-02", startDate[:10])
-				startDateTime = time.Date(startDateTime.Year(), startDateTime.Month(), 1,
-					0, 0, 0, 0, time.UTC)
-			}
-
-			// Get the number of files for each day in the week
-			for startDateTime.Before(endDateTime) || startDateTime.Equal(endDateTime) {
-				// manually loop
-				var tempFile dbfs.HistoricalStats
-				err := bc.Db.Model(&dbfs.HistoricalStats{}).Where("day = ? AND month = ? and year = ?",
-					startDateTime.Day(), int(startDateTime.Month()), startDateTime.Year()).Find(&tempFile).Error
-
-				if err != nil {
-					if errors.Is(err, gorm.ErrRecordNotFound) {
-						// the record isn't found so continue
-						continue
-					}
-					util.HttpError(w, http.StatusInternalServerError, "Couldn't extract data: "+err.Error())
-					return
-				}
-
-				NumOfFiles = append(NumOfFiles, tempFile)
-
-				startDateTime = startDateTime.AddDate(0, 1, 0)
-			}
-
-		}
-	}
-
-	util.HttpJson(w, http.StatusOK, NumOfFiles)
+	util.HttpJson(w, http.StatusOK, result)
 }
 
 // GetStorageUsed returns the amount of storage used (not including replica, versioning) in bytes
@@ -273,6 +124,37 @@ func (bc *BackendController) GetStorageUsed(w http.ResponseWriter, r *http.Reque
 
 }
 
+func (bc *BackendController) GetStorageUsedHistorical(w http.ResponseWriter, r *http.Request) {
+
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// Check if user is admin
+	if user.AccountType != dbfs.AccountTypeAdmin {
+		util.HttpError(w, http.StatusForbidden, "You are not an admin")
+		return
+	}
+
+	timePeriod := r.Header.Get("range_type")
+	startDate := r.Header.Get("start_date")
+	endDate := r.Header.Get("end_date")
+
+	result, err := dbfs.GetHistoricalData(bc.Db, timePeriod, startDate, endDate, dbfs.HistoricalNonReplicaUsed)
+	if err != nil {
+		if errors.Is(err, dbfs.ErrorInvalidTimePeriod) || errors.Is(err, dbfs.ErrorMissingTimePeriod) {
+			util.HttpError(w, http.StatusBadRequest, err.Error())
+		} else {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+
+	util.HttpJson(w, http.StatusOK, result)
+}
+
 // GetStorageUsedReplica returns the amount of storage used (including replica, versioning) in bytes
 func (bc *BackendController) GetStorageUsedReplica(w http.ResponseWriter, r *http.Request) {
 
@@ -298,6 +180,37 @@ func (bc *BackendController) GetStorageUsedReplica(w http.ResponseWriter, r *htt
 	// success
 	util.HttpJson(w, http.StatusOK, storageUsedReplica)
 
+}
+
+func (bc *BackendController) GetStorageUsedReplicaHistorical(w http.ResponseWriter, r *http.Request) {
+
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// Check if user is admin
+	if user.AccountType != dbfs.AccountTypeAdmin {
+		util.HttpError(w, http.StatusForbidden, "You are not an admin")
+		return
+	}
+
+	timePeriod := r.Header.Get("range_type")
+	startDate := r.Header.Get("start_date")
+	endDate := r.Header.Get("end_date")
+
+	result, err := dbfs.GetHistoricalData(bc.Db, timePeriod, startDate, endDate, dbfs.HistoricalReplicaUsed)
+	if err != nil {
+		if errors.Is(err, dbfs.ErrorInvalidTimePeriod) || errors.Is(err, dbfs.ErrorMissingTimePeriod) {
+			util.HttpError(w, http.StatusBadRequest, err.Error())
+		} else {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+
+	util.HttpJson(w, http.StatusOK, result)
 }
 
 // GetAllAlerts returns all alerts

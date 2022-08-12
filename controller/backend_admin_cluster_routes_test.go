@@ -704,7 +704,7 @@ func TestAdminClusterHistoricalRoutes(t *testing.T) {
 	// dump data in
 	assert.NoError(t, db.Save(&tempLoadData).Error)
 
-	t.Run("GetNumOfFilesHistorical", func(t *testing.T) {
+	t.Run("GetHistoricalFiles", func(t *testing.T) {
 		Assert := assert.New(t)
 
 		// Get number of files via route (day)
@@ -720,21 +720,23 @@ func TestAdminClusterHistoricalRoutes(t *testing.T) {
 		Assert.Equal(http.StatusOK, w.Code)
 		body := w.Body.String()
 
-		var numOfFilesHistorical []dbfs.HistoricalStats
+		var numOfFilesHistorical []dbfs.DateInt64Value
 		Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
 		Assert.Equal(10, len(numOfFilesHistorical))
+		Assert.True(AssertCorrectEntry(numOfFilesHistorical, dbfs.HistoricalNumOfFiles))
 
 		// Today's date vs 10 days ago
 		todayDate := time.Now()
 		tenDaysAgo := todayDate.AddDate(0, 0, -9)
 
-		Assert.Equal(todayDate.Year(), numOfFilesHistorical[len(numOfFilesHistorical)-1].Year)
-		Assert.Equal(int(todayDate.Month()), numOfFilesHistorical[len(numOfFilesHistorical)-1].Month)
-		Assert.Equal(todayDate.Day(), numOfFilesHistorical[len(numOfFilesHistorical)-1].Day)
+		Assert.Equal(todayDate.Year(), numOfFilesHistorical[len(numOfFilesHistorical)-1].Year())
+		Assert.Equal(int(todayDate.Month()), numOfFilesHistorical[len(numOfFilesHistorical)-1].Month())
+		Assert.Equal(todayDate.Day(), numOfFilesHistorical[len(numOfFilesHistorical)-1].Day())
 
-		Assert.Equal(tenDaysAgo.Year(), numOfFilesHistorical[0].Year)
-		Assert.Equal(int(tenDaysAgo.Month()), numOfFilesHistorical[0].Month)
-		Assert.Equal(tenDaysAgo.Day(), numOfFilesHistorical[0].Day)
+		Assert.Equal(tenDaysAgo.Year(), numOfFilesHistorical[0].Year())
+		Assert.Equal(int(tenDaysAgo.Month()), numOfFilesHistorical[0].Month())
+		Assert.Equal(tenDaysAgo.Day(), numOfFilesHistorical[0].Day())
+		Assert.True(AssertCorrectEntry(numOfFilesHistorical, dbfs.HistoricalNumOfFiles))
 
 		// Get number of files via route (week)
 
@@ -751,6 +753,7 @@ func TestAdminClusterHistoricalRoutes(t *testing.T) {
 
 		Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
 		Assert.Equal(10, len(numOfFilesHistorical))
+		Assert.True(AssertCorrectEntry(numOfFilesHistorical, dbfs.HistoricalNumOfFiles))
 
 		// Get number of files via route (month)
 
@@ -767,6 +770,7 @@ func TestAdminClusterHistoricalRoutes(t *testing.T) {
 
 		Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
 		Assert.Equal(10, len(numOfFilesHistorical))
+		Assert.True(AssertCorrectEntry(numOfFilesHistorical, dbfs.HistoricalNumOfFiles))
 
 		// Get two days of data
 		req = httptest.NewRequest("GET", "/api/v1/cluster/stats/num_of_files_historical",
@@ -784,8 +788,8 @@ func TestAdminClusterHistoricalRoutes(t *testing.T) {
 
 		Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
 		Assert.Equal(2, len(numOfFilesHistorical))
-		Assert.Equal(1, numOfFilesHistorical[0].Day)
-		Assert.Equal(2, numOfFilesHistorical[1].Day)
+		Assert.Equal(1, numOfFilesHistorical[0].Day())
+		Assert.Equal(2, numOfFilesHistorical[1].Day())
 
 		// Get 1 days of data
 		req = httptest.NewRequest("GET", "/api/v1/cluster/stats/num_of_files_historical",
@@ -803,7 +807,8 @@ func TestAdminClusterHistoricalRoutes(t *testing.T) {
 
 		Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
 		Assert.Equal(1, len(numOfFilesHistorical))
-		Assert.Equal(1, numOfFilesHistorical[0].Day)
+		Assert.Equal(1, numOfFilesHistorical[0].Day())
+		Assert.True(AssertCorrectEntry(numOfFilesHistorical, dbfs.HistoricalNumOfFiles))
 
 		// Get two weeks of data
 		req = httptest.NewRequest("GET", "/api/v1/cluster/stats/num_of_files_historical",
@@ -821,10 +826,11 @@ func TestAdminClusterHistoricalRoutes(t *testing.T) {
 
 		Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
 		Assert.Equal(2, len(numOfFilesHistorical))
-		Assert.Equal(7, numOfFilesHistorical[0].Month)
-		Assert.Equal(31, numOfFilesHistorical[0].Day)
-		Assert.Equal(8, numOfFilesHistorical[1].Month)
-		Assert.Equal(7, numOfFilesHistorical[1].Day)
+		Assert.Equal(7, numOfFilesHistorical[0].Month())
+		Assert.Equal(31, numOfFilesHistorical[0].Day())
+		Assert.Equal(8, numOfFilesHistorical[1].Month())
+		Assert.Equal(7, numOfFilesHistorical[1].Day())
+		Assert.True(AssertCorrectEntry(numOfFilesHistorical, dbfs.HistoricalNumOfFiles))
 
 		// Get one week of data
 		req = httptest.NewRequest("GET", "/api/v1/cluster/stats/num_of_files_historical",
@@ -842,8 +848,9 @@ func TestAdminClusterHistoricalRoutes(t *testing.T) {
 
 		Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
 		Assert.Equal(1, len(numOfFilesHistorical))
-		Assert.Equal(7, numOfFilesHistorical[0].Month)
-		Assert.Equal(31, numOfFilesHistorical[0].Day)
+		Assert.Equal(7, numOfFilesHistorical[0].Month())
+		Assert.Equal(31, numOfFilesHistorical[0].Day())
+		Assert.True(AssertCorrectEntry(numOfFilesHistorical, dbfs.HistoricalNumOfFiles))
 
 		// Get two months of data
 		req = httptest.NewRequest("GET", "/api/v1/cluster/stats/num_of_files_historical",
@@ -861,8 +868,9 @@ func TestAdminClusterHistoricalRoutes(t *testing.T) {
 
 		Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
 		Assert.Equal(2, len(numOfFilesHistorical))
-		Assert.Equal(1, numOfFilesHistorical[0].Month)
-		Assert.Equal(2, numOfFilesHistorical[1].Month)
+		Assert.Equal(1, numOfFilesHistorical[0].Month())
+		Assert.Equal(2, numOfFilesHistorical[1].Month())
+		Assert.True(AssertCorrectEntry(numOfFilesHistorical, dbfs.HistoricalNumOfFiles))
 
 		// Get one month of data
 		req = httptest.NewRequest("GET", "/api/v1/cluster/stats/num_of_files_historical",
@@ -880,7 +888,8 @@ func TestAdminClusterHistoricalRoutes(t *testing.T) {
 
 		Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
 		Assert.Equal(1, len(numOfFilesHistorical))
-		Assert.Equal(1, numOfFilesHistorical[0].Month)
+		Assert.Equal(1, numOfFilesHistorical[0].Month())
+		Assert.True(AssertCorrectEntry(numOfFilesHistorical, dbfs.HistoricalNumOfFiles))
 
 	})
 
@@ -899,4 +908,45 @@ func getTempDir() (string, error) {
 		return "", err
 	}
 	return tempDir, nil
+}
+
+func AssertCorrectEntry(values []dbfs.DateInt64Value, typeOfRequest int) bool {
+
+	/*
+		NonReplicaUsed: int64(tempD + tempM + tempY),
+		ReplicaUsed:    int64(tempD+tempM+tempY) * 2,
+		NumOfFiles:     int64(tempD+tempM+tempY) * 3,
+	*/
+
+	if len(values) == 0 {
+		return true
+	}
+
+	for _, v := range values {
+
+		switch typeOfRequest {
+		case dbfs.HistoricalNonReplicaUsed:
+			{
+				if v.Value != int64(v.Day()+v.Month()+v.Year()) {
+					return false
+				}
+			}
+		case dbfs.HistoricalReplicaUsed:
+			{
+				if v.Value != int64(v.Day()+v.Month()+v.Year())*2 {
+					return false
+				}
+			}
+		case dbfs.HistoricalNumOfFiles:
+			{
+				if v.Value != int64(v.Day()+v.Month()+v.Year())*3 {
+					return false
+				}
+			}
+
+		}
+	}
+
+	return true
+
 }
