@@ -89,8 +89,13 @@ func NewBackend(
 
 	// Cluster Routes
 	r.HandleFunc("/api/v1/cluster/stats/num_of_files", bc.GetNumOfFiles).Methods("GET")
+	r.HandleFunc("/api/v1/cluster/stats/num_of_files_historical", bc.GetNumOfFilesHistorical).Methods("GET")
 	r.HandleFunc("/api/v1/cluster/stats/non_replica_used", bc.GetStorageUsed).Methods("GET")
+	r.HandleFunc("/api/v1/cluster/stats/non_replica_used_historical", bc.GetStorageUsedHistorical).
+		Methods("GET")
 	r.HandleFunc("/api/v1/cluster/stats/replica_used", bc.GetStorageUsedReplica).Methods("GET")
+	r.HandleFunc("/api/v1/cluster/stats/replica_used_historical", bc.GetStorageUsedReplicaHistorical).
+		Methods("GET")
 	r.HandleFunc("/api/v1/cluster/stats/alerts", bc.GetAllAlerts).Methods("GET")
 	r.HandleFunc("/api/v1/cluster/stats/alerts", bc.ClearAllAlerts).Methods("DELETE")
 	r.HandleFunc("/api/v1/cluster/stats/alerts/{id}", bc.GetAlert).Methods("GET")
