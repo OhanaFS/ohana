@@ -1,15 +1,15 @@
 environment: development
 http:
-  bind: 0.0.0.0:8000
-  base_url: http://localhost:8000
+  bind: 0.0.0.0:8002
+  base_url: http://localhost:8002
 database:
-  connection_string: postgres://ohanaAdmin:ohanaMeansFamily@postgres:5432/ohana
+  connection_string: postgres://ohanaAdmin:ohanaMeansFamily@localhost:5432/ohana
 redis:
   password: ohanaMeansFamily
-  address: redis:6379
+  address: localhost:6379
   db: 0
 authentication:
-  config_url: http://oidc-server-mock:80
+  config_url: http://localhost:8080
   client_id: ohana
   client_secret: family
   redirect_url: http://localhost:8000/auth/callback

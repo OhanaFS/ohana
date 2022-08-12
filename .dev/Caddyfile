@@ -1,5 +1,5 @@
 :8000
 
 reverse_proxy {
-  to ohana1:8000 ohana2:8000
+  to localhost:8001 localhost:8002
 }

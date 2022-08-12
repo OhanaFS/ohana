@@ -19,8 +19,8 @@ go mod download -x
 # Start gin
 exec /go/bin/gin \
   --immediate \
-  --port 8000 \
-  --appPort 4000 \
+  --port $GIN_PORT \
+  --appPort $APP_PORT \
   --build cmd/ohana/ \
   --bin ./bin/$(hostname).gin \
   --buildArgs "-tags osusergo,netgo"

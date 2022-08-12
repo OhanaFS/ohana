@@ -12,6 +12,10 @@ services:
         MY_UID: ${MY_UID}
         MY_GID: ${MY_GID}
     user: ${MY_UID}:${MY_GID}
+    network_mode: host
+    environment:
+      GIN_PORT: 8001
+      APP_PORT: 4001
     volumes:
     - ../:/home/user/app
     - ./ohana1.config.yaml:/config.yaml:ro
@@ -24,6 +28,10 @@ services:
         MY_UID: ${MY_UID}
         MY_GID: ${MY_GID}
     user: ${MY_UID}:${MY_GID}
+    network_mode: host
+    environment:
+      GIN_PORT: 8002
+      APP_PORT: 4002
     volumes:
     - ../:/home/user/app
     - ./ohana2.config.yaml:/config.yaml:ro
@@ -36,15 +44,13 @@ services:
         MY_UID: ${MY_UID}
         MY_GID: ${MY_GID}
     user: ${MY_UID}:${MY_GID}
-    ports:
-    - 3000:3000
+    network_mode: host
     volumes:
     - ../:/home/user/app
 
   caddy:
     image: caddy
-    ports:
-    - "127.0.0.1:8000:8000"
+    network_mode: host
     volumes:
     - ./Caddyfile:/etc/caddy/Caddyfile:ro
 

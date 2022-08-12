@@ -6,8 +6,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': 'http://caddy:8000',
-      '/auth': 'http://caddy:8000',
+      '/api': 'http://localhost:8000',
+      '/auth': 'http://localhost:8000',
     },
   },
 });
