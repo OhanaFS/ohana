@@ -26,16 +26,8 @@ git clone git@github.com:OhanaFS/ohana.git
 # Enter the cloned directory
 cd ohana
 
-# Build
-make
-
 # Run backend in development mode
-CONFIG_FILE=config.example.yaml make dev
-
-# Set up and run frontend development server
-cd web
-yarn
-yarn dev
+make dev
 ```
 
 Then try it out! Go to https://127.0.0.1:8000/ in your browser and you should
