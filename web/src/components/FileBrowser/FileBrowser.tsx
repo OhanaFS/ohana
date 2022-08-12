@@ -208,6 +208,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
         onClose={() => setFuOpened(false)}
         opened={fuOpened}
         parentFolderId={folderID}
+        update={false}
       />
       <FilePreviewModal
         fileId={previewFileId}

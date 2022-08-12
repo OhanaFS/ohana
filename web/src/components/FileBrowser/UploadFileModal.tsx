@@ -6,8 +6,16 @@ import { useMutateUpdateFile, useMutateUploadFile } from '../../api/file';
 export type UploadFileModalProps = {
   onClose: () => void;
   opened: boolean;
-  parentFolderId: string;
-};
+} & (
+  | {
+      update: true;
+      updateFileId: string;
+    }
+  | {
+      update: false;
+      parentFolderId: string;
+    }
+);
 
 const UploadFileModal = (props: UploadFileModalProps) => {
   const mUploadFile = useMutateUploadFile();
@@ -27,13 +35,21 @@ const UploadFileModal = (props: UploadFileModalProps) => {
             if (!item) {
               return;
             }
-            mUploadFile
-              .mutateAsync({
-                file: item,
-                folder_id: props.parentFolderId,
-                frag_count: 1,
-                parity_count: 1,
-              })
+
+            (props.update
+              ? mUpdateFile.mutateAsync({
+                  file_id: props.updateFileId,
+                  file: item,
+                  frag_count: 1,
+                  parity_count: 1,
+                })
+              : mUploadFile.mutateAsync({
+                  file: item,
+                  folder_id: props.parentFolderId,
+                  frag_count: 1,
+                  parity_count: 1,
+                })
+            )
               .then(() => props.onClose())
               .then(() =>
                 showNotification({

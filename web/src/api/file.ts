@@ -313,7 +313,7 @@ export const useQueryFileVersionMetadata = (
 export const useQueryFileVersionHistory = (fileId: string) =>
   useQuery(['file', 'version', 'history', fileId], () =>
     APIClient.get<FileMetadata<EntryType.File>[]>(
-      `/api/v1/file/${fileId}/versions`
+      `/api/v1/file/${fileId}/versions/`
     )
       .then((res) => res.data)
       .catch(typedError)
