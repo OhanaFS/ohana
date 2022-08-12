@@ -1,4 +1,4 @@
-import AppBase from './AppBase';
+import AppBase from '../AppBase';
 import {
   ChonkyActions,
   ChonkyIconName,
@@ -8,12 +8,9 @@ import {
   FileData,
   FullFileBrowser,
 } from 'chonky';
-import { Modal, FileInput, FileButton, Button, Loader } from '@mantine/core';
-import { showNotification, cleanNotifications } from '@mantine/notifications';
+import { showNotification } from '@mantine/notifications';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-
 import { useNavigate, useParams } from 'react-router-dom';
-
 import {
   EntryType,
   getFileDownloadURL,
@@ -21,14 +18,16 @@ import {
   useMutateDeleteFile,
   useMutateMoveFile,
   useMutateUpdateFileMetadata,
-  useMutateUploadFile,
-} from '../api/file';
+} from '../../api/file';
 import {
   useMutateCreateFolder,
   useMutateDeleteFolder,
   useQueryFolderContents,
-} from '../api/folder';
-import { useQueryUser } from '../api/auth';
+} from '../../api/folder';
+import { useQueryUser } from '../../api/auth';
+import UploadFileModal from './UploadFileModal';
+import FilePreviewModal from './FilePreviewModal';
+import FilePropertiesDrawer from './FilePropertiesDrawer';
 
 export type VFSProps = Partial<FileBrowserProps>;
 
@@ -54,8 +53,21 @@ const PasteFiles = defineFileAction({
   },
 } as const);
 
+const FileProperties = defineFileAction({
+  id: 'file_properties',
+  button: {
+    name: 'More',
+    toolbar: true,
+    contextMenu: true,
+    group: 'Actions',
+    icon: ChonkyIconName.info,
+  },
+} as const);
+
 export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   const [fuOpened, setFuOpened] = useState(false);
+  const [previewFileId, setPreviewFileId] = useState('');
+  const [propertiesFileId, setPropertiesFileId] = useState('');
   const [clipboardIds, setClipboardsIds] = useState<string[]>([]);
   const params = useParams();
   const navigate = useNavigate();
@@ -68,14 +80,6 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   }, [params, homeFolderID]);
 
   const folderID = params.id || '';
-
-  const showNotificationFunc = (title: string, message: string) => {
-    showNotification({
-      title: title,
-      message: message,
-      onClose: () => cleanNotifications(),
-    });
-  };
 
   const handleFileAction: FileActionHandler = async (data) => {
     if (data.action === ChonkyActions.UploadFiles) {
@@ -92,23 +96,19 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
     } else if (data.id === ChonkyActions.DeleteFiles.id) {
       for (const selectedItem of data.state.selectedFilesForAction) {
         if (selectedItem.isDir) {
-          mDeleteFolder
-            .mutateAsync(selectedItem.id)
-            .then(() =>
-              showNotificationFunc(
-                `${selectedItem.name} deleted`,
-                'Successfully Deleted'
-              )
-            );
+          mDeleteFolder.mutateAsync(selectedItem.id).then(() =>
+            showNotification({
+              title: `${selectedItem.name} deleted`,
+              message: 'Successfully Deleted',
+            })
+          );
         } else {
-          mDeleteFile
-            .mutateAsync(selectedItem.id)
-            .then(() =>
-              showNotificationFunc(
-                `${selectedItem.name} deleted`,
-                'Successfully Deleted'
-              )
-            );
+          mDeleteFile.mutateAsync(selectedItem.id).then(() =>
+            showNotification({
+              title: `${selectedItem.name} deleted`,
+              message: 'Successfully Deleted',
+            })
+          );
         }
       }
     } else if (data.id === ChonkyActions.DownloadFiles.id) {
@@ -117,8 +117,9 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
         data.state.selectedFilesForAction[0].id
       );
     } else if (data.id === ChonkyActions.OpenFiles.id) {
-      if (!data.state.selectedFilesForAction[0].isDir) return;
-      navigate(`/home/${data.state.selectedFilesForAction[0].id}`);
+      if (!data.state.selectedFilesForAction[0].isDir)
+        setPreviewFileId(data.state.selectedFilesForAction[0].id);
+      else navigate(`/home/${data.state.selectedFilesForAction[0].id}`);
     } else if ((data.id as string) === RenameFiles.id) {
       let newFileName = window.prompt(
         'Enter new file name',
@@ -147,6 +148,8 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
           folder_id: folderID,
         });
       }
+    } else if ((data.id as string) === FileProperties.id) {
+      setPropertiesFileId(data.state.selectedFilesForAction[0].id);
     }
   };
 
@@ -160,6 +163,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
       ChonkyActions.CopyFiles,
       RenameFiles,
       PasteFiles,
+      FileProperties,
     ],
     []
   );
@@ -173,7 +177,6 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
 
   const mCreateFolder = useMutateCreateFolder();
   const mDeleteFolder = useMutateDeleteFolder();
-  const mUploadFile = useMutateUploadFile();
   const mDeleteFile = useMutateDeleteFile();
   const mUpdateFileMetadata = useMutateUpdateFileMetadata();
   const mMoveFile = useMutateMoveFile();
@@ -185,7 +188,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
       name: file.file_name,
       isDir: file.entry_type === EntryType.Folder,
       modDate: file.modified_time,
-      size: file.actual_size,
+      size: file.size,
     })) || [];
 
   const ohanaFolderChain = [{ id: homeFolderID, name: 'Home', isDir: true }];
@@ -200,51 +203,21 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
           thumbnailGenerator={thumbnailGenerator}
           {...props}
         />
-        {/* Upload file modal */}
       </div>
-      <Modal
-        centered
-        opened={fuOpened}
+      <UploadFileModal
         onClose={() => setFuOpened(false)}
-        title="Upload a File"
-      >
-        <div className="flex">
-          {mUploadFile.isLoading ? <Loader className="mr-5" /> : null}
-          <FileButton
-            onChange={(item) => {
-              console.log('we going in');
-              if (!item) {
-                return;
-              }
-              mUploadFile
-                .mutateAsync({
-                  file: item,
-                  folder_id: folderID,
-                  frag_count: 1,
-                  parity_count: 1,
-                })
-                .then(() => setFuOpened(false))
-                .then(() =>
-                  showNotificationFunc(
-                    `${item.name} uploaded`,
-                    'File Uploaded Successfully'
-                  )
-                );
-            }}
-          >
-            {(props) => (
-              <Button
-                disabled={mUploadFile.isLoading}
-                className="bg-cyan-500"
-                color="cyan"
-                {...props}
-              >
-                Upload a File
-              </Button>
-            )}
-          </FileButton>
-        </div>
-      </Modal>
+        opened={fuOpened}
+        parentFolderId={folderID}
+        update={false}
+      />
+      <FilePreviewModal
+        fileId={previewFileId}
+        onClose={() => setPreviewFileId('')}
+      />
+      <FilePropertiesDrawer
+        fileId={propertiesFileId}
+        onClose={() => setPropertiesFileId('')}
+      />
     </AppBase>
   );
 });
