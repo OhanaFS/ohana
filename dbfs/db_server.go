@@ -2,6 +2,7 @@ package dbfs
 
 import (
 	"errors"
+
 	"gorm.io/gorm"
 )
 
@@ -25,7 +26,7 @@ var (
 // also needs an struct to specify the status of it.
 type Server struct {
 	Name      string `gorm:"not null; primaryKey; unique" json:"name"`
-	HostName  string `gorm:"not null; unique" json:"hostname"`
+	HostName  string `gorm:"not null" json:"hostname"`
 	Port      string `gorm:"not null" json:"port"`
 	Status    int8   `gorm:"not null" json:"status"`
 	FreeSpace uint64 `gorm:"not null" json:"used_space"`

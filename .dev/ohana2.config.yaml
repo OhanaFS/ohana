@@ -16,12 +16,12 @@ authentication:
   scopes: ['openid', 'profile', 'email', 'app.roles']
   roles_claim_name: roles
 stitch:
-  shards_location: shards/ohana1/
+  shards_location: shards/ohana2/
 node:
   server_name: omega
-  host_name: ohana2
+  host_name: localhost
   bind_ip: 192.168.2.53
-  port: 5555
+  port: 5552
   ca_cert: certificates/main_GLOBAL_CERTIFICATE.pem
   public_cert: certificates/output_cert.pem
   private_key: certificates/output_key.pem

@@ -100,6 +100,8 @@ func (i *Inc) NewShardWriter(ctx context.Context, serverName, shardId string) (i
 		return nil, err
 	}
 
+	fmt.Printf("Creating new shard writer to %s\n", addr)
+
 	wc := httpwc.NewHttpWriteCloser(ctx, i.HttpClient, http.MethodPut, addr)
 	return wc, nil
 }

@@ -13,8 +13,8 @@ services:
         MY_GID: ${MY_GID}
     network_mode: host
     environment:
-      GIN_PORT: 8001
-      APP_PORT: 4001
+      GIN_PORT: 9001
+      APP_PORT: 8001
     volumes:
     - ../:/home/user/app
     - ./ohana1.config.yaml:/config.yaml:ro
@@ -28,8 +28,8 @@ services:
         MY_GID: ${MY_GID}
     network_mode: host
     environment:
-      GIN_PORT: 8002
-      APP_PORT: 4002
+      GIN_PORT: 9002
+      APP_PORT: 8002
     volumes:
     - ../:/home/user/app
     - ./ohana2.config.yaml:/config.yaml:ro
@@ -46,11 +46,11 @@ services:
     volumes:
     - ../:/home/user/app
 
-  caddy:
-    image: caddy
+  nginx:
+    image: nginx
     network_mode: host
     volumes:
-    - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    - ./nginx.conf:/etc/nginx/nginx.conf
 
   postgres:
     image: postgres:14.2

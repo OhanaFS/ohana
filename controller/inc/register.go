@@ -20,27 +20,29 @@ func (i Inc) RegisterServer(initialRun bool) error {
 
 	// Race conditions to ensure no other server is registering atm.
 
-	serverNotReady := true
-	attempts := 0
+	/*
+		serverNotReady := true
+		attempts := 0
 
-	for serverNotReady {
+			for serverNotReady {
 
-		var server dbfs.Server
+				var server dbfs.Server
 
-		err := i.Db.Model(&dbfs.Server{}).Where("status = ?", dbfs.ServerStarting).First(&server).Error
-		if err != nil {
-			if err == gorm.ErrRecordNotFound {
-				serverNotReady = false
-				continue
+				err := i.Db.Model(&dbfs.Server{}).Where("status = ?", dbfs.ServerStarting).First(&server).Error
+				if err != nil {
+					if err == gorm.ErrRecordNotFound {
+						serverNotReady = false
+						continue
+					}
+					return err
+				}
+				attempts += 1
+
+				fmt.Println("Waiting for other server to finish registering... attempt", attempts)
+				time.Sleep(time.Second * 4)
+
 			}
-			return err
-		}
-		attempts += 1
-
-		fmt.Println("Waiting for other server to finish registering... attempt", attempts)
-		time.Sleep(time.Second * 4)
-
-	}
+	*/
 
 	spaceFree := getFreeSpace(i.ShardsLocation)
 	spaceUsed := uint64(getUsedStorage(i.ShardsLocation))

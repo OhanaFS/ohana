@@ -61,6 +61,10 @@ dev-down:
 	echo "This command is no longer necessary. Use 'make dev'."
 	exit 1
 
+.PHONY: dev-down-all
+dev-down-all:
+	docker-compose -f .dev/docker-compose.yaml down -v
+
 .PHONY: dev
 dev:
 	-rm ./bin/*.gin ./bin/tmp.*
