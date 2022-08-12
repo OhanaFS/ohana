@@ -53,22 +53,18 @@ run: $(TARGET)
 
 .PHONY: dev-up
 dev-up: dev-down
-	docker-compose -f .dev/docker-compose.yaml up -d
+	echo "This command is no longer necessary. Use 'make dev'."
+	exit 1
 
 .PHONY: dev-down
 dev-down:
-	-docker-compose -f .dev/docker-compose.yaml down
+	echo "This command is no longer necessary. Use 'make dev'."
+	exit 1
 
 .PHONY: dev
-dev: dev-up
-	go install github.com/codegangsta/gin@latest
-	`go env GOPATH`/bin/gin \
-		--immediate \
-		--port 8000 \
-		--appPort 4000 \
-		--build cmd/ohana/ \
-		--bin ./bin/ohana.gin \
-		--buildArgs "-tags osusergo,netgo"
+dev:
+	MY_UID=`id -u` MY_GID=`id -g` \
+		docker-compose -f .dev/docker-compose.yaml up --build
 
 .PHONY: format
 format:

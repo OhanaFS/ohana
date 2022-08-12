@@ -1,5 +1,53 @@
 version: '3'
+
+volumes:
+  pgdata: {}
+
 services:
+  ohana1:
+    build:
+      context: ..
+      dockerfile: .dev/ohana.Dockerfile
+      args:
+        MY_UID: ${MY_UID}
+        MY_GID: ${MY_GID}
+    user: ${MY_UID}:${MY_GID}
+    volumes:
+    - ../:/home/user/app
+    - ./ohana1.config.yaml:/config.yaml:ro
+
+  ohana2:
+    build:
+      context: ..
+      dockerfile: .dev/ohana.Dockerfile
+      args:
+        MY_UID: ${MY_UID}
+        MY_GID: ${MY_GID}
+    user: ${MY_UID}:${MY_GID}
+    volumes:
+    - ../:/home/user/app
+    - ./ohana2.config.yaml:/config.yaml:ro
+
+  web:
+    build:
+      context: ..
+      dockerfile: .dev/web.Dockerfile
+      args:
+        MY_UID: ${MY_UID}
+        MY_GID: ${MY_GID}
+    user: ${MY_UID}:${MY_GID}
+    ports:
+    - 3000:3000
+    volumes:
+    - ../:/home/user/app
+
+  caddy:
+    image: caddy
+    ports:
+    - "127.0.0.1:8000:8000"
+    volumes:
+    - ./Caddyfile:/etc/caddy/Caddyfile:ro
+
   postgres:
     image: postgres:14.2
     ports:
@@ -8,6 +56,8 @@ services:
       POSTGRES_USER: ohanaAdmin
       POSTGRES_PASSWORD: ohanaMeansFamily
       POSTGRES_DB: ohana
+    volumes:
+    - pgdata:/var/lib/postgresql/data
 
   redis:
     image: redis:7

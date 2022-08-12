@@ -1,0 +1,27 @@
+environment: development
+http:
+  bind: 0.0.0.0:8000
+  base_url: http://localhost:8000
+database:
+  connection_string: postgres://ohanaAdmin:ohanaMeansFamily@postgres:5432/ohana
+redis:
+  password: ohanaMeansFamily
+  address: redis:6379
+  db: 0
+authentication:
+  config_url: http://oidc-server-mock:80
+  client_id: ohana
+  client_secret: family
+  redirect_url: http://localhost:8000/auth/callback
+  scopes: ['openid', 'profile', 'email', 'app.roles']
+  roles_claim_name: roles
+stitch:
+  shards_location: shards/ohana1/
+node:
+  server_name: omega
+  host_name: ohana2
+  bind_ip: 192.168.2.53
+  port: 5555
+  ca_cert: certificates/main_GLOBAL_CERTIFICATE.pem
+  public_cert: certificates/output_cert.pem
+  private_key: certificates/output_key.pem
