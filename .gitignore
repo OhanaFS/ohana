@@ -29,3 +29,5 @@ node_modules/
 *.shard1
 *.shard2
 *.DS_Store
+certificates/*
+

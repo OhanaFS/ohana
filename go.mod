@@ -3,7 +3,7 @@ module github.com/OhanaFS/ohana
 go 1.18
 
 require (
-	github.com/OhanaFS/stitch v0.0.0-20220711094126-379c3354bd55
+	github.com/OhanaFS/stitch v0.0.0-20220805102127-8c0815c2b1e6
 	github.com/cloudflare/cfssl v1.6.1
 	github.com/coreos/go-oidc/v3 v3.2.0
 	github.com/go-redis/redis/v9 v9.0.0-beta.1

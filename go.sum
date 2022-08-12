@@ -94,6 +94,8 @@ github.com/Masterminds/sprig v2.15.0+incompatible/go.mod h1:y6hNFY5UBTIWBxnzTeuN
 github.com/Masterminds/sprig v2.22.0+incompatible/go.mod h1:y6hNFY5UBTIWBxnzTeuNhlNS5hqE0NB0E6fgfo2Br3o=
 github.com/OhanaFS/stitch v0.0.0-20220711094126-379c3354bd55 h1:eAsxSCVYNpfXhwI0+swNr4dW82YVIuE/2xWsi3l4tTU=
 github.com/OhanaFS/stitch v0.0.0-20220711094126-379c3354bd55/go.mod h1:TOXlnfbk3rPfr7qiWL79RJZt9e8GagN+F4BsbQmZnk0=
+github.com/OhanaFS/stitch v0.0.0-20220805102127-8c0815c2b1e6 h1:RXDZMUkwFVz6iHjJ9MEbq5u2NEdLd14WkFM8D2+JZ+U=
+github.com/OhanaFS/stitch v0.0.0-20220805102127-8c0815c2b1e6/go.mod h1:TOXlnfbk3rPfr7qiWL79RJZt9e8GagN+F4BsbQmZnk0=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/SaveTheRbtz/zstd-seekable-format-go v0.6.0 h1:h/an3eEOXb/AHysCV4twlc5eYFcOby+yfYI6Ntqg+PU=
 github.com/SaveTheRbtz/zstd-seekable-format-go v0.6.0/go.mod h1:rVL+zBVEAH49f4fejOfjNL0LQUjZzFzHXOoKLEtW61o=

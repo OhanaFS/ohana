@@ -52,10 +52,10 @@ func NewDatabase(config *Config) (*gorm.DB, error) {
 	}
 
 	// Test connection
-	if _db, err := db.DB(); err != nil {
+	if testDbPing, err := db.DB(); err != nil {
 		return nil, err
 	} else {
-		if err := _db.Ping(); err != nil {
+		if err := testDbPing.Ping(); err != nil {
 			return nil, err
 		}
 	}

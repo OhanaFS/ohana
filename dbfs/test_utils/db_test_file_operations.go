@@ -1,10 +1,13 @@
 package dbfstestutils
 
 import (
-	"fmt"
+	"bytes"
+	"encoding/hex"
 	"github.com/OhanaFS/ohana/dbfs"
+	"github.com/OhanaFS/stitch"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"io"
 	"os"
 	"path"
 	"strconv"
@@ -78,16 +81,6 @@ func EXAMPLECreateFile(tx *gorm.DB, user *dbfs.User, fileParams ExampleFile) (*d
 		return nil, err
 	}
 
-	// Encrypt dataKey and dataIv with the fileKey and fileIv
-	dataKey, err = dbfs.EncryptWithKeyIV(dataKey, fileKey, fileIv)
-	if err != nil {
-		return nil, err
-	}
-	dataIv, err = dbfs.EncryptWithKeyIV(dataIv, fileKey, fileIv)
-	if err != nil {
-		return nil, err
-	}
-
 	err = tx.Transaction(func(tx *gorm.DB) error {
 
 		err := dbfs.CreateInitialFile(tx, &file, fileKey, fileIv, dataKey, dataIv, user)
@@ -112,34 +105,65 @@ func EXAMPLECreateFile(tx *gorm.DB, user *dbfs.User, fileParams ExampleFile) (*d
 		return nil, err
 	}
 
-	// If no error, file is created. Now the system need to process the file in the pipeline and send it to each server
-	// Pipeline can get the amount of parity bits based on the Parity Count, and get the amount of shards based on the amount of servers
+	encoder := stitch.NewEncoder(&stitch.EncoderOptions{
+		DataShards:   ExampleDataShards,
+		ParityShards: ExampleParityShards,
+		KeyThreshold: ExampleKeyThreshold,
+	})
 
-	// Then, the system splits the files accordingly
-
-	// Then, the system send each shard to each server, and once it's sent successfully
+	// Creating the temp files
+	shardWriters := make([]io.Writer, file.TotalShards)
+	shardFiles := make([]*os.File, file.TotalShards)
+	shardNames := make([]string, file.TotalShards)
 
 	for i := 1; i <= file.TotalShards; i++ {
-		fragId := i
-		serverId := fileParams.Server
-
-		// FAKE CREATE FRAGMENTS
-
 		shardName := file.DataId + ".shard" + strconv.Itoa(i)
 		shardPath := path.Join(fileParams.FragmentPath, shardName)
 		shardFile, err := os.Create(shardPath)
 		if err != nil {
 			return nil, err
 		}
-		// write some crap
-		_, err = shardFile.Write([]byte(fmt.Sprintf(fileParams.FileData + strconv.Itoa(i))))
-		if err != nil {
+		shardFiles[i-1] = shardFile
+		shardWriters[i-1] = shardFile
+		shardNames[i-1] = shardName
+		defer shardFile.Close()
+	}
+
+	// Passing it into encoder
+
+	// Creating a fake file with multipart streamer
+	dataAsBytes := []byte(fileParams.FileData)
+	dataReader := bytes.NewReader(dataAsBytes)
+
+	dataKeyBytes, err := hex.DecodeString(dataKey)
+	if err != nil {
+		return nil, err
+	}
+	dataIvBytes, err := hex.DecodeString(dataIv)
+	if err != nil {
+		return nil, err
+	}
+
+	// Encoding the data
+	encode, err := encoder.Encode(dataReader, shardWriters, dataKeyBytes, dataIvBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	for i := 0; i < file.TotalShards; i++ {
+		if err = encoder.FinalizeHeader(shardFiles[i]); err != nil {
 			return nil, err
 		}
-		err = shardFile.Close()
-		if err != nil {
-			return nil, err
-		}
+	}
+
+	for i := 1; i <= file.TotalShards; i++ {
+		fragId := i
+		serverId := fileParams.Server
+		shardName := shardNames[i-1]
 
 		err = dbfs.CreateFragment(tx, file.FileId, file.DataId, file.VersionNo, fragId, serverId, shardName)
 		if err != nil {
@@ -156,7 +180,9 @@ func EXAMPLECreateFile(tx *gorm.DB, user *dbfs.User, fileParams ExampleFile) (*d
 
 	// Now we can update it to indicate that it has been saved successfully.
 
-	err = dbfs.FinishFile(tx, &file, user, fileParams.ActualSize, "checksum")
+	checksum := hex.EncodeToString(encode.FileHash)
+
+	err = dbfs.FinishFile(tx, &file, user, fileParams.ActualSize, checksum)
 	if err != nil {
 		// If fails, delete File record and return error.
 	}
@@ -172,46 +198,101 @@ func EXAMPLECreateFile(tx *gorm.DB, user *dbfs.User, fileParams ExampleFile) (*d
 
 func EXAMPLEUpdateFile(tx *gorm.DB, file *dbfs.File, eU ExampleUpdate, user *dbfs.User) error {
 
+	encoder := stitch.NewEncoder(&stitch.EncoderOptions{
+		DataShards:   ExampleDataShards,
+		ParityShards: ExampleParityShards,
+		KeyThreshold: ExampleKeyThreshold,
+	})
+
 	// Key and IV from pipeline
 	dataKey, dataIv, err := dbfs.GenerateKeyIV()
 	if err != nil {
 		return err
 	}
 
-	err = file.UpdateFile(tx, eU.NewSize, eU.NewActualSize, "wowKey", eU.Server,
-		dataKey, dataIv, eU.Password, user)
+	err = file.UpdateFile(tx, eU.NewSize, eU.NewActualSize, "UPDATING",
+		eU.Server, dataKey, dataIv, eU.Password, user)
 	if err != nil {
 		return err
 	}
 
-	// As each fragment is uploaded, each fragment is added to the database.
-	for i := 1; i <= file.TotalShards; i++ {
-
-		shardName := file.DataId + ".shard" + strconv.Itoa(i)
-		shardPath := path.Join(eU.FragmentPath, shardName)
+	shardWriters := make([]io.Writer, ExampleTotalShards)
+	shardFiles := make([]*os.File, ExampleTotalShards)
+	shardNames := make([]string, ExampleTotalShards)
+	for i := 0; i < ExampleTotalShards; i++ {
+		shardNames[i] = file.DataId + ".shard" + strconv.Itoa(i+1)
+		shardPath := path.Join(eU.FragmentPath, shardNames[i])
 		shardFile, err := os.Create(shardPath)
-
 		if err != nil {
 			return err
 		}
+		shardFiles[i] = shardFile
+		shardWriters[i] = shardFile
+		defer shardFile.Close()
+	}
 
-		// write some crap
-		_, err = shardFile.Write([]byte(fmt.Sprintf(eU.FileData + strconv.Itoa(i))))
-		if err != nil {
+	// encoder
+	data := []byte(eU.FileData)
+	dataReader := bytes.NewReader(data)
+	dataKeyBytes, err := hex.DecodeString(dataKey)
+	if err != nil {
+		return err
+	}
+	dataIvBytes, err := hex.DecodeString(dataIv)
+	if err != nil {
+		return err
+	}
+
+	result, err := encoder.Encode(dataReader, shardWriters, dataKeyBytes, dataIvBytes)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < ExampleTotalShards; i++ {
+		if err = encoder.FinalizeHeader(shardFiles[i]); err != nil {
 			return err
 		}
-		err = shardFile.Close()
-		if err != nil {
-			return err
-		}
+	}
 
-		err = file.UpdateFragment(tx, i, shardName, "wowChecksum", eU.Server)
+	// As each fragment is uploaded, each fragment is added to the database.
+	for i := 0; i < ExampleTotalShards; i++ {
+		fragId := i + 1
+
+		err = file.UpdateFragment(tx, fragId, shardNames[i], "wowChecksum", eU.Server)
 		if err != nil {
 			return err
 		}
 	}
 
 	// Once all fragments are uploaded, the file is marked as finished.
-	return file.FinishUpdateFile(tx, "")
+	return file.FinishUpdateFile(tx, hex.EncodeToString(result.FileHash))
 
+}
+
+func EXAMPLECorruptFragments(fragmentPath string) error {
+
+	// open shard
+	shardFile, err := os.OpenFile(fragmentPath, os.O_RDWR, 0666)
+	if err != nil {
+		return err
+	}
+
+	_, err = shardFile.Seek(1024, io.SeekStart)
+	if err != nil {
+		return err
+	}
+
+	// damage
+
+	_, err = shardFile.Write([]byte("corruption"))
+	if err != nil {
+		return err
+	}
+
+	err = shardFile.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

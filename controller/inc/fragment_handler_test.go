@@ -2,20 +2,28 @@ package inc_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/OhanaFS/ohana/config"
+	"github.com/OhanaFS/ohana/controller"
 	"github.com/OhanaFS/ohana/controller/inc"
 	"github.com/OhanaFS/ohana/dbfs"
+	dbfstestutils "github.com/OhanaFS/ohana/dbfs/test_utils"
 	selfsigntestutils "github.com/OhanaFS/ohana/selfsign/test_utils"
 	"github.com/OhanaFS/ohana/util/testutil"
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -185,7 +193,7 @@ func TestFragmentHandler(t *testing.T) {
 
 		err = dbfs.SetHowLongToKeepFileVersions(db, 1)
 		Assert.NoError(err)
-		s, err := Inc.CronJobDeleteFragments(true)
+		s, err := Inc.CronJobDeleteShards(true)
 		Assert.NoError(err)
 		fmt.Println(s)
 
@@ -260,7 +268,7 @@ func TestFragmentHandler(t *testing.T) {
 
 		Inc.Db = db.Begin()
 
-		s, err := Inc.CronJobDeleteFragments(true)
+		s, err := Inc.CronJobDeleteShards(true)
 		Assert.NoError(err)
 		fmt.Println("*******")
 		fmt.Println(s)
@@ -303,7 +311,7 @@ func TestFragmentHandler(t *testing.T) {
 
 		Inc.Db = db.Begin()
 
-		s, err := Inc.CronJobDeleteFragments(true)
+		s, err := Inc.CronJobDeleteShards(true)
 		Assert.NoError(err)
 		fmt.Println("*******")
 		fmt.Println(s)
@@ -331,8 +339,23 @@ func TestFragmentHandler(t *testing.T) {
 
 		Assert := assert.New(t)
 
-		_, err := Inc.LocalOrphanedShardsCheck()
+		results, err := Inc.LocalOrphanedShardsCheck(-1, false)
 		Assert.NoError(err)
+		Assert.Len(results, 0)
+
+		// Test via routes
+
+		req := httptest.NewRequest(http.MethodGet,
+			inc.FragmentOrphanedPath, nil)
+		w := httptest.NewRecorder()
+		req.Header.Add("job_id", "0") // TODO: Create a value incrementer
+		Inc.OrphanedShardsRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		time.Sleep(time.Second / 2)
+		results2, err := dbfs.GetResultsOrphanedShard(db, 0)
+		Assert.Nil(err)
+		Assert.Equal(0, len(results2), results2)
 
 		// add a weird file into the shards folder
 
@@ -347,8 +370,23 @@ func TestFragmentHandler(t *testing.T) {
 		Assert.NoError(shardFile.Close())
 
 		// check to see if it is in the list of orphaned shards
-		_, err = Inc.LocalOrphanedShardsCheck()
-		Assert.ErrorIs(err, inc.ErrOrphanedShardsFound)
+		results, err = Inc.LocalOrphanedShardsCheck(-1, false)
+		Assert.NoError(err)
+		Assert.Len(results, 1)
+
+		// Test via routes
+
+		req = httptest.NewRequest(http.MethodGet,
+			inc.FragmentOrphanedPath, nil)
+		w = httptest.NewRecorder()
+		req.Header.Add("job_id", "1") // TODO: Create a value incrementer
+		Inc.OrphanedShardsRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		time.Sleep(time.Second / 2)
+		results2, err = dbfs.GetResultsOrphanedShard(db, 1)
+		Assert.Nil(err)
+		Assert.Equal(1, len(results2), results2)
 
 		// Delete that weird file
 		Assert.NoError(os.Remove(shardPath))
@@ -359,15 +397,44 @@ func TestFragmentHandler(t *testing.T) {
 
 		Assert := assert.New(t)
 
-		_, err := Inc.LocalMissingShardsCheck()
+		results, err := Inc.LocalMissingShardsCheck(-2, false)
 		Assert.NoError(err)
+		Assert.Len(results, 0)
 
+		// Testing via route
+		req := httptest.NewRequest(http.MethodGet,
+			inc.FragmentMissingPath, nil)
+		w := httptest.NewRecorder()
+		req.Header.Add("job_id", "-1")
+		Inc.MissingShardsRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		time.Sleep(time.Second / 2)
+		results, err = dbfs.GetResultsMissingShard(db, -1)
+		Assert.Nil(err)
+		Assert.Equal(0, len(results), results)
+
+		// Delete
 		dir, err := os.ReadDir(Inc.ShardsLocation)
 		Assert.NoError(err)
 		Assert.NoError(os.Remove(path.Join(Inc.ShardsLocation, dir[0].Name())))
 
-		_, err = Inc.LocalMissingShardsCheck()
-		Assert.ErrorIs(err, inc.ErrMissingShardsFound)
+		results, err = Inc.LocalMissingShardsCheck(-1, false)
+		Assert.NoError(err)
+		Assert.Len(results, 1)
+
+		// Testing via route
+		req = httptest.NewRequest(http.MethodGet,
+			inc.FragmentMissingPath, nil)
+		w = httptest.NewRecorder()
+		req.Header.Add("job_id", "0")
+		Inc.MissingShardsRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		time.Sleep(time.Second / 2)
+		results, err = dbfs.GetResultsMissingShard(db, 0)
+		Assert.Nil(err)
+		Assert.Equal(1, len(results), results)
 
 	})
 
@@ -377,6 +444,353 @@ func TestFragmentHandler(t *testing.T) {
 	})
 
 	defer Inc.HttpServer.Shutdown(context.Background())
+
+}
+
+func TestStitchFragment(t *testing.T) {
+
+	db := testutil.NewMockDB(t)
+
+	debugPrint := true
+	if debugPrint {
+		fmt.Println("Debug print on")
+	}
+
+	superUser := dbfs.User{}
+
+	// Getting superuser account
+	assert.Nil(t, db.Where("email = ?", "superuser").
+		First(&superUser).Error)
+
+	// Creating temp directories and environments
+
+	tempDir := t.TempDir()
+	shardDir := filepath.Join(tempDir, "shards")
+
+	stitchConfig := config.StitchConfig{
+		ShardsLocation: shardDir,
+	}
+
+	if w, err := os.Stat(stitchConfig.ShardsLocation); os.IsNotExist(err) {
+		err := os.MkdirAll(stitchConfig.ShardsLocation, 0755)
+		if err != nil {
+			panic("ERROR. CANNOT CREATE SHARDS FOLDER.")
+		}
+	} else if !w.IsDir() {
+		panic("ERROR. SHARDS FOLDER IS NOT A DIRECTORY.")
+	}
+
+	certsPaths, err := selfsigntestutils.GenCertsTest(tempDir)
+	assert.Nil(t, err)
+
+	configFile := &config.Config{Stitch: stitchConfig,
+		Inc: config.IncConfig{
+			ServerName: "testServer",
+			HostName:   "localhost",
+			Port:       "5555",
+			CaCert:     certsPaths.CaCertPath,
+			PublicCert: certsPaths.PublicCertPath,
+			PrivateKey: certsPaths.PrivateKeyPath,
+		},
+	}
+
+	Inc := inc.NewInc(configFile, db)
+	inc.RegisterIncServices(Inc)
+
+	logger := config.NewLogger(configFile)
+	bc := &controller.BackendController{
+		Db:         db,
+		Logger:     logger,
+		Path:       configFile.Stitch.ShardsLocation,
+		ServerName: configFile.Inc.ServerName,
+		Inc:        Inc,
+	}
+	bc.InitialiseShardsFolder()
+
+	// create a new file
+
+	rootFolder, err := dbfs.GetRootFolder(db)
+
+	file, err := dbfstestutils.EXAMPLECreateFile(db, &superUser, dbfstestutils.ExampleFile{
+		FileName:       "test123",
+		ParentFolderId: rootFolder.FileId,
+		Server:         configFile.Inc.ServerName,
+		FragmentPath:   configFile.Stitch.ShardsLocation,
+		FileData:       "Blah123",
+		Size:           50,
+		ActualSize:     50,
+	})
+
+	jobIdNo := 0
+
+	t.Run("Checking health of fragments", func(t *testing.T) {
+		Assert := assert.New(t)
+
+		// Test that all fragments are healthy
+
+		jobIdNo = jobIdNo + 1
+
+		Assert.Nil(err)
+		Assert.NotNil(file)
+		err := Inc.LocalCurrentFilesShardsHealthCheck(jobIdNo)
+
+		results, err := dbfs.GetResultsCFSHC(db, jobIdNo)
+		Assert.NoError(err)
+		Assert.NotNil(results)
+		Assert.Equal(0, len(results))
+
+		// Testing via route
+
+		jobIdNo = jobIdNo + 1
+
+		req := httptest.NewRequest(http.MethodGet,
+			inc.CurrentFilesHealthPath, nil)
+		w := httptest.NewRecorder()
+		req.Header.Add("job_id", strconv.Itoa(jobIdNo))
+		Inc.CurrentFilesFragmentsHealthCheckRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		time.Sleep(time.Second / 2)
+
+		results, err = dbfs.GetResultsCFSHC(db, jobIdNo)
+		Assert.NoError(err)
+		Assert.NotNil(results)
+		Assert.Equal(0, len(results))
+
+		// damange the file
+		fragments, err := file.GetFileFragments(db, &superUser)
+		Assert.NoError(err)
+		Assert.NotNil(fragments)
+
+		// Check again.
+
+		jobIdNo = jobIdNo + 1
+
+		err = dbfstestutils.EXAMPLECorruptFragments(
+			path.Join(configFile.Stitch.ShardsLocation, fragments[0].FileFragmentPath))
+		Assert.Nil(err)
+
+		err = Inc.LocalCurrentFilesShardsHealthCheck(jobIdNo)
+		Assert.NoError(err)
+
+		results, err = dbfs.GetResultsCFSHC(db, jobIdNo)
+		Assert.Nil(err)
+		Assert.NotNil(results)
+		Assert.Equal(1, len(results))
+
+		// Checking via route
+
+		jobIdNo = jobIdNo + 1
+
+		req = httptest.NewRequest(http.MethodGet,
+			inc.CurrentFilesHealthPath, nil)
+		w = httptest.NewRecorder()
+		req.Header.Add("job_id", strconv.Itoa(jobIdNo))
+		Inc.CurrentFilesFragmentsHealthCheckRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		time.Sleep(time.Second / 2)
+
+		results, err = dbfs.GetResultsCFSHC(db, jobIdNo)
+		Assert.NoError(err)
+		Assert.NotNil(results)
+		Assert.Equal(1, len(results))
+
+		// Check using InvidiaulFragmentHealthCheck
+		result, err := Inc.IndividualShardHealthCheck(fragments[0])
+		Assert.Nil(err)
+		Assert.NotNil(result)
+		Assert.True(len(result.BrokenBlocks) > 0)
+
+		result, err = Inc.IndividualShardHealthCheck(fragments[1])
+		Assert.Nil(err)
+		Assert.NotNil(result)
+		Assert.True(len(result.BrokenBlocks) == 0)
+
+		// Check bad fragment via route
+
+		req = httptest.NewRequest("GET",
+			strings.Replace(inc.FragmentHealthCheckPath,
+				inc.PathReplaceShardString, fragments[0].FileFragmentPath, -1), nil)
+		w = httptest.NewRecorder()
+		req = mux.SetURLVars(req, map[string]string{
+			inc.PathFindString: fragments[0].FileFragmentPath,
+		})
+		fmt.Println(fragments[0].FileFragmentPath)
+		Inc.ShardHealthCheckRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+		body := w.Body.String()
+
+		err = json.Unmarshal([]byte(body), &result)
+		Assert.Nil(err)
+
+		Assert.True(len(result.BrokenBlocks) > 0)
+
+		// Check good fragment via route
+
+		req = httptest.NewRequest("GET",
+			strings.Replace(inc.FragmentHealthCheckPath,
+				inc.PathReplaceShardString, fragments[1].FileFragmentPath, -1), nil)
+		w = httptest.NewRecorder()
+		req = mux.SetURLVars(req, map[string]string{
+			inc.PathFindString: fragments[1].FileFragmentPath,
+		})
+		Inc.ShardHealthCheckRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+		body = w.Body.String()
+
+		err = json.Unmarshal([]byte(body), &result)
+		Assert.Nil(err)
+
+		Assert.True(len(result.BrokenBlocks) == 0)
+
+		err = db.Find(&fragments).Error
+		fmt.Println(err)
+	})
+
+	t.Run("Checking health of all fragments", func(t *testing.T) {
+
+		Assert := assert.New(t)
+		strings := make([]string, 0)
+
+		// We are going to update the file we created and corrupted earlier.
+		// This should cause the health check to fail for LocalAllFilesShardsHealthCheck
+		// but not for LocalCurrentFilesShardsHealthCheck
+
+		// We are also going to create the edge case, where a file that is corrupted is coppied
+		// (thus the new file is linked to the same data ID and fragments)
+		// and then update the new file
+
+		// Create new folder for copied file
+		newFolder, err := rootFolder.CreateSubFolder(db, "blah", &superUser, "omgServer")
+		Assert.Nil(err)
+
+		// Copy file
+		err = file.Copy(db, newFolder, &superUser, "omgServer")
+		Assert.Nil(err)
+
+		// Get the copied file
+		_, err = dbfs.GetFileByPath(db, "/blah/test123", &superUser, false)
+
+		jobIdNo = jobIdNo + 1
+
+		Assert.NoError(Inc.LocalCurrentFilesShardsHealthCheck(jobIdNo))
+
+		results, err := dbfs.GetResultsCFSHC(db, jobIdNo)
+		Assert.NoError(err)
+		Assert.Equal(1, len(results), results)
+		Assert.NoError(json.Unmarshal([]byte(results[0].FileId), &strings))
+		Assert.Equal(2, len(strings))
+		Assert.True(strings[0] != strings[1])
+
+		Assert.NoError(dbfstestutils.EXAMPLEUpdateFile(db, file, dbfstestutils.ExampleUpdate{
+			NewSize:       50,
+			NewActualSize: 50,
+			FragmentPath:  configFile.Stitch.ShardsLocation,
+			FileData:      "New file data pog",
+			Server:        configFile.Inc.ServerName,
+			Password:      "",
+		}, &superUser))
+
+		jobIdNo = jobIdNo + 1
+
+		Assert.Nil(Inc.LocalCurrentFilesShardsHealthCheck(jobIdNo))
+
+		results, err = dbfs.GetResultsCFSHC(db, jobIdNo)
+		Assert.NoError(err)
+		Assert.Equal(1, len(results), results)
+		Assert.NoError(json.Unmarshal([]byte(results[0].FileId), &strings))
+		Assert.Equal(1, len(strings))
+
+		jobIdNo = jobIdNo + 1
+
+		// Checking All File Fragments
+
+		Assert.NoError(Inc.LocalAllFilesShardsHealthCheck(jobIdNo))
+
+		results2, err := dbfs.GetResultsAFSHC(db, jobIdNo)
+		Assert.Nil(err)
+		Assert.NotNil(results2)
+		Assert.Equal(1, len(results2))
+		Assert.NoError(json.Unmarshal([]byte(results2[0].FileId), &strings))
+		Assert.Equal(1, len(strings))
+
+		// Testing via route
+
+		jobIdNo = jobIdNo + 1
+
+		req := httptest.NewRequest(http.MethodGet,
+			inc.AllFilesHealthPath, nil)
+		w := httptest.NewRecorder()
+		req.Header.Add("job_id", strconv.Itoa(jobIdNo))
+		Inc.AllFilesFragmentsHealthCheckRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		time.Sleep(time.Second / 2)
+
+		results2, err = dbfs.GetResultsAFSHC(db, jobIdNo)
+		Assert.Nil(err)
+		Assert.NotNil(results2)
+		Assert.Equal(1, len(results2))
+		Assert.NoError(json.Unmarshal([]byte(results[0].FileId), &strings))
+		Assert.Equal(1, len(strings))
+
+	})
+
+	t.Run("Deleteing a fragment with the Route", func(t *testing.T) {
+
+		Assert := assert.New(t)
+
+		// Get the number of files in the directory
+		files, err := ioutil.ReadDir(configFile.Stitch.ShardsLocation)
+		Assert.NoError(err)
+		Assert.True(len(files) > 0, files)
+
+		// original count of files
+		originalCount := len(files)
+		firstFileName := files[0].Name()
+
+		req := httptest.NewRequest("DELETE",
+			strings.Replace(inc.FragmentPath,
+				inc.PathReplaceShardString, firstFileName, -1), nil)
+		w := httptest.NewRecorder()
+		req = mux.SetURLVars(req, map[string]string{
+			inc.PathFindString: firstFileName,
+		})
+		Inc.DeleteShardRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+		Assert.True(strings.Contains(w.Body.String(), "true"), w.Body.String())
+
+		// Make sure it's actually deleted
+
+		files, err = ioutil.ReadDir(configFile.Stitch.ShardsLocation)
+		Assert.NoError(err)
+		Assert.True(len(files) == originalCount-1, files)
+		Assert.NotEqualf(firstFileName, files[0].Name(), "File not deleted")
+
+	})
+
+	t.Run("Missing shards check", func(t *testing.T) {
+
+		// In the previous test, we should have deleted a fragment, thus it should be missing
+		// now we are going to check if the missing fragment check works
+		Assert := assert.New(t)
+
+		jobIdNo = jobIdNo + 1
+
+		req := httptest.NewRequest(http.MethodGet,
+			inc.FragmentMissingPath, nil)
+		w := httptest.NewRecorder()
+		req.Header.Add("job_id", strconv.Itoa(jobIdNo))
+		Inc.MissingShardsRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		time.Sleep(time.Second / 2)
+		results, err := dbfs.GetResultsMissingShard(db, jobIdNo)
+		Assert.Nil(err)
+		Assert.Equal(1, len(results), results)
+
+	})
 
 }
 
