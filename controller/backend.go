@@ -71,7 +71,7 @@ func NewBackend(
 	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}/metadata", bc.GetFileVersionMetadata).Methods("GET")
 	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}", bc.DownloadFileVersion).Methods("GET")
 	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}", bc.DeleteFileVersion).Methods("DELETE")
-	r.HandleFunc("/api/v1/file/{fileID}/versions/", bc.GetFileVersionHistory).Methods("GET")
+	r.HandleFunc("/api/v1/file/{fileID}/versions", bc.GetFileVersionHistory).Methods("GET")
 
 	// Folder
 	r.HandleFunc("/api/v1/folder/{folderID}", bc.LsFolderID).Methods("GET")
