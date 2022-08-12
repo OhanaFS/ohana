@@ -65,6 +65,8 @@ func (bc *BackendController) GetNumOfFiles(w http.ResponseWriter, r *http.Reques
 
 // GetNumOfFilesHistorical returns the historical history of the number of files in the database
 // based on the time period specified
+// Requires the header "range_type" to be set to day: 1, week: 2, month: 3
+// If the header start_date or end_date is not passed, will grab the last 10 entries.
 func (bc *BackendController) GetNumOfFilesHistorical(w http.ResponseWriter, r *http.Request) {
 
 	user, err := ctxutil.GetUser(r.Context())
@@ -124,6 +126,10 @@ func (bc *BackendController) GetStorageUsed(w http.ResponseWriter, r *http.Reque
 
 }
 
+// GetStorageUsedHistorical returns the historical history the storage used in the system
+// based on the time period specified
+// Requires the header "range_type" to be set to day: 1, week: 2, month: 3
+// If the header start_date or end_date is not passed, will grab the last 10 entries.
 func (bc *BackendController) GetStorageUsedHistorical(w http.ResponseWriter, r *http.Request) {
 
 	user, err := ctxutil.GetUser(r.Context())
@@ -182,6 +188,10 @@ func (bc *BackendController) GetStorageUsedReplica(w http.ResponseWriter, r *htt
 
 }
 
+// GetStorageUsedReplicaHistorical returns the historical history the storage used (including replica) in the system
+// based on the time period specified
+// Requires the header "range_type" to be set to day: 1, week: 2, month: 3
+// If the header start_date or end_date is not passed, will grab the last 10 entries.
 func (bc *BackendController) GetStorageUsedReplicaHistorical(w http.ResponseWriter, r *http.Request) {
 
 	user, err := ctxutil.GetUser(r.Context())

@@ -705,191 +705,221 @@ func TestAdminClusterHistoricalRoutes(t *testing.T) {
 	assert.NoError(t, db.Save(&tempLoadData).Error)
 
 	t.Run("GetHistoricalFiles", func(t *testing.T) {
-		Assert := assert.New(t)
 
-		// Get number of files via route (day)
+		type testRoute func(http.ResponseWriter, *http.Request)
 
-		req := httptest.NewRequest("GET", "/api/v1/cluster/stats/num_of_files_historical",
-			nil).WithContext(
-			ctxutil.WithUser(context.Background(), user))
-		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
-		req.Header.Add("range_type", "1")
-		w := httptest.NewRecorder()
+		testHistorical := func(t *testing.T, functionToTest testRoute, testType int) {
 
-		bc.GetNumOfFilesHistorical(w, req)
-		Assert.Equal(http.StatusOK, w.Code)
-		body := w.Body.String()
+			urlString := ""
 
-		var numOfFilesHistorical []dbfs.DateInt64Value
-		Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
-		Assert.Equal(10, len(numOfFilesHistorical))
-		Assert.True(AssertCorrectEntry(numOfFilesHistorical, dbfs.HistoricalNumOfFiles))
+			switch testType {
+			case dbfs.HistoricalNonReplicaUsed:
+				{
+					urlString = "/api/v1/cluster/stats/historical/non_replica_used_historical"
+				}
+			case dbfs.HistoricalReplicaUsed:
+				{
+					urlString = "/api/v1/cluster/stats/historical/replica_used_historical"
+				}
+			case dbfs.HistoricalNumOfFiles:
+				{
+					urlString = "/api/v1/cluster/stats/historical/num_of_files_historical"
+				}
+			}
 
-		// Today's date vs 10 days ago
-		todayDate := time.Now()
-		tenDaysAgo := todayDate.AddDate(0, 0, -9)
+			Assert := assert.New(t)
 
-		Assert.Equal(todayDate.Year(), numOfFilesHistorical[len(numOfFilesHistorical)-1].Year())
-		Assert.Equal(int(todayDate.Month()), numOfFilesHistorical[len(numOfFilesHistorical)-1].Month())
-		Assert.Equal(todayDate.Day(), numOfFilesHistorical[len(numOfFilesHistorical)-1].Day())
+			// Get number of files via route (day)
 
-		Assert.Equal(tenDaysAgo.Year(), numOfFilesHistorical[0].Year())
-		Assert.Equal(int(tenDaysAgo.Month()), numOfFilesHistorical[0].Month())
-		Assert.Equal(tenDaysAgo.Day(), numOfFilesHistorical[0].Day())
-		Assert.True(AssertCorrectEntry(numOfFilesHistorical, dbfs.HistoricalNumOfFiles))
+			req := httptest.NewRequest("GET", urlString,
+				nil).WithContext(
+				ctxutil.WithUser(context.Background(), user))
+			req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+			req.Header.Add("range_type", "1")
+			w := httptest.NewRecorder()
 
-		// Get number of files via route (week)
+			functionToTest(w, req)
+			Assert.Equal(http.StatusOK, w.Code)
+			body := w.Body.String()
 
-		req = httptest.NewRequest("GET", "/api/v1/cluster/stats/num_of_files_historical",
-			nil).WithContext(
-			ctxutil.WithUser(context.Background(), user))
-		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
-		req.Header.Add("range_type", "2")
-		w = httptest.NewRecorder()
+			var numOfFilesHistorical []dbfs.DateInt64Value
+			Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
+			Assert.Equal(10, len(numOfFilesHistorical))
+			Assert.True(AssertCorrectEntry(numOfFilesHistorical, testType))
 
-		bc.GetNumOfFilesHistorical(w, req)
-		Assert.Equal(http.StatusOK, w.Code)
-		body = w.Body.String()
+			// Today's date vs 10 days ago
+			todayDate := time.Now()
+			tenDaysAgo := todayDate.AddDate(0, 0, -9)
 
-		Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
-		Assert.Equal(10, len(numOfFilesHistorical))
-		Assert.True(AssertCorrectEntry(numOfFilesHistorical, dbfs.HistoricalNumOfFiles))
+			Assert.Equal(todayDate.Year(), numOfFilesHistorical[len(numOfFilesHistorical)-1].Year())
+			Assert.Equal(int(todayDate.Month()), numOfFilesHistorical[len(numOfFilesHistorical)-1].Month())
+			Assert.Equal(todayDate.Day(), numOfFilesHistorical[len(numOfFilesHistorical)-1].Day())
 
-		// Get number of files via route (month)
+			Assert.Equal(tenDaysAgo.Year(), numOfFilesHistorical[0].Year())
+			Assert.Equal(int(tenDaysAgo.Month()), numOfFilesHistorical[0].Month())
+			Assert.Equal(tenDaysAgo.Day(), numOfFilesHistorical[0].Day())
+			Assert.True(AssertCorrectEntry(numOfFilesHistorical, testType))
 
-		req = httptest.NewRequest("GET", "/api/v1/cluster/stats/num_of_files_historical",
-			nil).WithContext(
-			ctxutil.WithUser(context.Background(), user))
-		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
-		req.Header.Add("range_type", "3")
-		w = httptest.NewRecorder()
+			// Get number of files via route (week)
 
-		bc.GetNumOfFilesHistorical(w, req)
-		Assert.Equal(http.StatusOK, w.Code)
-		body = w.Body.String()
+			req = httptest.NewRequest("GET", urlString,
+				nil).WithContext(
+				ctxutil.WithUser(context.Background(), user))
+			req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+			req.Header.Add("range_type", "2")
+			w = httptest.NewRecorder()
 
-		Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
-		Assert.Equal(10, len(numOfFilesHistorical))
-		Assert.True(AssertCorrectEntry(numOfFilesHistorical, dbfs.HistoricalNumOfFiles))
+			functionToTest(w, req)
+			Assert.Equal(http.StatusOK, w.Code)
+			body = w.Body.String()
 
-		// Get two days of data
-		req = httptest.NewRequest("GET", "/api/v1/cluster/stats/num_of_files_historical",
-			nil).WithContext(
-			ctxutil.WithUser(context.Background(), user))
-		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
-		req.Header.Add("range_type", "1")
-		req.Header.Add("start_date", "2020-01-01")
-		req.Header.Add("end_date", "2020-01-02")
-		w = httptest.NewRecorder()
+			Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
+			Assert.Equal(10, len(numOfFilesHistorical))
+			Assert.True(AssertCorrectEntry(numOfFilesHistorical, testType))
 
-		bc.GetNumOfFilesHistorical(w, req)
-		Assert.Equal(http.StatusOK, w.Code)
-		body = w.Body.String()
+			// Get number of files via route (month)
 
-		Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
-		Assert.Equal(2, len(numOfFilesHistorical))
-		Assert.Equal(1, numOfFilesHistorical[0].Day())
-		Assert.Equal(2, numOfFilesHistorical[1].Day())
+			req = httptest.NewRequest("GET", urlString,
+				nil).WithContext(
+				ctxutil.WithUser(context.Background(), user))
+			req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+			req.Header.Add("range_type", "3")
+			w = httptest.NewRecorder()
 
-		// Get 1 days of data
-		req = httptest.NewRequest("GET", "/api/v1/cluster/stats/num_of_files_historical",
-			nil).WithContext(
-			ctxutil.WithUser(context.Background(), user))
-		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
-		req.Header.Add("range_type", "1")
-		req.Header.Add("start_date", "2020-01-01")
-		req.Header.Add("end_date", "2020-01-01")
-		w = httptest.NewRecorder()
+			functionToTest(w, req)
+			Assert.Equal(http.StatusOK, w.Code)
+			body = w.Body.String()
 
-		bc.GetNumOfFilesHistorical(w, req)
-		Assert.Equal(http.StatusOK, w.Code)
-		body = w.Body.String()
+			Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
+			Assert.Equal(10, len(numOfFilesHistorical))
+			Assert.True(AssertCorrectEntry(numOfFilesHistorical, testType))
 
-		Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
-		Assert.Equal(1, len(numOfFilesHistorical))
-		Assert.Equal(1, numOfFilesHistorical[0].Day())
-		Assert.True(AssertCorrectEntry(numOfFilesHistorical, dbfs.HistoricalNumOfFiles))
+			// Get two days of data
+			req = httptest.NewRequest("GET", urlString,
+				nil).WithContext(
+				ctxutil.WithUser(context.Background(), user))
+			req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+			req.Header.Add("range_type", "1")
+			req.Header.Add("start_date", "2020-01-01")
+			req.Header.Add("end_date", "2020-01-02")
+			w = httptest.NewRecorder()
 
-		// Get two weeks of data
-		req = httptest.NewRequest("GET", "/api/v1/cluster/stats/num_of_files_historical",
-			nil).WithContext(
-			ctxutil.WithUser(context.Background(), user))
-		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
-		req.Header.Add("range_type", "2")
-		req.Header.Add("start_date", "2022-07-31")
-		req.Header.Add("end_date", "2022-08-12")
-		w = httptest.NewRecorder()
+			functionToTest(w, req)
+			Assert.Equal(http.StatusOK, w.Code)
+			body = w.Body.String()
 
-		bc.GetNumOfFilesHistorical(w, req)
-		Assert.Equal(http.StatusOK, w.Code)
-		body = w.Body.String()
+			Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
+			Assert.Equal(2, len(numOfFilesHistorical))
+			Assert.Equal(1, numOfFilesHistorical[0].Day())
+			Assert.Equal(2, numOfFilesHistorical[1].Day())
 
-		Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
-		Assert.Equal(2, len(numOfFilesHistorical))
-		Assert.Equal(7, numOfFilesHistorical[0].Month())
-		Assert.Equal(31, numOfFilesHistorical[0].Day())
-		Assert.Equal(8, numOfFilesHistorical[1].Month())
-		Assert.Equal(7, numOfFilesHistorical[1].Day())
-		Assert.True(AssertCorrectEntry(numOfFilesHistorical, dbfs.HistoricalNumOfFiles))
+			// Get 1 days of data
+			req = httptest.NewRequest("GET", urlString,
+				nil).WithContext(
+				ctxutil.WithUser(context.Background(), user))
+			req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+			req.Header.Add("range_type", "1")
+			req.Header.Add("start_date", "2020-01-01")
+			req.Header.Add("end_date", "2020-01-01")
+			w = httptest.NewRecorder()
 
-		// Get one week of data
-		req = httptest.NewRequest("GET", "/api/v1/cluster/stats/num_of_files_historical",
-			nil).WithContext(
-			ctxutil.WithUser(context.Background(), user))
-		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
-		req.Header.Add("range_type", "2")
-		req.Header.Add("start_date", "2022-07-31")
-		req.Header.Add("end_date", "2022-07-31")
-		w = httptest.NewRecorder()
+			functionToTest(w, req)
+			Assert.Equal(http.StatusOK, w.Code)
+			body = w.Body.String()
 
-		bc.GetNumOfFilesHistorical(w, req)
-		Assert.Equal(http.StatusOK, w.Code)
-		body = w.Body.String()
+			Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
+			Assert.Equal(1, len(numOfFilesHistorical))
+			Assert.Equal(1, numOfFilesHistorical[0].Day())
+			Assert.True(AssertCorrectEntry(numOfFilesHistorical, testType))
 
-		Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
-		Assert.Equal(1, len(numOfFilesHistorical))
-		Assert.Equal(7, numOfFilesHistorical[0].Month())
-		Assert.Equal(31, numOfFilesHistorical[0].Day())
-		Assert.True(AssertCorrectEntry(numOfFilesHistorical, dbfs.HistoricalNumOfFiles))
+			// Get two weeks of data
+			req = httptest.NewRequest("GET", urlString,
+				nil).WithContext(
+				ctxutil.WithUser(context.Background(), user))
+			req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+			req.Header.Add("range_type", "2")
+			req.Header.Add("start_date", "2022-07-31")
+			req.Header.Add("end_date", "2022-08-12")
+			w = httptest.NewRecorder()
 
-		// Get two months of data
-		req = httptest.NewRequest("GET", "/api/v1/cluster/stats/num_of_files_historical",
-			nil).WithContext(
-			ctxutil.WithUser(context.Background(), user))
-		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
-		req.Header.Add("range_type", "3")
-		req.Header.Add("start_date", "2020-01-01")
-		req.Header.Add("end_date", "2020-02-01")
-		w = httptest.NewRecorder()
+			functionToTest(w, req)
+			Assert.Equal(http.StatusOK, w.Code)
+			body = w.Body.String()
 
-		bc.GetNumOfFilesHistorical(w, req)
-		Assert.Equal(http.StatusOK, w.Code)
-		body = w.Body.String()
+			Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
+			Assert.Equal(2, len(numOfFilesHistorical))
+			Assert.Equal(7, numOfFilesHistorical[0].Month())
+			Assert.Equal(31, numOfFilesHistorical[0].Day())
+			Assert.Equal(8, numOfFilesHistorical[1].Month())
+			Assert.Equal(7, numOfFilesHistorical[1].Day())
+			Assert.True(AssertCorrectEntry(numOfFilesHistorical, testType))
 
-		Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
-		Assert.Equal(2, len(numOfFilesHistorical))
-		Assert.Equal(1, numOfFilesHistorical[0].Month())
-		Assert.Equal(2, numOfFilesHistorical[1].Month())
-		Assert.True(AssertCorrectEntry(numOfFilesHistorical, dbfs.HistoricalNumOfFiles))
+			// Get one week of data
+			req = httptest.NewRequest("GET", urlString,
+				nil).WithContext(
+				ctxutil.WithUser(context.Background(), user))
+			req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+			req.Header.Add("range_type", "2")
+			req.Header.Add("start_date", "2022-07-31")
+			req.Header.Add("end_date", "2022-07-31")
+			w = httptest.NewRecorder()
 
-		// Get one month of data
-		req = httptest.NewRequest("GET", "/api/v1/cluster/stats/num_of_files_historical",
-			nil).WithContext(
-			ctxutil.WithUser(context.Background(), user))
-		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
-		req.Header.Add("range_type", "3")
-		req.Header.Add("start_date", "2020-01-01")
-		req.Header.Add("end_date", "2020-01-01")
-		w = httptest.NewRecorder()
+			functionToTest(w, req)
+			Assert.Equal(http.StatusOK, w.Code)
+			body = w.Body.String()
 
-		bc.GetNumOfFilesHistorical(w, req)
-		Assert.Equal(http.StatusOK, w.Code)
-		body = w.Body.String()
+			Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
+			Assert.Equal(1, len(numOfFilesHistorical))
+			Assert.Equal(7, numOfFilesHistorical[0].Month())
+			Assert.Equal(31, numOfFilesHistorical[0].Day())
+			Assert.True(AssertCorrectEntry(numOfFilesHistorical, testType))
 
-		Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
-		Assert.Equal(1, len(numOfFilesHistorical))
-		Assert.Equal(1, numOfFilesHistorical[0].Month())
-		Assert.True(AssertCorrectEntry(numOfFilesHistorical, dbfs.HistoricalNumOfFiles))
+			// Get two months of data
+			req = httptest.NewRequest("GET", urlString,
+				nil).WithContext(
+				ctxutil.WithUser(context.Background(), user))
+			req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+			req.Header.Add("range_type", "3")
+			req.Header.Add("start_date", "2020-01-01")
+			req.Header.Add("end_date", "2020-02-01")
+			w = httptest.NewRecorder()
+
+			functionToTest(w, req)
+			Assert.Equal(http.StatusOK, w.Code)
+			body = w.Body.String()
+
+			Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
+			Assert.Equal(2, len(numOfFilesHistorical))
+			Assert.Equal(1, numOfFilesHistorical[0].Month())
+			Assert.Equal(2, numOfFilesHistorical[1].Month())
+			Assert.True(AssertCorrectEntry(numOfFilesHistorical, testType))
+
+			// Get one month of data
+			req = httptest.NewRequest("GET", urlString,
+				nil).WithContext(
+				ctxutil.WithUser(context.Background(), user))
+			req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+			req.Header.Add("range_type", "3")
+			req.Header.Add("start_date", "2020-01-01")
+			req.Header.Add("end_date", "2020-01-01")
+			w = httptest.NewRecorder()
+
+			functionToTest(w, req)
+			Assert.Equal(http.StatusOK, w.Code)
+			body = w.Body.String()
+
+			Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
+			Assert.Equal(1, len(numOfFilesHistorical))
+			Assert.Equal(1, numOfFilesHistorical[0].Month())
+			Assert.True(AssertCorrectEntry(numOfFilesHistorical, testType))
+
+		}
+
+		testHistorical(t, bc.GetNumOfFilesHistorical, dbfs.HistoricalNumOfFiles)
+
+		testHistorical(t, bc.GetStorageUsedHistorical, dbfs.HistoricalNonReplicaUsed)
+
+		testHistorical(t, bc.GetStorageUsedReplicaHistorical, dbfs.HistoricalReplicaUsed)
 
 	})
 
