@@ -187,7 +187,10 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 
 	// Stream file
 	file, header, err := r.FormFile("file")
-	defer file.Close()
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "file not found: "+err.Error())
+		return
+	}
 	fileSize := header.Size
 
 	// File, PasswordProtect entries for dbfs.
@@ -394,11 +397,13 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 
 	// Stream file
 	file, header, err := r.FormFile("file")
-	defer file.Close()
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "file not found: "+err.Error())
+		return
+	}
 	fileSize := header.Size
 
-	err = dbfsFile.UpdateFile(bc.Db, int(fileSize), int(fileSize), "TODO:CHECKSUM",
-		"", dataKey, dataIv, password, user)
+	err = dbfsFile.UpdateFile(bc.Db, int(fileSize), int(fileSize), "TODO:CHECKSUM", "", dataKey, dataIv, password, user, header.Filename)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return

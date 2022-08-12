@@ -210,8 +210,7 @@ func EXAMPLEUpdateFile(tx *gorm.DB, file *dbfs.File, eU ExampleUpdate, user *dbf
 		return err
 	}
 
-	err = file.UpdateFile(tx, eU.NewSize, eU.NewActualSize, "UPDATING",
-		eU.Server, dataKey, dataIv, eU.Password, user)
+	err = file.UpdateFile(tx, eU.NewSize, eU.NewActualSize, "UPDATING", eU.Server, dataKey, dataIv, eU.Password, user, "")
 	if err != nil {
 		return err
 	}
