@@ -1,7 +1,7 @@
 import { APIClient, typedError } from './api';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
-export type Records = [
+export type Record = [
   {
     Id: 0;
     date_time_started: string;
@@ -23,22 +23,10 @@ export type Records = [
 ];
 
 /*
-  [
-    {
-      "file_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-      "file_name": "string",
-      "data_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-      "fragment_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-      "server_name": "string",
-      "status": 0
-    }
-  ]
-*/
-
 // Get all the records
-export const getMainRecords = () => {
+export const useQueryGetMaintenanceRecords = () => {
   return useQuery(['mainRecords'], () =>
-    APIClient.get<Records>(`/api/v1/maintenance/all`, {
+    APIClient.get<Record>(`/api/v1/maintenance/all`, {
       headers: {
         startNum: 0,
       },
@@ -49,28 +37,28 @@ export const getMainRecords = () => {
 };
 
 // Get the records based on the ID
-export const getMainRecordsID = (id: number) => {
+export const useQueryGetMaintenanceRecordsID = (id: number) => {
   return useQuery(['mainRecordsID', id], () =>
-    APIClient.get<any>(`/api/v1/maintenance/job/${id}`)
+    APIClient.get<Record>(`/api/v1/maintenance/job/${id}`)
       .then((res) => res.data)
       .catch(typedError)
   );
 };
 
-/*
+
 // Delete the records based on the ID
-const deleteMainRecordsID = () => {
-    return useMutation((id: number) =>
-        APIClient.delete<any>(`/api/v1/maintenance/job/${id}`)
+const useMutationDeleteMainRecordsID = (id: number) => {
+    return useMutation((id) =>
+        APIClient.delete<Record>(`/api/v1/maintenance/job/${id}`)
         .then((res) => res.data)
         .catch(typedError)
     );
 }
 
 // Create a job based on the ID
-const createMainRecordsID = () => {
-    return useMutation((id: number) =>
-        APIClient.patch<any>(`/api/v1/maintenance/job/${id}`)
+const useMutationCreateMainRecordsID = (id: number) => {
+    return useMutation((id) =>
+        APIClient.patch<boolean>(`/api/v1/maintenance/job/${id}`)
         .then((res) => res.data)
         .catch(typedError)
     );

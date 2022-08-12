@@ -22,15 +22,15 @@ import {
   useQueryGetstorageUsedWithParity,
   useQueryGethistoricalStorageUsedWithParity,
   useQueryGetAlerts,
-  useQueryClearAlerts,
+  useMutationClearAlerts,
   useQueryGetAlertsID,
-  useQueryClearAlertsID,
+  useMutationClearAlertsID,
   useQueryGetserverLogs,
-  useQueryClearserverLogs,
+  useMutationClearserverLogs,
   useQueryGetserverLogsID,
   useQueryGetserverStatuses,
   useQueryGetserverStatusesID,
-  useQueryDeleteserverStatusesID,
+  useMutationDeleteserverStatusesID,
 } from './api/cluster';
 
 export function AdminDashboard() {

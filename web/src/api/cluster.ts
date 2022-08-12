@@ -136,7 +136,7 @@ export const useQueryGetAlerts = () =>
   );
 
 // Clear all alerts related to the cluster
-export const useQueryClearAlerts = () =>
+export const useMutationClearAlerts = () =>
   useMutation(() =>
     APIClient.delete<boolean>(`/api/v1/cluster/stats/alerts`)
       .then((res) => res.data)
@@ -156,7 +156,7 @@ export const useQueryGetAlertsID = (Id: number) =>
   );
 
 // Clear specific alerts of the cluster
-export const useQueryClearAlertsID = (id: number) =>
+export const useMutationClearAlertsID = (id: number) =>
   useMutation((id) =>
     APIClient.delete<boolean>(`/api/v1/cluster/stats/alerts/${id}`)
       .then((res) => res.data)
@@ -184,7 +184,7 @@ export const useQueryGetserverLogs = (
   );
 
 // Clear logs
-export const useQueryClearserverLogs = () =>
+export const useMutationClearserverLogs = () =>
   useMutation(['clearserverLogs'], () =>
     APIClient.delete<boolean>(`/api/v1/cluster/stats/logs`)
       .then((res) => res.data)
@@ -251,7 +251,7 @@ export const useQueryGetserverStatusesID = (serverName: string) =>
   );
 
 // Delete server specific statuses
-export const useQueryDeleteserverStatusesID = (serverName: string) =>
+export const useMutationDeleteserverStatusesID = (serverName: string) =>
   useMutation(['deleteserverStatusesID', serverName], () =>
     APIClient.delete<boolean>(`/api/v1/cluster/stats/servers/${serverName}`)
       .then((res) => res.data)
