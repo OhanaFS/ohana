@@ -18,6 +18,7 @@ const (
 	ShutdownPath            = "/api/v1/node/shutdown"
 	CurrentFilesHealthPath  = "/api/v1/node/health_current_files"
 	AllFilesHealthPath      = "/api/v1/node/health_all_files"
+	ReplaceShardPath        = "/api/v1/node/replace_shard"
 	PathReplaceShardString  = "{shardPath}"
 	PathFindString          = "shardPath"
 )
@@ -213,5 +214,47 @@ func (i Inc) AllFilesFragmentsHealthCheckRoute(w http.ResponseWriter, r *http.Re
 		}
 	}()
 
+	util.HttpJson(w, http.StatusOK, true)
+}
+
+// ReplaceShardRoute replaces a shard with a new one.
+func (i *Inc) ReplaceShardRoute(w http.ResponseWriter, r *http.Request) {
+
+	// get the old shard path from headers
+	oldShardPath := r.Header.Get("old_shard_path")
+
+	// get the new shard id from headers
+	newShardPath := r.Header.Get("new_shard_path")
+
+	// Check if both shard paths are valid
+	if oldShardPath == "" || newShardPath == "" {
+		util.HttpError(w, http.StatusBadRequest, "Missing shard path")
+		return
+	}
+
+	// Check if the old shard path exists
+	if _, err := os.Stat(oldShardPath); os.IsNotExist(err) {
+		util.HttpError(w, http.StatusBadRequest, "Old shard path does not exist")
+		return
+	}
+	// Check if the new shard path exists
+	if _, err := os.Stat(newShardPath); os.IsNotExist(err) {
+		util.HttpError(w, http.StatusBadRequest, "New shard path does not exist")
+		return
+	}
+
+	// Delete old file, rename new file to old file path
+	err := os.Remove(oldShardPath)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, "Error deleting old shard")
+		return
+	}
+	err = os.Rename(newShardPath, oldShardPath)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, "Error renaming new shard")
+		return
+	}
+
+	// return success
 	util.HttpJson(w, http.StatusOK, true)
 }

@@ -813,6 +813,39 @@ func (i Inc) LocalAllFilesShardsHealthCheck(jobId int) error {
 	return nil
 }
 
+// ReplaceShard replaces a shard with a new one.
+func (i *Inc) ReplaceShard(serverName, oldName, newName string) error {
+
+	host, err := dbfs.GetServerAddress(i.Db, serverName)
+	if err != nil {
+		return err
+	}
+	url := fmt.Sprintf("https://%s%s", host, ReplaceShardPath)
+
+	// create the request
+	req, err := http.NewRequest("POST", url, nil)
+	req.Header.Set("old_shard_path", oldName)
+	req.Header.Set("new_shard_path", newName)
+	if err != nil {
+		return err
+	}
+
+	// send the request
+	resp, err := i.HttpClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Error replacing shard: %s", resp.Status)
+	} else {
+		return nil
+	}
+
+}
+
 // StartJob is a function that initializes a job
 // It is used to send tasks to the nodes to be executed
 // based on the input Job

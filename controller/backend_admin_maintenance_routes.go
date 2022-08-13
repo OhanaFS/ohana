@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -8,7 +9,10 @@ import (
 	"github.com/OhanaFS/ohana/dbfs"
 	"github.com/OhanaFS/ohana/util"
 	"github.com/OhanaFS/ohana/util/ctxutil"
+	"github.com/OhanaFS/stitch"
 	"github.com/gorilla/mux"
+	"gorm.io/gorm"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -263,15 +267,19 @@ func (bc *BackendController) RebuildFileVersion(fileId string, versionId int, pa
 		return dbfs.ErrNotFile
 	}
 
-	var fragments []dbfs.Fragment
-	err = bc.Db.Model(&fragments).
+	var shardsMeta []dbfs.Fragment
+	err = bc.Db.Model(&shardsMeta).
 		Where("file_version_data_id = ?", fv.DataId).
-		Find(&fragments).Error
+		Find(&shardsMeta).Error
 	if err != nil {
 		return err
 	}
 
 	// Get FileKey, FileIv from PasswordProtect
+	// We'll use the exact same key, iv for the rebuild
+
+	// We don't call dbfs here as we don't want to create a new file version
+	// and dbfs requires a user to be passed in
 
 	var passwordProtect dbfs.PasswordProtect
 	err = bc.Db.Model(&dbfs.PasswordProtect{}).Where("file_id = ?", fv.FileId).First(&passwordProtect).Error
@@ -281,7 +289,8 @@ func (bc *BackendController) RebuildFileVersion(fileId string, versionId int, pa
 
 	var fileKey, fileIv string
 
-	// if password nil
+	// Password validation and extraction of key and iv
+
 	if password == "" && !passwordProtect.PasswordActive {
 
 		// decrypt file key with PasswordProtect
@@ -310,6 +319,7 @@ func (bc *BackendController) RebuildFileVersion(fileId string, versionId int, pa
 		}
 	}
 
+	// We'll use the exact same key and iv for the rebuild
 	key, err := hex.DecodeString(fileKey)
 	if err != nil {
 		return err
@@ -318,6 +328,141 @@ func (bc *BackendController) RebuildFileVersion(fileId string, versionId int, pa
 	if err != nil {
 		return err
 	}
+
+	// Setting up the reader
+
+	var shards []io.ReadSeeker
+
+	for _, shardMeta := range shardsMeta {
+		shardReader, err := bc.Inc.NewShardReader(
+			context.Background(), shardMeta.ServerName, shardMeta.FileFragmentPath)
+		if err == nil {
+			shards = append(shards, shardReader)
+		}
+	}
+
+	decoder := stitch.NewEncoder(&stitch.EncoderOptions{
+		DataShards:   uint8(fv.DataShards),
+		ParityShards: uint8(fv.ParityShards),
+		KeyThreshold: uint8(fv.KeyThreshold)},
+	)
+
+	reader, err := decoder.NewReadSeeker(shards, key, iv)
+
+	// Setting up the writer, write with .shardNEW extension
+
+	stitchParams, err := dbfs.GetStitchParams(bc.Db, bc.Logger)
+	dataShards, parityShards, keyThreshold := stitchParams.DataShards, stitchParams.ParityShards, stitchParams.KeyThreshold
+	totalShards := dataShards + parityShards
+
+	encoder := stitch.NewEncoder(&stitch.EncoderOptions{
+		DataShards:   uint8(dataShards),
+		ParityShards: uint8(parityShards),
+		KeyThreshold: uint8(keyThreshold),
+	})
+
+	shardWriters := make([]io.Writer, totalShards)
+	beforeShardName := make([]string, totalShards)
+	finalShardName := make([]string, totalShards)
+
+	for i := 0; i < totalShards; i++ {
+		beforeShardName[i] = fv.DataId + ".shardNEW" + strconv.Itoa(i)
+		finalShardName[i] = fv.DataId + ".shard" + strconv.Itoa(i)
+	}
+
+	// Open the output writers
+
+	servers, err := bc.Inc.AssignShardServer(context.Background(), totalShards)
+
+	for i := 0; i < totalShards; i++ {
+		shardWriter, err := bc.Inc.NewShardWriter(
+			context.Background(), servers[i].Name, beforeShardName[i])
+		if err != nil {
+			return err
+		}
+		shardWriters[i] = shardWriter
+	}
+
+	// Let the copying begin
+	_, err = encoder.Encode(reader, shardWriters, key, iv)
+	if err != nil {
+		return err
+	}
+
+	// Updating fragments on the server to be named correctly (.shardNEW -> .shard)
+	for i := 0; i < totalShards; i++ {
+		err = bc.Inc.ReplaceShard(servers[i].Name, beforeShardName[i], finalShardName[i])
+		if err != nil {
+			return err
+		}
+	}
+
+	// Update all file version/files that have that dataID to have
+	// the right count for dataShards, parityShards, and keyThreshold
+	err = bc.Db.Transaction(func(tx *gorm.DB) error {
+
+		if bc.Db.Model(&dbfs.FileVersion{}).Where("data_id = ?", fv.DataId).
+			Updates(map[string]interface{}{
+				"data_shards":   dataShards,
+				"parity_shards": parityShards,
+				"key_threshold": keyThreshold,
+				"total_shards":  totalShards,
+				"status":        dbfs.FileStatusGood},
+			).Error != nil {
+			return fmt.Errorf("could not update file version %s", fv.DataId)
+		}
+
+		// Update file as well if exists
+		err = bc.Db.Model(&dbfs.File{}).
+			Where("data_id = ?", fv.DataId).Updates(map[string]interface{}{
+			"data_shards":   dataShards,
+			"parity_shards": parityShards,
+			"key_threshold": keyThreshold,
+			"total_shards":  totalShards,
+			"status":        dbfs.FileStatusGood},
+		).Error
+		if err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				return fmt.Errorf("could not update file %s", fv.DataId)
+			}
+		}
+
+		// Update shards
+
+		fvFId := shardsMeta[0].FileVersionFileId
+		fvDId := shardsMeta[0].FileVersionDataId
+		fvVn := shardsMeta[0].FileVersionVersionNo
+		fvDidV := shardsMeta[0].FileVersionDataIdVersion
+
+		// delete old shard.
+		for _, shard := range shardsMeta {
+			if bc.Db.Delete(&shard) != nil {
+				return fmt.Errorf("could not delete shard %s", shard.FileFragmentPath)
+			}
+		}
+
+		// create new ones
+		for i := 1; i < totalShards; i++ {
+			shard := dbfs.Fragment{
+				FileVersionFileId:        fvFId,
+				FileVersionDataId:        fvDId,
+				FileVersionVersionNo:     fvVn,
+				FileVersionDataIdVersion: fvDidV,
+				FileFragmentPath:         finalShardName[i-1],
+				FragId:                   i,
+				ServerName:               servers[i-1].Name,
+				LastChecked:              time.Now(),
+				TotalShards:              totalShards,
+				Status:                   dbfs.FragmentStatusGood,
+			}
+			if bc.Db.Create(&shard).Error != nil {
+				return fmt.Errorf("could not create fragment %s", finalShardName[i])
+			}
+		}
+
+		return nil
+
+	})
 
 	return nil
 }

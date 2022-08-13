@@ -97,7 +97,7 @@ func NewInc(config *config.Config, db *gorm.DB) *Inc {
 	router.HandleFunc("/api/v1/node/ping", Pong)
 	router.HandleFunc("/api/v1/node/details", newInc.ReturnServerDetails)
 	router.HandleFunc("/api/v1/node/shard/{shardId}", newInc.handleShardStream)
-
+	router.HandleFunc(ReplaceShardPath, newInc.ReplaceShardRoute)
 	// start server
 	go func() {
 		err := incServer.ListenAndServeTLS(config.Inc.PublicCert, config.Inc.PrivateKey)
