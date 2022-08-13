@@ -9,7 +9,7 @@ services:
     command: ['/app/ohana', '--gen-ca', '--gen-certs', '-hosts', 'certhosts.yaml']
     volumes:
       - ohanaCerts:/app/certificates
-      - ./certhosts.yaml:/app/certhosts.yaml
+      - ./certhosts.prod.yaml:/app/certhosts.yaml
 
   ohana1:
     image: ohana
