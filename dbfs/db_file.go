@@ -112,8 +112,7 @@ type FileInterface interface {
 	AddPermissionGroups(tx *gorm.DB, permission *PermissionNeeded, requestUser *User, groups ...Group) error
 	RemovePermission(tx *gorm.DB, permission *Permission, user *User) error
 	UpdatePermission(tx *gorm.DB, oldPermission *Permission, newPermission *Permission, user *User) error
-	UpdateFile(tx *gorm.DB, newSize int, newActualSize int, checksum string, handlingServer string,
-		dataKey string, dataIv string, password string, user *User) error
+	UpdateFile(tx *gorm.DB, newSize int, newActualSize int, checksum string, handlingServer string, dataKey string, dataIv string, password string, user *User, newFileName string) error
 	UpdateFragment(tx *gorm.DB, fragmentId int, fileFragmentPath string, checksum string, serverId string) error
 }
 
@@ -789,6 +788,8 @@ func (f *File) UpdateMetaData(tx *gorm.DB, modificationsRequested FileMetadataMo
 		return ErrNoPermission
 	}
 
+	changesMade := false
+
 	if modificationsRequested.PasswordModification {
 
 		pp, err := f.GetPasswordProtect(tx, user)
@@ -812,23 +813,36 @@ func (f *File) UpdateMetaData(tx *gorm.DB, modificationsRequested FileMetadataMo
 
 	} else {
 		if modificationsRequested.FileName != "" {
-			err := f.rename(tx, modificationsRequested.FileName)
-			if err != nil {
-				return err
+			if f.FileName != modificationsRequested.FileName {
+				err := f.rename(tx, modificationsRequested.FileName)
+				if err != nil {
+					return err
+				}
+				changesMade = true
 			}
 		}
 		if modificationsRequested.MIMEType != "" {
-			f.MIMEType = modificationsRequested.MIMEType
+			if f.MIMEType != modificationsRequested.MIMEType {
+				changesMade = true
+				f.MIMEType = modificationsRequested.MIMEType
+			}
 		}
-		if modificationsRequested.VersioningMode >= VersioningOff && modificationsRequested.VersioningMode <= VersioningOnDeltas {
-			f.VersioningMode = modificationsRequested.VersioningMode
+		if modificationsRequested.VersioningMode >= VersioningOff &&
+			modificationsRequested.VersioningMode <= VersioningOnDeltas {
+			if f.VersioningMode != modificationsRequested.VersioningMode {
+				changesMade = true
+				f.VersioningMode = modificationsRequested.VersioningMode
+			}
 		}
 	}
 
-	// increment version number and save it in FileVersion
+	if !changesMade {
+		return nil
+	}
 
 	f.VersionNo = f.VersionNo + 1
 
+	// increment version number and save it in FileVersion
 	// Attempt to save and if it fails, rollback
 
 	err = tx.Transaction(func(tx *gorm.DB) error {
@@ -1353,8 +1367,7 @@ func (f *File) GetPermissionById(tx *gorm.DB, permissionId string, user *User) (
 // UpdateFile
 // At this stage, the server should have the
 // updated file (already processed) , uncompressed file size, compressed data size, and key
-func (f *File) UpdateFile(tx *gorm.DB, newSize int, newActualSize int,
-	checksum, handlingServer, dataKey, dataIv, password string, user *User) error {
+func (f *File) UpdateFile(tx *gorm.DB, newSize int, newActualSize int, checksum string, handlingServer string, dataKey string, dataIv string, password string, user *User, newFileName string) error {
 
 	// Check if user has read permission (if not 404)
 
@@ -1399,6 +1412,10 @@ func (f *File) UpdateFile(tx *gorm.DB, newSize int, newActualSize int,
 	dataIv, err = EncryptWithKeyIV(dataIv, fileKey, fileIv)
 	if err != nil {
 		return err
+	}
+
+	if newFileName != "" {
+		f.FileName = newFileName
 	}
 
 	// Update the file

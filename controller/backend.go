@@ -89,8 +89,13 @@ func NewBackend(
 
 	// Cluster Routes
 	r.HandleFunc("/api/v1/cluster/stats/num_of_files", bc.GetNumOfFiles).Methods("GET")
+	r.HandleFunc("/api/v1/cluster/stats/num_of_files_historical", bc.GetNumOfFilesHistorical).Methods("GET")
 	r.HandleFunc("/api/v1/cluster/stats/non_replica_used", bc.GetStorageUsed).Methods("GET")
+	r.HandleFunc("/api/v1/cluster/stats/non_replica_used_historical", bc.GetStorageUsedHistorical).
+		Methods("GET")
 	r.HandleFunc("/api/v1/cluster/stats/replica_used", bc.GetStorageUsedReplica).Methods("GET")
+	r.HandleFunc("/api/v1/cluster/stats/replica_used_historical", bc.GetStorageUsedReplicaHistorical).
+		Methods("GET")
 	r.HandleFunc("/api/v1/cluster/stats/alerts", bc.GetAllAlerts).Methods("GET")
 	r.HandleFunc("/api/v1/cluster/stats/alerts", bc.ClearAllAlerts).Methods("DELETE")
 	r.HandleFunc("/api/v1/cluster/stats/alerts/{id}", bc.GetAlert).Methods("GET")
@@ -187,7 +192,10 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 
 	// Stream file
 	file, header, err := r.FormFile("file")
-	defer file.Close()
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "file not found: "+err.Error())
+		return
+	}
 	fileSize := header.Size
 
 	// File, PasswordProtect entries for dbfs.
@@ -395,13 +403,12 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 	// Stream file
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		util.HttpError(w, http.StatusBadRequest, err.Error())
+		util.HttpError(w, http.StatusBadRequest, "file not found: "+err.Error())
 		return
 	}
 	fileSize := header.Size
 
-	err = dbfsFile.UpdateFile(bc.Db, int(fileSize), int(fileSize), "TODO:CHECKSUM",
-		"", dataKey, dataIv, password, user)
+	err = dbfsFile.UpdateFile(bc.Db, int(fileSize), int(fileSize), "TODO:CHECKSUM", "", dataKey, dataIv, password, user, header.Filename)
 	if err != nil {
 		if errors.Is(err, dbfs.ErrIncorrectPassword) {
 			util.HttpError(w, http.StatusForbidden, err.Error())

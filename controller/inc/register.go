@@ -186,27 +186,99 @@ func (i Inc) ShutdownServer(w http.ResponseWriter, r *http.Request) {
 
 // RegisterIncServices registers the inc services.
 func RegisterIncServices(i *Inc) {
+
+	// Register server service.
 	go func() {
 		time.Sleep(time.Second * 2)
-		ticker := time.NewTicker(5 * time.Minute)
+		registerTicker := time.NewTicker(5 * time.Minute)
 		err := i.RegisterServer(true)
 		if err != nil {
 			i.Shutdown <- true
 		}
+
+		// Register service / shutdown handler
 		go func() {
 			for {
 				select {
 				case <-i.Shutdown:
-					ticker.Stop()
+					registerTicker.Stop()
 					fmt.Println("Shutdown signal received. Exiting in 5 seconds...")
 					time.Sleep(time.Second * 5)
 					os.Exit(0)
 					// deregister services
 					return
-				case <-ticker.C:
+				case <-registerTicker.C:
 					_ = i.RegisterServer(false)
 				}
 			}
 		}()
+
+		// Daily Update handler
+		dailyUpdateTicker := time.NewTicker(time.Hour)
+		go func() {
+			for {
+				select {
+				case <-dailyUpdateTicker.C:
+					i.DailyUpdate()
+				}
+			}
+		}()
+
 	}()
+
+}
+
+func (i Inc) DailyUpdate() {
+
+	// Daily Update of the stats of the server
+	// Check if the server is the one to do the update
+
+	logger := dbfs.NewLogger(i.Db, i.ServerName)
+
+	serverNotReady := true
+	attempts := 0
+
+	for serverNotReady {
+
+		var server dbfs.Server
+
+		err := i.Db.Model(&dbfs.Server{}).Where("status = ?", dbfs.ServerStarting).First(&server).Error
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				serverNotReady = false
+				continue
+			}
+			logger.LogError("ERROR. CANNOT UPDATE DAILY STATS. " + err.Error())
+		}
+		attempts += 1
+
+		fmt.Println("Waiting for other server to finish registering... attempt", attempts)
+		time.Sleep(time.Second * 4)
+
+	}
+
+	servers, err := dbfs.GetServers(i.Db)
+	if err != nil {
+		logger.LogError("ERROR. CANNOT GET SERVERS FROM DATABASE." +
+			err.Error())
+	}
+
+	var serverWithLeastFreeSpace string
+	var leastFreeSpace uint64
+	for _, server := range servers {
+		freeSpace := server.FreeSpace
+		if freeSpace < leastFreeSpace || leastFreeSpace == uint64(0) {
+			leastFreeSpace = freeSpace
+			serverWithLeastFreeSpace = server.Name
+		}
+	}
+
+	if serverWithLeastFreeSpace == i.ServerName {
+		// Log the update
+		logger.LogInfo("Updated server stats...")
+		if dbfs.DumpDailyStats(i.Db) != nil {
+			logger.LogError("ERROR. CANNOT UPDATE DAILY STATS. " + err.Error())
+		}
+	}
+
 }
