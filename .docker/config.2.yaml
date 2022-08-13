@@ -18,7 +18,7 @@ authentication:
 stitch:
   shards_location: shards/
 node:
-  server_name: alpha
+  server_name: omega
   host_name: ohana2
   bind_ip: 192.168.2.53
   port: 5555
