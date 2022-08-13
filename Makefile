@@ -70,6 +70,10 @@ dev: dev-up
 		--bin ./bin/ohana.gin \
 		--buildArgs "-tags osusergo,netgo"
 
+.PHONY: prod-up
+prod-up:
+	docker-compose -f .docker/docker-compose.yml up --build
+
 .PHONY: format
 format:
 	go fmt ./...

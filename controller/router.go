@@ -44,11 +44,11 @@ func NewServer(
 		rp := httputil.NewSingleHostReverseProxy(rpURL)
 		router.NotFoundHandler = rp
 	} else {
-		webApp, err := web.GetWebApp()
+		handler, err := web.GetHandler()
 		if err != nil {
 			return err
 		}
-		router.NotFoundHandler = http.FileServer(http.FS(webApp))
+		router.NotFoundHandler = handler
 	}
 
 	// Wrap the router in a handler that logs requests

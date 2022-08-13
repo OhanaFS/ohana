@@ -5,7 +5,18 @@ resilience in mind.
 
 ## Getting Started
 
-TODO
+To run a multi-node deployment, clone this repository and run `make prod-up`:
+
+```bash
+# Clone the repository
+git clone git@github.com:OhanaFS/ohana.git
+
+# Enter the cloned directory
+cd ohana
+
+# Start
+make prod-up
+```
 
 ## Development
 
