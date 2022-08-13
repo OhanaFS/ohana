@@ -248,16 +248,91 @@ func (bc *BackendController) GetFullShardsResult(w http.ResponseWriter, r *http.
 	util.HttpJson(w, http.StatusOK, result)
 }
 
-// RebuildFileVersion If a shard is broken from a file, the system will attempt to rebuild
+// FixFullShardsResult takes the request body,
+// decodes the results, and fixes based on the user input
+// and fixes the full shards check for the given jobId
+func (bc *BackendController) FixFullShardsResult(w http.ResponseWriter, r *http.Request) {
+
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// Check if user is admin
+	if user.AccountType != dbfs.AccountTypeAdmin {
+		util.HttpError(w, http.StatusForbidden, "You are not an admin")
+		return
+	}
+
+	vars := mux.Vars(r)
+	jobIdString := vars["id"]
+	jobId, err := strconv.Atoi(jobIdString)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "Invalid jobId")
+		return
+	}
+
+	// Check that jobId exists
+	originalResults, err := dbfs.GetResultsAFSHC(bc.Db, jobId)
+
+	// make it a map so I can easily check if a file is in the map
+	originalResultsMap := make(map[string]bool)
+	for _, file := range originalResults {
+		originalResultsMap[file.DataId] = true
+	}
+
+	// Decoding the request body
+	var results []dbfs.FixAFSHC
+	err = json.NewDecoder(r.Body).Decode(&results)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	for _, result := range results {
+		_, ok := originalResultsMap[result.DataId]
+		if !ok {
+			continue
+		}
+		// TODO: Should be a thread pool
+		if result.Fix {
+			err = bc.RebuildShard(result.DataId, result.Password)
+		} else if result.Delete {
+			// get/delete file
+			var files []dbfs.File
+			bc.Db.Model(&dbfs.File{}).Where("data_id = ?", result.DataId).Find(&files)
+			for _, file := range files {
+				err := file.Delete(bc.Db, user, "")
+				if err != nil {
+					util.HttpError(w, http.StatusInternalServerError, err.Error())
+					return
+				}
+			}
+			// get/delete file version
+			err = bc.Db.Model(&dbfs.FileVersion{}).Where("data_id = ?", result.DataId).
+				Update("status", dbfs.FileStatusToBeDeleted).Error
+			if err != nil {
+				util.HttpError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+		}
+
+	}
+
+	util.HttpJson(w, http.StatusOK, true)
+}
+
+// RebuildShard If a shard is broken from a file, the system will attempt to rebuild
 // it by creating a new shard with the same fileId and shardId.
-func (bc *BackendController) RebuildFileVersion(fileId string, versionId int, password string) error {
+func (bc *BackendController) RebuildShard(dataId, password string) error {
 
 	// Get file version, get IVs, download whatever is good and upload it again
 
 	var fv dbfs.FileVersion
 
 	err := bc.Db.Model(&dbfs.FileVersion{}).
-		Where("file_id = ? AND version_id = ?", fileId, versionId).First(&fv).Error
+		Where("data_id = ?", dataId).First(&fv).Error
 
 	if err != nil {
 		return dbfs.ErrFileNotFound

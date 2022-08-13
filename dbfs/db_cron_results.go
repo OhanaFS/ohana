@@ -79,6 +79,13 @@ type ResultsAFSHC struct {
 	ErrorType int
 }
 
+type FixAFSHC struct {
+	DataId   string
+	Fix      bool
+	Delete   bool
+	Password string
+}
+
 // JobProgressAFSHC All files fragment health check job progress
 type JobProgressAFSHC struct {
 	JobId      uint `gorm:"primary_key"`
