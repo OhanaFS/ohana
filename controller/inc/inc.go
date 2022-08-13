@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/OhanaFS/ohana/config"
 	"github.com/gorilla/mux"
@@ -70,6 +71,8 @@ func NewInc(config *config.Config, db *gorm.DB) *Inc {
 				Certificates: []tls.Certificate{clientCert},
 			},
 		},
+		// Quick timeout for quick failover
+		Timeout: time.Second,
 	}
 
 	// register routes

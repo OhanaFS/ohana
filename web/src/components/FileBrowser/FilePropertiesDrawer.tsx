@@ -3,19 +3,11 @@ import {
   Drawer,
   Table,
   Accordion,
-  Text,
-  PasswordInput,
-  Button,
-  Group,
   ScrollArea,
 } from '@mantine/core';
-import { useForm } from '@mantine/form';
-import { showNotification } from '@mantine/notifications';
-import { IconX } from '@tabler/icons';
 import {
   EntryType,
   MetadataKeyMap,
-  useMutateUpdateFileMetadata,
   useQueryFileMetadata,
 } from '../../api/file';
 import FilePreview from './FilePreview';
@@ -30,15 +22,6 @@ export type FilePropertiesDrawerProps = {
 const FilePropertiesDrawer = (props: FilePropertiesDrawerProps) => {
   const { fileId, onClose } = props;
   const qFile = useQueryFileMetadata(fileId);
-  const qFileMeta = useQueryFileMetadata(fileId);
-  const mFileMeta = useMutateUpdateFileMetadata();
-
-  const form = useForm({
-    initialValues: {
-      password: '',
-      password_c: '',
-    },
-  });
 
   return (
     <Drawer

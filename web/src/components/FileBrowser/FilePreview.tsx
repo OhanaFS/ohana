@@ -1,4 +1,4 @@
-import { Image } from '@mantine/core';
+import { Image, Text } from '@mantine/core';
 import { getFileDownloadURL, useQueryFileMetadata } from '../../api/file';
 
 export type FilePreviewProps = {
@@ -7,13 +7,15 @@ export type FilePreviewProps = {
 
 const FilePreview = ({ fileId }: FilePreviewProps) => {
   const qFile = useQueryFileMetadata(fileId);
-  const downladUrl = getFileDownloadURL(fileId);
+  const downladUrl = getFileDownloadURL(fileId, { inline: true });
 
   return qFile.data?.mime_type.startsWith('image/') ? (
     <Image src={downladUrl} />
   ) : qFile.data?.mime_type.startsWith('video/') ? (
     <video controls playsInline src={downladUrl}></video>
-  ) : null;
+  ) : (
+    <Text>{qFile.data?.file_name || ''}</Text>
+  );
 };
 
 export default FilePreview;

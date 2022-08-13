@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"golang.org/x/crypto/scrypt"
 	"gorm.io/gorm"
 	"io"
@@ -19,6 +20,10 @@ type PasswordProtect struct {
 	PasswordNonce  string
 	PasswordHint   string
 }
+
+var (
+	ErrIncorrectPassword = errors.New("incorrect password")
+)
 
 func EncryptWithKeyIV(plaintext, key, iv string) (string, error) {
 
@@ -182,7 +187,7 @@ func (p *PasswordProtect) DecryptWithPassword(password string) (string, string, 
 		// get key from password
 		key, err := scrypt.Key([]byte(password), passwordSaltBytes, 16384, 8, 1, 32)
 		if err != nil {
-			return "", "", err
+			return "", "", ErrIncorrectPassword
 		}
 
 		// try to decrypt file key with PasswordProtect

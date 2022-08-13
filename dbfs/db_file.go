@@ -792,6 +792,25 @@ func (f *File) UpdateMetaData(tx *gorm.DB, modificationsRequested FileMetadataMo
 
 	if modificationsRequested.PasswordModification {
 
+		pp, err := f.GetPasswordProtect(tx, user)
+		if err != nil {
+			return err
+		}
+
+		if modificationsRequested.NewPassword == "" && pp.PasswordActive {
+			if f.PasswordUnprotect(tx, modificationsRequested.OldPassword, user) != nil {
+				return ErrPasswordIncorrect
+			}
+		} else if modificationsRequested.NewPassword == "" && !pp.PasswordActive {
+			// No password change requested
+		} else if modificationsRequested.NewPassword != "" {
+			if f.PasswordProtect(tx, modificationsRequested.OldPassword,
+				modificationsRequested.NewPassword, modificationsRequested.PasswordHint,
+				user) != nil {
+				return err
+			}
+		}
+
 	} else {
 		if modificationsRequested.FileName != "" {
 			if f.FileName != modificationsRequested.FileName {
@@ -886,7 +905,9 @@ func (f *File) PasswordProtect(tx *gorm.DB, oldPassword, newPassword, hint strin
 	}
 
 	err = passwordProtect.encryptWithPassword(tx, oldPassword, newPassword, hint)
-	return err
+
+	f.PasswordProtected = true
+	return tx.Save(f).Error
 }
 
 // PasswordUnprotect
@@ -916,8 +937,9 @@ func (f *File) PasswordUnprotect(tx *gorm.DB, password string, user *User) error
 	}
 
 	err = passwordProtect.removePassword(tx, password)
-	return err
 
+	f.PasswordProtected = false
+	return tx.Save(f).Error
 }
 
 func (f *File) GetPasswordProtect(tx *gorm.DB, user *User) (*PasswordProtect, error) {

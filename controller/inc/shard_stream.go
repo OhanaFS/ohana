@@ -11,10 +11,17 @@ import (
 
 	"github.com/OhanaFS/ohana/dbfs"
 	"github.com/OhanaFS/ohana/util"
+	"github.com/OhanaFS/ohana/util/ctxutil"
 	"github.com/OhanaFS/ohana/util/httprs"
 	"github.com/OhanaFS/ohana/util/httpwc"
+	"github.com/OhanaFS/ohana/util/slice"
 	"github.com/OhanaFS/stitch"
 	"github.com/gorilla/mux"
+	"golang.org/x/exp/slices"
+)
+
+var (
+	ErrNoServersAvailable = errors.New("no servers are available")
 )
 
 // handleShardStream is the handler for /api/v1/node/shard/{shardId} defined in
@@ -112,4 +119,38 @@ func (i *Inc) NewShardReader(ctx context.Context, serverName, shardId string) (i
 	}
 
 	return httprs.NewHttpRS(ctx, i.HttpClient, addr)
+}
+
+// AssignShardServer returns a slice of available servers to receive shards. If
+// count is greater than the number of available servers, duplicate servers will
+// be returned. The length of the resulting slice will always be equal to the
+// requested count.
+func (i *Inc) AssignShardServer(ctx context.Context, count int) ([]dbfs.Server, error) {
+	// Initialize a slice to hold the results
+	servers := make([]dbfs.Server, count)
+
+	// Get a list of all servers
+	tx := ctxutil.GetTransaction(ctx, i.Db)
+	allServers, err := dbfs.GetServers(tx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the list of servers: %w", err)
+	}
+
+	// Filter servers to only those that are online
+	onlineServers := slice.Filter(allServers,
+		func(srv dbfs.Server) bool { return srv.Status == dbfs.ServerOnline })
+	if len(onlineServers) == 0 {
+		return nil, ErrNoServersAvailable
+	}
+
+	// Sort the servers by the free space they have, descending
+	slices.SortFunc(onlineServers,
+		func(a, b dbfs.Server) bool { return a.FreeSpace > b.FreeSpace })
+
+	// Choose the servers
+	for i := range servers {
+		servers[i] = onlineServers[i%len(onlineServers)]
+	}
+
+	return servers, nil
 }

@@ -27,7 +27,6 @@ COPY . .
 RUN make
 
 FROM scratch
-USER 1001
 WORKDIR /app
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/

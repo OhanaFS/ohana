@@ -134,11 +134,13 @@ export const useMutateUpdateFile = () => {
  */
 export const useQueryFileMetadata = (fileId: string) =>
   useQuery(['file', 'metadata', fileId], () =>
-    APIClient.get<FileMetadata<EntryType.File>>(
-      `/api/v1/file/${fileId}/metadata`
-    )
-      .then((res) => res.data)
-      .catch(typedError)
+    !fileId
+      ? Promise.reject()
+      : APIClient.get<FileMetadata<EntryType.File>>(
+          `/api/v1/file/${fileId}/metadata`
+        )
+          .then((res) => res.data)
+          .catch(typedError)
   );
 
 export type FileMetadataUpdateRequest = {
@@ -209,10 +211,16 @@ export const useMutateCopyFile = () =>
  * Get the download URL for a file. If a version number is provided, the
  * download URL will point to the specified version.
  */
-export const getFileDownloadURL = (fileId: string, versionId?: number) =>
-  window.location.origin +
-  `/api/v1/file/${fileId}` +
-  (versionId ? `/version/${versionId}` : '');
+export const getFileDownloadURL = (
+  fileId: string,
+  opts?: { versionId?: number; inline?: boolean }
+) =>
+  [
+    window.location.origin,
+    `/api/v1/file/${fileId}`,
+    opts?.versionId ? `/version/${opts?.versionId}` : '',
+    opts?.inline ? '?inline=true' : '',
+  ].join('');
 
 /**
  * Delete a file by its ID.
@@ -256,9 +264,11 @@ export type FilePermission = Permission & {
  */
 export const useQueryFilePermissions = (fileId: string) =>
   useQuery(['file', 'permissions', fileId], () =>
-    APIClient.get<FilePermission[]>(`/api/v1/file/${fileId}/permissions`)
-      .then((res) => res.data)
-      .catch(typedError)
+    !fileId
+      ? Promise.reject()
+      : APIClient.get<FilePermission[]>(`/api/v1/file/${fileId}/permissions`)
+          .then((res) => res.data)
+          .catch(typedError)
   );
 
 export type UpdateFilePermissionsRequest = Permission & {
@@ -309,11 +319,13 @@ export const useQueryFileVersionMetadata = (
   versionId: number
 ) =>
   useQuery(['file', 'version', 'metadata', fileId, versionId], () =>
-    APIClient.get<FileMetadata<EntryType.File>>(
-      `/api/v1/file/${fileId}/version/${versionId}/metadata`
-    )
-      .then((res) => res.data)
-      .catch(typedError)
+    !fileId || !versionId
+      ? Promise.reject()
+      : APIClient.get<FileMetadata<EntryType.File>>(
+          `/api/v1/file/${fileId}/version/${versionId}/metadata`
+        )
+          .then((res) => res.data)
+          .catch(typedError)
   );
 
 /**
@@ -321,11 +333,13 @@ export const useQueryFileVersionMetadata = (
  */
 export const useQueryFileVersionHistory = (fileId: string) =>
   useQuery(['file', 'version', 'history', fileId], () =>
-    APIClient.get<FileMetadata<EntryType.File>[]>(
-      `/api/v1/file/${fileId}/versions`
-    )
-      .then((res) => res.data)
-      .catch(typedError)
+    !fileId
+      ? Promise.reject()
+      : APIClient.get<FileMetadata<EntryType.File>[]>(
+          `/api/v1/file/${fileId}/versions`
+        )
+          .then((res) => res.data)
+          .catch(typedError)
   );
 
 export type DeleteFileVersionRequest = {

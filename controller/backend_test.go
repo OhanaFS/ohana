@@ -110,6 +110,8 @@ func TestBackendController(t *testing.T) {
 	var writer *multipart.Writer
 	var part io.Writer
 
+	newPassword := "newpassword"
+
 	t.Run("Create Folder at root", func(t *testing.T) {
 		req = httptest.NewRequest("POST", "/api/v1/folder", nil).WithContext(
 			ctxutil.WithUser(context.Background(), user))
@@ -341,8 +343,10 @@ func TestBackendController(t *testing.T) {
 	t.Run("Modify File Metadata (rename, delta)", func(t *testing.T) {
 
 		newBody, err = json.Marshal(dbfs.FileMetadataModification{
-			FileName:       "thisfileisgreat.txt",
-			VersioningMode: dbfs.VersioningOnVersions,
+			FileName:          "thisfileisgreat.txt",
+			VersioningMode:    dbfs.VersioningOnVersions,
+			PasswordProtected: true,
+			NewPassword:       newPassword,
 		})
 
 		assert.NoError(err)
@@ -521,6 +525,7 @@ func TestBackendController(t *testing.T) {
 			"fileID": newFileID,
 		})
 		req.Header.Add("Content-Type", writer.FormDataContentType())
+		req.Header.Add("password", newPassword)
 
 		bc.UpdateFile(w, req)
 		assert.Equal(http.StatusOK, w.Code)
@@ -533,6 +538,7 @@ func TestBackendController(t *testing.T) {
 		req = mux.SetURLVars(req, map[string]string{
 			"fileID": newFileID,
 		})
+		req.Header.Add("password", newPassword)
 		w = httptest.NewRecorder()
 		bc.DownloadFileVersion(w, req)
 		assert.Equal(http.StatusOK, w.Code, w.Body.String())
@@ -588,6 +594,7 @@ func TestBackendController(t *testing.T) {
 			"versionID": "1",
 		})
 		w = httptest.NewRecorder()
+		req.Header.Add("password", newPassword)
 		bc.DownloadFileVersion(w, req)
 		assert.Equal(http.StatusOK, w.Code, w.Body.String())
 
