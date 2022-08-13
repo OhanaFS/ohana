@@ -888,40 +888,41 @@ func TestAdminClusterRoutes(t *testing.T) {
 
 	})
 
-	t.Run("DeleteServer", func(t *testing.T) {
-		Assert := assert.New(t)
+	/*
+		t.Run("DeleteServer", func(t *testing.T) {
+			Assert := assert.New(t)
 
-		req := httptest.NewRequest("DELETE", "/api/v1/cluster/stats/server_statuses/localServer", nil).WithContext(
-			ctxutil.WithUser(context.Background(), user))
-		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
-		req = mux.SetURLVars(req, map[string]string{
-			"serverName": "localServer",
+			req := httptest.NewRequest("DELETE", "/api/v1/cluster/stats/server_statuses/localServer", nil).WithContext(
+				ctxutil.WithUser(context.Background(), user))
+			req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+			req = mux.SetURLVars(req, map[string]string{
+				"serverName": "localServer",
+			})
+			w := httptest.NewRecorder()
+			bc.DeleteServer(w, req)
+			Assert.Equal(http.StatusOK, w.Code)
+			body := w.Body.String()
+
+			Assert.Contains(body, "true")
+
+			// Check that the server is actually deleted
+			req = httptest.NewRequest("GET", "/api/v1/cluster/stats/server_statuses", nil).WithContext(
+				ctxutil.WithUser(context.Background(), user))
+			req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+			w = httptest.NewRecorder()
+			bc.GetServerStatuses(w, req)
+			Assert.Equal(http.StatusOK, w.Code)
+			body = w.Body.String()
+
+			var serverStatuses []dbfs.Server
+
+			Assert.NoError(json.Unmarshal([]byte(body), &serverStatuses))
+			Assert.Equal("localServer", serverStatuses[0].Name)
+			Assert.Equal(Inc.HostName, serverStatuses[0].HostName)
+			Assert.Equal(Inc.Port, serverStatuses[0].Port)
+			Assert.Equal(dbfs.ServerOffline, serverStatuses[0].Status)
 		})
-		w := httptest.NewRecorder()
-		bc.DeleteServer(w, req)
-		Assert.Equal(http.StatusOK, w.Code)
-		body := w.Body.String()
-
-		Assert.Contains(body, "true")
-
-		// Check that the server is actually deleted
-		req = httptest.NewRequest("GET", "/api/v1/cluster/stats/server_statuses", nil).WithContext(
-			ctxutil.WithUser(context.Background(), user))
-		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
-		w = httptest.NewRecorder()
-		bc.GetServerStatuses(w, req)
-		Assert.Equal(http.StatusOK, w.Code)
-		body = w.Body.String()
-
-		var serverStatuses []dbfs.Server
-
-		Assert.NoError(json.Unmarshal([]byte(body), &serverStatuses))
-		Assert.Equal("localServer", serverStatuses[0].Name)
-		Assert.Equal(Inc.HostName, serverStatuses[0].HostName)
-		Assert.Equal(Inc.Port, serverStatuses[0].Port)
-		Assert.Equal(dbfs.ServerOffline, serverStatuses[0].Status)
-	})
-
+	*/
 	os.RemoveAll(tempDir)
 }
 

@@ -8,10 +8,12 @@ import (
 	"github.com/OhanaFS/ohana/util"
 	"github.com/OhanaFS/stitch"
 	"gorm.io/gorm"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -257,7 +259,7 @@ func (i Inc) LocalOrphanedShardsCheck(jobId int, storeResults bool) ([]string, e
 	if storeResults {
 		// create JobProgressOrphanedShard
 		jobProgressOrphanedShard := dbfs.JobProgressOrphanedShard{
-			JobId:      jobId,
+			JobId:      uint(jobId),
 			StartTime:  time.Now(),
 			ServerId:   i.ServerName,
 			InProgress: true,
@@ -300,22 +302,24 @@ func (i Inc) LocalOrphanedShardsCheck(jobId int, storeResults bool) ([]string, e
 
 		for j, orphanedShard := range orphanedShards {
 			resultsOrphanedShards[j] = dbfs.ResultsOrphanedShard{
-				JobId:    jobId,
+				JobId:    uint(jobId),
 				ServerId: i.ServerName,
 				FileName: orphanedShard,
 			}
 		}
 
 		if len(resultsOrphanedShards) > 0 {
-			if i.Db.Create(&resultsOrphanedShards).Error != nil {
+			err = i.Db.Create(&resultsOrphanedShards).Error
+			if err != nil {
 				return nil, errors.New("Failed to create ResultsOrphanedShard")
 			}
 		}
 
 		// update JobProgressOrphanedShard
-		if i.Db.Model(&dbfs.JobProgressOrphanedShard{}).
+		err = i.Db.Model(&dbfs.JobProgressOrphanedShard{}).
 			Where("job_id = ? and server_id = ?", jobId, i.ServerName).
-			Update("in_progress", false).Error != nil {
+			Update("in_progress", false).Error
+		if err != nil {
 			return nil, errors.New("Failed to update JobProgressOrphanedShard")
 		}
 
@@ -336,7 +340,7 @@ func (i Inc) LocalMissingShardsCheck(jobId int, storeResults bool) ([]dbfs.Resul
 	if storeResults {
 		// create JobProgressMissingShard
 		jobProgressMissingShard := dbfs.JobProgressMissingShard{
-			JobId:      jobId,
+			JobId:      uint(jobId),
 			StartTime:  time.Now(),
 			ServerId:   i.ServerName,
 			InProgress: true,
@@ -391,7 +395,7 @@ func (i Inc) LocalMissingShardsCheck(jobId int, storeResults bool) ([]dbfs.Resul
 			jsonFileIdBytes, _ := json.Marshal(fileids)
 
 			missingShards = append(missingShards, dbfs.ResultsMissingShard{
-				JobId:     jobId,
+				JobId:     uint(jobId),
 				FileName:  string(jsonFilenameBytes),
 				FileId:    string(jsonFileIdBytes),
 				DataId:    fragment.FileVersionDataId,
@@ -510,7 +514,7 @@ func (i Inc) LocalCurrentFilesShardsHealthCheck(jobId int) error {
 
 	// store start in the JobProgress_CFFHC.
 	err := i.Db.Create(&dbfs.JobProgressCFSHC{
-		JobId:      jobId,
+		JobId:      uint(jobId),
 		StartTime:  time.Now(),
 		ServerId:   i.ServerName,
 		InProgress: true,
@@ -568,7 +572,7 @@ func (i Inc) LocalCurrentFilesShardsHealthCheck(jobId int) error {
 			fileIdsJSON, err := util.AddItemToJSONArray[string]("[]", frag.FileId)
 			fileNamesJSON, err := util.AddItemToJSONArray[string]("[]", frag.FileName)
 			tempResult := dbfs.ResultsCFSHC{
-				JobId:    jobId,
+				JobId:    uint(jobId),
 				FileName: fileNamesJSON,
 				FileId:   fileIdsJSON,
 				DataId:   frag.DataId,
@@ -647,7 +651,7 @@ func (i Inc) LocalAllFilesShardsHealthCheck(jobId int) error {
 
 	// store start in the JobProgressAFSHC.
 	err := i.Db.Create(&dbfs.JobProgressAFSHC{
-		JobId:      jobId,
+		JobId:      uint(jobId),
 		StartTime:  time.Now(),
 		ServerId:   i.ServerName,
 		InProgress: true,
@@ -745,7 +749,7 @@ func (i Inc) LocalAllFilesShardsHealthCheck(jobId int) error {
 			verificationResult, err := i.LocalIndividualShardHealthCheck(shard.FileFragmentPath)
 
 			tempResult := dbfs.ResultsAFSHC{
-				JobId:    jobId,
+				JobId:    uint(jobId),
 				FileName: fileNamesJSON,
 				FileId:   fileIdsJSON,
 				DataId:   shard.FileVersionDataId,
@@ -807,4 +811,57 @@ func (i Inc) LocalAllFilesShardsHealthCheck(jobId int) error {
 		Update("in_progress", false)
 
 	return nil
+}
+
+// StartJob is a function that initializes a job
+// It is used to send tasks to the nodes to be executed
+// based on the input Job
+func (i *Inc) StartJob(job *dbfs.Job) (map[string]string, error) {
+
+	// Get servers
+	servers, err := dbfs.GetServers(i.Db)
+	if err != nil {
+		return nil, err
+	}
+
+	allErrors := make(map[string]string)
+
+	for _, server := range servers {
+		if job.AllFilesShardsHealthCheck {
+			if server.Name != i.ServerName {
+				// Send the job to the server via post
+				r, _ := http.NewRequest("POST",
+					"https://"+server.HostName+":"+server.Port+AllFilesHealthPath, nil)
+				r.Header.Set("job_id", strconv.Itoa(int(job.JobId)))
+				resp, err := i.HttpClient.Do(r)
+				if err != nil {
+					allErrors[server.Name] = err.Error()
+					continue
+				}
+				if resp.StatusCode != http.StatusOK {
+					b, err := ioutil.ReadAll(resp.Body)
+					if err != nil {
+						allErrors[server.Name] = err.Error()
+						continue
+					}
+					allErrors[server.Name] = string(b)
+				}
+
+			} else {
+				// Perform the job on this server
+				err = i.LocalAllFilesShardsHealthCheck(int(job.JobId))
+				if err != nil {
+					allErrors[server.Name] = err.Error()
+				}
+			}
+		}
+
+	}
+
+	if len(allErrors) > 0 {
+		return allErrors, errors.New("some errors occurred")
+	} else {
+		return nil, nil
+	}
+
 }

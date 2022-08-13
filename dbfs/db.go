@@ -14,7 +14,8 @@ func InitDB(db *gorm.DB) error {
 		// Cron Jobs
 		&ResultsCFSHC{}, &JobProgressCFSHC{}, &ResultsAFSHC{}, &JobProgressAFSHC{},
 		&ResultsMissingShard{}, &JobProgressMissingShard{}, &ResultsOrphanedShard{}, &JobProgressOrphanedShard{},
-		&HistoricalStats{})
+		&JobProgressPermissionCheck{}, &JobProgressDeleteFragments{},
+		&HistoricalStats{}, &Job{})
 
 	if err != nil {
 		return err

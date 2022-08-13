@@ -3,6 +3,7 @@ package dbfs
 import (
 	"errors"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"time"
 )
 
@@ -10,6 +11,9 @@ const (
 	CronErrorTypeInternalError = 1
 	CronErrorTypeNotAvailable  = 2
 	CronErrorTypeCorrupted     = 3
+	JobStatusRunning           = 1
+	JobStatusCompleteErrors    = 2
+	JobStatusCompleteNoErrors  = 3
 )
 
 var (
@@ -17,9 +21,33 @@ var (
 	ErrorCronJobDoesNotExist = errors.New("cron job does not exist")
 )
 
+type Job struct {
+	JobId                        uint `gorm:"primaryKey; not null"`
+	StartTime                    time.Time
+	EndTime                      time.Time
+	TotalTimeTaken               time.Duration
+	TotalShardsScanned           int
+	TotalFilesScanned            int
+	MissingShardsCheck           bool
+	MissingShardsProgress        []JobProgressMissingShard `gorm:"foreignkey:JobId"`
+	OrphanedShardsCheck          bool
+	OrphanedShardsProgress       []JobProgressOrphanedShard `gorm:"foreignkey:JobId"`
+	QuickShardsHealthCheck       bool
+	QuickShardsHealthProgress    []JobProgressCFSHC `gorm:"foreignkey:JobId"`
+	AllFilesShardsHealthCheck    bool
+	AllFilesShardsHealthProgress []JobProgressAFSHC `gorm:"foreignkey:JobId"`
+	PermissionCheck              bool
+	PermissionResults            []JobProgressPermissionCheck `gorm:"foreignkey:JobId"`
+	DeleteFragments              bool
+	DeleteFragmentsResults       []JobProgressDeleteFragments `gorm:"foreignkey:JobId"`
+	Progress                     int
+	StatusMsg                    string
+	Status                       int
+}
+
 // ResultsCFSHC Current files shards health check result
 type ResultsCFSHC struct {
-	JobId     int
+	JobId     uint
 	FileName  string
 	FileId    string
 	DataId    string
@@ -31,8 +59,9 @@ type ResultsCFSHC struct {
 
 // JobProgressCFSHC Current files shards health check job progress
 type JobProgressCFSHC struct {
-	JobId      int
+	JobId      uint `gorm:"primary_key"`
 	StartTime  time.Time
+	EndTime    time.Time
 	ServerId   string
 	InProgress bool
 	Msg        string
@@ -40,7 +69,7 @@ type JobProgressCFSHC struct {
 
 // ResultsAFSHC All file shards health check result
 type ResultsAFSHC struct {
-	JobId     int
+	JobId     uint
 	FileName  string
 	FileId    string
 	DataId    string
@@ -52,8 +81,9 @@ type ResultsAFSHC struct {
 
 // JobProgressAFSHC All files fragment health check job progress
 type JobProgressAFSHC struct {
-	JobId      int
+	JobId      uint `gorm:"primary_key"`
 	StartTime  time.Time
+	EndTime    time.Time
 	ServerId   string
 	InProgress bool
 	Msg        string
@@ -61,7 +91,7 @@ type JobProgressAFSHC struct {
 
 // ResultsMissingShard All Fragments health check result
 type ResultsMissingShard struct {
-	JobId     int
+	JobId     uint
 	FileName  string
 	FileId    string
 	DataId    string
@@ -73,8 +103,9 @@ type ResultsMissingShard struct {
 
 // JobProgressMissingShard Missing shards job progress
 type JobProgressMissingShard struct {
-	JobId      int
+	JobId      uint `gorm:"primary_key"`
 	StartTime  time.Time
+	EndTime    time.Time
 	ServerId   string
 	InProgress bool
 	Msg        string
@@ -82,18 +113,189 @@ type JobProgressMissingShard struct {
 
 // ResultsOrphanedShard Orphaned shards result
 type ResultsOrphanedShard struct {
-	JobId    int
+	JobId    uint
 	ServerId string
 	FileName string
 }
 
 // JobProgressOrphanedShard Orphaned shards job progress
 type JobProgressOrphanedShard struct {
-	JobId      int
+	JobId      uint `gorm:"primary_key"`
 	StartTime  time.Time
+	EndTime    time.Time
 	ServerId   string
 	InProgress bool
 	Msg        string
+}
+
+// JobProgressPermissionCheck reports the progress of the permission check
+type JobProgressPermissionCheck struct {
+	JobId      uint `gorm:"primary_key"`
+	StartTime  time.Time
+	EndTime    time.Time
+	ServerId   string
+	InProgress bool
+	Msg        string
+}
+
+// JobProgressDeleteFragments reports the progress of deleting fragments
+type JobProgressDeleteFragments struct {
+	JobId      uint `gorm:"primary_key"`
+	StartTime  time.Time
+	EndTime    time.Time
+	ServerId   string
+	InProgress bool
+	Msg        string
+}
+
+type JobParameters struct {
+	MissingShardsCheck  bool
+	OrphanedShardsCheck bool
+	QuickShardsCheck    bool
+	AllFilesShardsCheck bool
+	PermissionCheck     bool
+	DeleteFragments     bool
+}
+
+// GetAllJobs Returns all jobs in the database based on the paramters passed in
+func GetAllJobs(tx *gorm.DB, startNum int, startDate, endDate time.Time, filter int) ([]Job, error) {
+
+	// TODO Calculate the Progress
+	var jobs []Job
+	var err error
+	if filter == 0 {
+		err = tx.Where("start_time >= ? AND start_time <= ? ",
+			startDate, endDate).
+			Order("start_time desc").
+			Offset(startNum).
+			Limit(10).
+			Preload(clause.Associations).
+			Find(&jobs).Error
+	} else {
+		err = tx.Where("start_time >= ? AND start_time <= ? AND status = ?",
+			startDate, endDate, filter).
+			Order("start_time desc").
+			Offset(startNum).
+			Limit(10).
+			Preload(clause.Associations).
+			Find(&jobs).Error
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	return jobs, nil
+}
+
+// GetJob Returns a job by id
+func GetJob(tx *gorm.DB, jobId int) (*Job, error) {
+	var job Job
+	err := tx.Where("job_id = ?", jobId).Preload(clause.Associations).
+		First(&job).Preload(clause.Associations).
+		Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, ErrorCronJobDoesNotExist
+		}
+		return nil, err
+	}
+	return &job, nil
+}
+
+// DeleteJob Deletes a job by id and all the associated results
+func DeleteJob(tx *gorm.DB, jobId int) error {
+	var job Job
+	err := tx.Where("job_id = ?", jobId).Preload(clause.Associations).
+		First(&job).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return ErrorCronJobDoesNotExist
+		}
+		return err
+	}
+
+	// Getting associated results and deleting it.
+	err = tx.Transaction(func(tx *gorm.DB) error {
+
+		for _, result := range job.MissingShardsProgress {
+			err := tx.Delete(&result).Error
+			if err != nil {
+				return err
+			}
+		}
+		for _, result := range job.OrphanedShardsProgress {
+			err := tx.Delete(&result).Error
+			if err != nil {
+				return err
+			}
+		}
+		for _, result := range job.QuickShardsHealthProgress {
+			err := tx.Delete(&result).Error
+			if err != nil {
+				return err
+			}
+		}
+		for _, result := range job.AllFilesShardsHealthProgress {
+			err := tx.Delete(&result).Error
+			if err != nil {
+				return err
+			}
+		}
+		for _, result := range job.PermissionResults {
+			err := tx.Delete(&result).Error
+			if err != nil {
+				return err
+			}
+		}
+		for _, result := range job.DeleteFragmentsResults {
+			err := tx.Delete(&result).Error
+			if err != nil {
+				return err
+			}
+		}
+
+		if tx.Delete(&job).Error != nil {
+			return err
+		}
+
+		return nil
+
+	})
+
+	return err
+}
+
+// InitializeJob creates a job based on the parameters given.
+// Will return a job object which contains an ID that can be used to get the job progress.
+// It does not communicate with Inc to start the job.
+func InitializeJob(tx *gorm.DB, parameters JobParameters) (*Job, error) {
+
+	if parameters.AllFilesShardsCheck {
+		parameters.QuickShardsCheck = false
+		parameters.MissingShardsCheck = false
+	}
+
+	// get an id
+	job := &Job{
+		StartTime:                 time.Now(),
+		MissingShardsCheck:        parameters.MissingShardsCheck,
+		OrphanedShardsCheck:       parameters.OrphanedShardsCheck,
+		QuickShardsHealthCheck:    parameters.QuickShardsCheck,
+		AllFilesShardsHealthCheck: parameters.AllFilesShardsCheck,
+		PermissionCheck:           parameters.PermissionCheck,
+		DeleteFragments:           parameters.DeleteFragments,
+	}
+	err := tx.Create(&job).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return job, nil
+}
+
+func StartJob(tx *gorm.DB, job *Job) error {
+
+	return nil
 }
 
 // GetResultsCFSHC Returns the results of a Current Files Shards Health Check job based on jobId
