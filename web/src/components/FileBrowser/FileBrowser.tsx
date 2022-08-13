@@ -167,11 +167,6 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
     ],
     []
   );
-  const thumbnailGenerator = useCallback(
-    (file: FileData) =>
-      file.thumbnailUrl ? `https://chonky.io${file.thumbnailUrl}` : null,
-    []
-  );
 
   const qFilesList = useQueryFolderContents(folderID);
 
@@ -183,13 +178,21 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   const mCopyFile = useMutateCopyFile();
 
   const ohanaFiles =
-    qFilesList.data?.map((file) => ({
-      id: file.file_id,
-      name: file.file_name,
-      isDir: file.entry_type === EntryType.Folder,
-      modDate: file.modified_time,
-      size: file.size,
-    })) || [];
+    qFilesList.data?.map?.(
+      (file) =>
+        ({
+          id: file.file_id,
+          name: file.file_name,
+          isDir: file.entry_type === EntryType.Folder,
+          modDate: file.modified_time,
+          size: file.size,
+          thumbnailUrl:
+            file.entry_type === EntryType.File &&
+            file.mime_type.startsWith('image/')
+              ? getFileDownloadURL(file.file_id, { inline: true })
+              : undefined,
+        } as FileData)
+    ) || [];
 
   const ohanaFolderChain = [{ id: homeFolderID, name: 'Home', isDir: true }];
   return (
@@ -200,7 +203,6 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
           folderChain={ohanaFolderChain}
           fileActions={fileActions}
           onFileAction={handleFileAction}
-          thumbnailGenerator={thumbnailGenerator}
           {...props}
         />
       </div>
