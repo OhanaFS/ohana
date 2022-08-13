@@ -1173,12 +1173,16 @@ func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.
 	for _, shardMeta := range shardsMeta {
 		shardReader, err := bc.Inc.NewShardReader(
 			r.Context(), shardMeta.ServerName, shardMeta.FileFragmentPath)
-		if err != nil {
-			util.HttpError(w, http.StatusInternalServerError,
-				fmt.Sprintf("failed to create shard reader: %s", err.Error()))
-			return
+		if err == nil {
+			shards = append(shards, shardReader)
 		}
-		shards = append(shards, shardReader)
+		/*
+			if err != nil {
+				util.HttpError(w, http.StatusInternalServerError,
+					fmt.Sprintf("failed to create shard reader: %s", err.Error()))
+				return
+			}
+		*/
 	}
 
 	hexKey, hexIv, err := version.GetDecryptionKey(bc.Db, user, password)
