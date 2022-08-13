@@ -410,6 +410,10 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 
 	err = dbfsFile.UpdateFile(bc.Db, int(fileSize), int(fileSize), "TODO:CHECKSUM", "", dataKey, dataIv, password, user, header.Filename)
 	if err != nil {
+		if errors.Is(err, dbfs.ErrIncorrectPassword) {
+			util.HttpError(w, http.StatusForbidden, err.Error())
+			return
+		}
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -1170,6 +1174,10 @@ func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.
 
 	hexKey, hexIv, err := version.GetDecryptionKey(bc.Db, user, password)
 	if err != nil {
+		if errors.Is(err, dbfs.ErrIncorrectPassword) {
+			util.HttpError(w, http.StatusForbidden, err.Error())
+			return
+		}
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
