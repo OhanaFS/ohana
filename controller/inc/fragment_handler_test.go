@@ -217,8 +217,7 @@ func TestFragmentHandler(t *testing.T) {
 
 		updateFileTestFunc := func(file *dbfs.File) {
 
-			err := file.UpdateFile(db, file.Size, file.Size, "ignore checksum",
-				Inc.ServerName, "", "", "", &superUser)
+			err := file.UpdateFile(db, file.Size, file.Size, "ignore checksum", Inc.ServerName, "", "", "", &superUser, "")
 			Assert.NoError(err)
 
 			for i := 1; i <= int(file.TotalShards); i++ {

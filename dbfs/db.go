@@ -13,7 +13,8 @@ func InitDB(db *gorm.DB) error {
 		&PasswordProtect{}, &Server{}, KeyValueDBPair{}, DataCopies{}, &Log{}, &Role{}, &Alert{},
 		// Cron Jobs
 		&ResultsCFSHC{}, &JobProgressCFSHC{}, &ResultsAFSHC{}, &JobProgressAFSHC{},
-		&ResultsMissingShard{}, &JobProgressMissingShard{}, &ResultsOrphanedShard{}, &JobProgressOrphanedShard{})
+		&ResultsMissingShard{}, &JobProgressMissingShard{}, &ResultsOrphanedShard{}, &JobProgressOrphanedShard{},
+		&HistoricalStats{})
 
 	if err != nil {
 		return err

@@ -697,7 +697,7 @@ func EXAMPLEUpdateFile(tx *gorm.DB, file *dbfs.File, password string, user *dbfs
 		return err
 	}
 
-	err = file.UpdateFile(tx, 2020, 2020, "wowKey", "wowServer", dataKey, dataIv, password, user)
+	err = file.UpdateFile(tx, 2020, 2020, "wowKey", "wowServer", dataKey, dataIv, password, user, "")
 	if err != nil {
 		return err
 	}
