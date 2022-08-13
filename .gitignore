@@ -25,9 +25,7 @@ go.work
 .idea/vcs.xml
 
 node_modules/
-*.shard0
-*.shard1
-*.shard2
+*.shard*
 *.DS_Store
 
 certificates/

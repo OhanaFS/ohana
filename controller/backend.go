@@ -245,7 +245,17 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Open the output files
+	// Fetch a list of servers
+	servers, err := bc.Inc.AssignShardServer(r.Context(), totalShards)
+	if err != nil {
+		util.HttpError(w,
+			http.StatusInternalServerError,
+			fmt.Sprintf("failed to assign servers: %s", err.Error()),
+		)
+		return
+	}
+
+	// Prepare the writers
 	shardWriters := make([]io.Writer, totalShards)
 	shardNames := make([]string, totalShards)
 
@@ -256,9 +266,8 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 
 	// Open the output writers
 	for i := 0; i < totalShards; i++ {
-		// TODO: currently this only streams to the current server. Need to replace
-		// bc.ServerName with names of other servers chosen by some method.
-		shardWriter, err := bc.Inc.NewShardWriter(r.Context(), bc.ServerName, shardNames[i])
+		shardWriter, err := bc.Inc.NewShardWriter(
+			r.Context(), servers[i].Name, shardNames[i])
 		if err != nil {
 			util.HttpError(w,
 				http.StatusInternalServerError,
@@ -308,7 +317,7 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 
 			if err := dbfs.CreateFragment(tx,
 				dbfsFile.FileId, dbfsFile.DataId, dbfsFile.VersionNo,
-				fragId, bc.ServerName, fragmentPath); err != nil {
+				fragId, servers[i-1].Name, fragmentPath); err != nil {
 				return err
 			}
 		}
