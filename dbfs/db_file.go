@@ -905,7 +905,9 @@ func (f *File) PasswordProtect(tx *gorm.DB, oldPassword, newPassword, hint strin
 	}
 
 	err = passwordProtect.encryptWithPassword(tx, oldPassword, newPassword, hint)
-	return err
+
+	f.PasswordProtected = true
+	return tx.Save(f).Error
 }
 
 // PasswordUnprotect
@@ -935,8 +937,9 @@ func (f *File) PasswordUnprotect(tx *gorm.DB, password string, user *User) error
 	}
 
 	err = passwordProtect.removePassword(tx, password)
-	return err
 
+	f.PasswordProtected = false
+	return tx.Save(f).Error
 }
 
 func (f *File) GetPasswordProtect(tx *gorm.DB, user *User) (*PasswordProtect, error) {

@@ -6,7 +6,16 @@ services:
     build:
       context: ..
       dockerfile: .docker/Dockerfile
-    command: ['/app/ohana', '--gen-ca', '--gen-certs', '-hosts', 'certhosts.yaml']
+    command:
+      [
+        '/app/ohana',
+        '--gen-ca',
+        '--gen-certs',
+        '-hosts',
+        'certhosts.yaml'
+      ]
+    networks:
+      - backend
     volumes:
       - ohanaCerts:/app/certificates
       - ./certhosts.prod.yaml:/app/certhosts.yaml
@@ -71,6 +80,7 @@ services:
 volumes:
   postDB:
   ohanaCerts:
+
 
 networks:
   backend:
