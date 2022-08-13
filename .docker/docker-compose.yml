@@ -22,6 +22,7 @@ services:
     volumes:
       - ohanaCerts:/app/certificates:ro
       - ./config.1.yaml:/app/config.yaml:ro
+      - ../shards/ohana1:/app/shards
 
   ohana2:
     image: ohana
@@ -34,6 +35,7 @@ services:
     volumes:
       - ohanaCerts:/app/certificates:ro
       - ./config.2.yaml:/app/config.yaml:ro
+      - ../shards/ohana2:/app/shards
 
   nginx:
     image: nginx

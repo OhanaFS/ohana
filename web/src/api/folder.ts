@@ -7,11 +7,13 @@ import { EntryType, FileMetadata, FilePermission, Permission } from './file';
  */
 export const useQueryFolderContents = (folderId: string) =>
   useQuery(['folder', 'contents', 'id', folderId], () =>
-    APIClient.get<FileMetadata<EntryType.Folder>[]>(
-      `/api/v1/folder/${folderId}`
-    )
-      .then((res) => res.data)
-      .catch(typedError)
+    !folderId
+      ? Promise.reject()
+      : APIClient.get<FileMetadata<EntryType.Folder | EntryType.File>[]>(
+          `/api/v1/folder/${folderId}`
+        )
+          .then((res) => res.data)
+          .catch(typedError)
   );
 
 /**
@@ -19,11 +21,14 @@ export const useQueryFolderContents = (folderId: string) =>
  */
 export const useQueryFolderContentsByPath = (path: string) =>
   useQuery(['folder', 'contents', 'path', path], () =>
-    APIClient.get<FileMetadata<EntryType.Folder>[]>(`/api/v1/folder`, {
-      headers: { path },
-    })
-      .then((res) => res.data)
-      .catch(typedError)
+    !path
+      ? Promise.reject()
+      : APIClient.get<FileMetadata<EntryType.Folder | EntryType.File>[]>(
+          `/api/v1/folder`,
+          { headers: { path } }
+        )
+          .then((res) => res.data)
+          .catch(typedError)
   );
 
 export type UpdateFolderMetadataRequest = {
@@ -99,9 +104,13 @@ export const useMutateCreateFolder = () => {
  */
 export const useQueryFolderPermissions = (folderId: string) =>
   useQuery(['folder', 'permissions', 'id', folderId], () =>
-    APIClient.get<FilePermission[]>(`/api/v1/folder/${folderId}/permissions`)
-      .then((res) => res.data)
-      .catch(typedError)
+    !folderId
+      ? Promise.reject()
+      : APIClient.get<FilePermission[]>(
+          `/api/v1/folder/${folderId}/permissions`
+        )
+          .then((res) => res.data)
+          .catch(typedError)
   );
 
 export type UpdateFolderPermissionsRequest = {
@@ -166,9 +175,11 @@ export const useMutateMoveFolder = () =>
  */
 export const useQueryFolderDetails = (folderId: string) =>
   useQuery(['folder', 'details', 'id', folderId], () =>
-    APIClient.get<FileMetadata<EntryType.Folder>>(
-      `/api/v1/folder/${folderId}/details`
-    )
-      .then((res) => res.data)
-      .catch(typedError)
+    !folderId
+      ? Promise.reject()
+      : APIClient.get<FileMetadata<EntryType.Folder>>(
+          `/api/v1/folder/${folderId}/details`
+        )
+          .then((res) => res.data)
+          .catch(typedError)
   );
