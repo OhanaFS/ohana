@@ -8,13 +8,11 @@ export type Record = {
   total_time_taken: string;
   total_shards_scanned: number;
   total_files_scanned: number;
-  tasks: [
-    {
-      job_type: string;
-      id: number;
-      status: number;
-    }
-  ];
+  tasks: {
+    job_type: string;
+    id: number;
+    status: number;
+  }[];
   progress: number;
   status_msg: string;
   status: number;
@@ -41,28 +39,31 @@ export const useQueryGetMaintenanceRecords = (
   );
 
 // Get the records based on the ID
-export const useMutateGetMaintenanceRecordsID = (id: number) =>
-  useQuery(['mainRecordsID', id], () =>
+export const useQueryGetMaintenanceRecordsID = (id: number) => {
+  return useQuery(['mainRecordsID', id], () =>
     APIClient.get<Record>(`/api/v1/maintenance/job/${id}`)
       .then((res) => res.data)
       .catch(typedError)
   );
+};
 
 // Delete the records based on the ID
-const useMutationDeleteMainRecordsID = () =>
-  useMutation((id: number) =>
+const useMutateDeleteMainRecordsID = () => {
+  return useMutation((id: number) =>
     APIClient.delete<Record>(`/api/v1/maintenance/job/${id}`)
       .then((res) => res.data)
       .catch(typedError)
   );
+};
 
 // Create a job based on the ID
-const useMutationCreateMainRecordsID = () =>
-  useMutation((id: number) =>
+const useMutateCreateMainRecordsID = () => {
+  return useMutation((id: number) =>
     APIClient.patch<boolean>(`/api/v1/maintenance/job/${id}`)
       .then((res) => res.data)
       .catch(typedError)
   );
+};
 
 export type MaintenanceRecordCheck = {
   full_shards_check: boolean;
@@ -75,8 +76,8 @@ export type MaintenanceRecordCheck = {
 };
 
 // Start a job based on the ID
-const useMutateStartMainRecordsID = () =>
-  useMutation((params: MaintenanceRecordCheck) =>
+const useMutateStartMainRecordsID = () => {
+  return useMutation((params: MaintenanceRecordCheck) =>
     APIClient.post<Record>(`/api/v1/maintenance/start`, {
       headers: {
         full_shards_check: String(params.full_shards_check),
@@ -91,6 +92,7 @@ const useMutateStartMainRecordsID = () =>
       .then((res) => res.data)
       .catch(typedError)
   );
+};
 
 export type ShardsResults = {
   file_id: string;
@@ -102,21 +104,21 @@ export type ShardsResults = {
 };
 
 // Get full shards job results
-const useQueryGetFullShardsResults = (id: number) => {
+const useQueryGetFullShardsResults = (id: number) =>
   useQuery(['fullShardsResults', id], () =>
     APIClient.get<ShardsResults>(`/api/v1/maintenance/jon/${id}/full_shards`)
       .then((res) => res.data)
       .catch(typedError)
   );
-};
 
 // Fix full shards job
-const useMutateFixFullShards = (id: number) =>
-  useMutation((id) =>
+const useMutateFixFullShards = (id: number) => {
+  return useMutation((id) =>
     APIClient.get<ShardsResults>(`/api/v1/maintenance/jon/${id}/full_shards`)
       .then((res) => res.data)
       .catch(typedError)
   );
+};
 
 // Get quick shards job results
 const useQueryGetQuickShardsResults = (id: number) =>
@@ -143,13 +145,12 @@ const useMutatefixQuickShards = () => {
 };
 
 // Get missing shards job results
-const useQueryGetMissingShardsResults = (id: number) => {
-  return useQuery(['missingShardsResults', id], () =>
+const useQueryGetMissingShardsResults = (id: number) =>
+  useQuery(['missingShardsResults', id], () =>
     APIClient.get<ShardsResults>(`/api/v1/maintenance/jon/${id}/missing_shards`)
       .then((res) => res.data)
       .catch(typedError)
   );
-};
 
 // Fix missing shards job
 const useMutateFixMissingShards = () => {
@@ -163,15 +164,14 @@ const useMutateFixMissingShards = () => {
 };
 
 // Get orphaned shards job results
-const useMutateGetOrphanedShardsResults = (id: number) => {
-  return useQuery(['orphanedShardsResults', id], () =>
+const useQueryGetOrphanedShardsResults = (id: number) =>
+  useQuery(['orphanedShardsResults', id], () =>
     APIClient.get<ShardsResults>(
       `/api/v1/maintenance/jon/${id}/orphaned_shards`
     )
       .then((res) => res.data)
       .catch(typedError)
   );
-};
 
 // Fix orphaned shards job
 const useMutateFixOrphanedShards = () => {
@@ -185,13 +185,12 @@ const useMutateFixOrphanedShards = () => {
 };
 
 // Get orphaned files job results
-const useQueryGetOrphanedFilesResults = (id: number) => {
-  return useQuery(['orphanedFilesResults', id], () =>
+const useQueryGetOrphanedFilesResults = (id: number) =>
+  useQuery(['orphanedFilesResults', id], () =>
     APIClient.get<ShardsResults>(`/api/v1/maintenance/jon/${id}/orphaned_files`)
       .then((res) => res.data)
       .catch(typedError)
   );
-};
 
 // Fix orphaned files job
 const useMutateFixOrphanedFiles = () => {
@@ -205,15 +204,14 @@ const useMutateFixOrphanedFiles = () => {
 };
 
 // Get permission check on jobs
-const useQueryGetPermissionCheckResults = (id: number) => {
-  return useQuery(['permissionCheckResults', id], () =>
+const useQueryGetPermissionCheckResults = (id: number) =>
+  useQuery(['permissionCheckResults', id], () =>
     APIClient.get<ShardsResults>(
       `/api/v1/maintenance/jon/${id}/permission_check`
     )
       .then((res) => res.data)
       .catch(typedError)
   );
-};
 
 // Fix permission check job
 const useMutateFixPermissionCheck = () => {
@@ -227,13 +225,12 @@ const useMutateFixPermissionCheck = () => {
 };
 
 // Get backup keys
-const useQueryGetBackupKeys = () => {
-  return useQuery(['backupKeys'], () =>
+const useQueryGetBackupKeys = () =>
+  useQuery(['backupKeys'], () =>
     APIClient.get<boolean>(`/api/v1/maintenance/backup_keys`)
       .then((res) => res.data)
       .catch(typedError)
   );
-};
 
 // needs changes
 // Send backup keys
@@ -265,7 +262,7 @@ const useMutateDeleteFileKey = () => {
 
 // needs changes
 const useMutatePostFolderKey = () => {
-  useMutation((folderID: number) =>
+  return useMutation((folderID: number) =>
     APIClient.post<boolean>(`/api/v1/maintenance/key/${folderID}`)
       .then((res) => res.data)
       .catch(typedError)
@@ -274,7 +271,7 @@ const useMutatePostFolderKey = () => {
 
 // Deleting folder key
 const useMutateDeleteFolderKey = () => {
-  useMutation((folderID: number) =>
+  return useMutation((folderID: number) =>
     APIClient.delete<any>(`/api/v1/maintenance/key/${folderID}`)
       .then((res) => res.data)
       .catch(typedError)
@@ -283,7 +280,7 @@ const useMutateDeleteFolderKey = () => {
 
 // Deletion master key
 const useMutationDeleteMasterKey = () => {
-  useMutation((serverID: number) =>
+  return useMutation((serverID: number) =>
     APIClient.delete<boolean>(`/api/v1/maintenance/key/${serverID}`)
       .then((res) => res.data)
       .catch(typedError)
@@ -292,7 +289,7 @@ const useMutationDeleteMasterKey = () => {
 
 // Request master key
 export const useMutationRequestMasterKey = () => {
-  useMutation((serverID: number) =>
+  return useMutation((serverID: number) =>
     APIClient.put<boolean>(`/api/v1/maintenance/key/${serverID}`)
       .then((res) => res.data)
       .catch(typedError)
