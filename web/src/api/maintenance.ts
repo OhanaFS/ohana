@@ -1,251 +1,300 @@
 import { APIClient, typedError } from './api';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
-export type Record = [
-  {
-    Id: 0;
-    date_time_started: string;
-    date_time_ended: string;
-    total_time_taken: string;
-    total_shards_scanned: number;
-    total_files_scanned: number;
-    tasks: [
-      {
-        job_type: string;
-        id: number;
-        status: number;
-      }
-    ];
-    progress: number;
-    status_msg: string;
-    status: number;
-  }
-];
+export type Record = {
+  Id: 0;
+  date_time_started: string;
+  date_time_ended: string;
+  total_time_taken: string;
+  total_shards_scanned: number;
+  total_files_scanned: number;
+  tasks: [
+    {
+      job_type: string;
+      id: number;
+      status: number;
+    }
+  ];
+  progress: number;
+  status_msg: string;
+  status: number;
+};
 
-/*
 // Get all the records
-export const useQueryGetMaintenanceRecords = () => {
-  return useQuery(['mainRecords'], () =>
+export const useQueryGetMaintenanceRecords = (
+  startNum: number,
+  startDate: string,
+  endDate: string,
+  filter: string
+) =>
+  useQuery(['mainRecords'], () =>
     APIClient.get<Record>(`/api/v1/maintenance/all`, {
       headers: {
-        startNum: 0,
+        startNum: startNum,
+        startDate: new Date(startDate).toISOString(),
+        endDate: new Date(endDate).toISOString(),
+        filter: filter,
       },
     })
       .then((res) => res.data)
       .catch(typedError)
   );
-};
 
 // Get the records based on the ID
-export const useQueryGetMaintenanceRecordsID = (id: number) => {
-  return useQuery(['mainRecordsID', id], () =>
+export const useMutateGetMaintenanceRecordsID = (id: number) =>
+  useQuery(['mainRecordsID', id], () =>
     APIClient.get<Record>(`/api/v1/maintenance/job/${id}`)
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+
+// Delete the records based on the ID
+const useMutationDeleteMainRecordsID = () =>
+  useMutation((id: number) =>
+    APIClient.delete<Record>(`/api/v1/maintenance/job/${id}`)
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+
+// Create a job based on the ID
+const useMutationCreateMainRecordsID = () =>
+  useMutation((id: number) =>
+    APIClient.patch<boolean>(`/api/v1/maintenance/job/${id}`)
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+
+export type MaintenanceRecordCheck = {
+  full_shards_check: boolean;
+  quick_Shards_check: boolean;
+  missing_shards_check: boolean;
+  orphaned_shards_check: boolean;
+  orphaned_files_check: boolean;
+  permission_check: boolean;
+  delete_fragments: boolean;
+};
+
+// Start a job based on the ID
+const useMutateStartMainRecordsID = () =>
+  useMutation((params: MaintenanceRecordCheck) =>
+    APIClient.post<Record>(`/api/v1/maintenance/start`, {
+      headers: {
+        full_shards_check: String(params.full_shards_check),
+        quick_Shards_check: String(params.quick_Shards_check),
+        missing_shards_check: String(params.missing_shards_check),
+        orphaned_shards_check: String(params.orphaned_shards_check),
+        orphaned_files_check: String(params.orphaned_files_check),
+        permission_check: String(params.permission_check),
+        delete_fragments: String(params.delete_fragments),
+      },
+    })
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+
+export type ShardsResults = {
+  file_id: string;
+  file_name: string;
+  data_id: string;
+  fragment_id: string;
+  server_name: string;
+  status: number;
+};
+
+// Get full shards job results
+const useQueryGetFullShardsResults = (id: number) => {
+  useQuery(['fullShardsResults', id], () =>
+    APIClient.get<ShardsResults>(`/api/v1/maintenance/jon/${id}/full_shards`)
       .then((res) => res.data)
       .catch(typedError)
   );
 };
 
-
-// Delete the records based on the ID
-const useMutationDeleteMainRecordsID = (id: number) => {
-    return useMutation((id) =>
-        APIClient.delete<Record>(`/api/v1/maintenance/job/${id}`)
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}
-
-// Create a job based on the ID
-const useMutationCreateMainRecordsID = (id: number) => {
-    return useMutation((id) =>
-        APIClient.patch<boolean>(`/api/v1/maintenance/job/${id}`)
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}
-
-// Start a job based on the ID
-const startMainRecordsID = () => {
-    return useMutation((id: number) =>
-        APIClient.post<any>(`/api/v1/maintenance/start`, {
-            headers: {
-                full_shards_check: true,
-                quick_Shards_check: true,
-                missing_shards_check: true,
-                orphaned_shards_check: true,
-                orphaned_files_check: true,
-                permission_check: true,
-                delete_fragments: true,
-        },
-        })
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}
-
-// Get full shards job results
-const getFullShardsResults = (id: number) => {
-    return useQuery(['fullShardsResults', id], () =>
-        APIClient.get<any>(`/api/v1/maintenance/jon/${id}/full_shards`)
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}
-
-// FIx full shards job 
-const fixFullShards = (id: number) => {
-    return useMutation((id: number) =>
-        APIClient.post<any>(`/api/v1/maintenance/jon/${id}/full_shards`)
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}
+// Fix full shards job
+const useMutateFixFullShards = (id: number) =>
+  useMutation((id) =>
+    APIClient.get<ShardsResults>(`/api/v1/maintenance/jon/${id}/full_shards`)
+      .then((res) => res.data)
+      .catch(typedError)
+  );
 
 // Get quick shards job results
-const getQuickShardsResults = (id: number) => {
-    return useQuery(['quickShardsResults', id], () =>
-        APIClient.get<any>(`/api/v1/maintenance/jon/${id}/quick_shards`)
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}
+const useQueryGetQuickShardsResults = (id: number) =>
+  useQuery(['quickShardsResults', id], () =>
+    APIClient.get<ShardsResults>(`/api/v1/maintenance/jon/${id}/quick_shards`)
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+
+export type QuickShardsJob = {
+  file_id: string;
+  fragment_id: string;
+  password: string;
+  action: number;
+};
 
 // Fix quick shards job
-const fixQuickShards = () => {
-    return useMutation((id: number) =>
-        APIClient.post<any>(`/api/v1/maintenance/jon/${id}/quick_shards`)
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}
+const useMutatefixQuickShards = () => {
+  return useMutation((id: number) =>
+    APIClient.post<QuickShardsJob>(`/api/v1/maintenance/jon/${id}/quick_shards`)
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+};
 
 // Get missing shards job results
-const getMissingShardsResults = (id: number) => {
-    return useQuery(['missingShardsResults', id], () =>
-        APIClient.get<any>(`/api/v1/maintenance/jon/${id}/missing_shards`)
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}
+const useQueryGetMissingShardsResults = (id: number) => {
+  return useQuery(['missingShardsResults', id], () =>
+    APIClient.get<ShardsResults>(`/api/v1/maintenance/jon/${id}/missing_shards`)
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+};
 
 // Fix missing shards job
-const fixMissingShards = () => {
-    return useMutation((id: number) =>
-        APIClient.post<any>(`/api/v1/maintenance/jon/${id}/missing_shards`)
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}
+const useMutateFixMissingShards = () => {
+  return useMutation((id: number) =>
+    APIClient.post<QuickShardsJob>(
+      `/api/v1/maintenance/jon/${id}/missing_shards`
+    )
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+};
 
 // Get orphaned shards job results
-const getOrphanedShardsResults = (id: number) => {
-    return useQuery(['orphanedShardsResults', id], () =>
-        APIClient.get<any>(`/api/v1/maintenance/jon/${id}/orphaned_shards`)
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}
+const useMutateGetOrphanedShardsResults = (id: number) => {
+  return useQuery(['orphanedShardsResults', id], () =>
+    APIClient.get<ShardsResults>(
+      `/api/v1/maintenance/jon/${id}/orphaned_shards`
+    )
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+};
 
 // Fix orphaned shards job
-const fixOrphanedShards = () => {
-    return useMutation((id: number) =>
-        APIClient.post<any>(`/api/v1/maintenance/jon/${id}/orphaned_shards`)
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}
+const useMutateFixOrphanedShards = () => {
+  return useMutation((id: number) =>
+    APIClient.post<QuickShardsJob>(
+      `/api/v1/maintenance/jon/${id}/orphaned_shards`
+    )
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+};
 
 // Get orphaned files job results
-const getOrphanedFilesResults = (id: number) => {
-    return useQuery(['orphanedFilesResults', id], () =>
-        APIClient.get<any>(`/api/v1/maintenance/jon/${id}/orphaned_files`)
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}
+const useQueryGetOrphanedFilesResults = (id: number) => {
+  return useQuery(['orphanedFilesResults', id], () =>
+    APIClient.get<ShardsResults>(`/api/v1/maintenance/jon/${id}/orphaned_files`)
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+};
 
 // Fix orphaned files job
-const fixOrphanedFiles = () => {
-    return useMutation((id: number) =>
-        APIClient.post<any>(`/api/v1/maintenance/jon/${id}/orphaned_files`)
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}
+const useMutateFixOrphanedFiles = () => {
+  return useMutation((id: number) =>
+    APIClient.post<QuickShardsJob>(
+      `/api/v1/maintenance/jon/${id}/orphaned_files`
+    )
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+};
 
-// Get permission check job results
-const getPermissionCheckResults = (id: number) => {
-    return useQuery(['permissionCheckResults', id], () =>
-        APIClient.get<any>(`/api/v1/maintenance/jon/${id}/permission_check`)
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}
+// Get permission check on jobs
+const useQueryGetPermissionCheckResults = (id: number) => {
+  return useQuery(['permissionCheckResults', id], () =>
+    APIClient.get<ShardsResults>(
+      `/api/v1/maintenance/jon/${id}/permission_check`
+    )
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+};
 
 // Fix permission check job
-const fixPermissionCheck = () => {
-    return useMutation((id: number) =>
-        APIClient.post<any>(`/api/v1/maintenance/jon/${id}/permission_check`)
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}
+const useMutateFixPermissionCheck = () => {
+  return useMutation((id: number) =>
+    APIClient.post<QuickShardsJob>(
+      `/api/v1/maintenance/jon/${id}/permission_check`
+    )
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+};
 
 // Get backup keys
-const getBackupKeys = () => {
-    return useQuery(['backupKeys'], () =>
-        APIClient.get<any>(`/api/v1/maintenance/backup_keys`)
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}
+const useQueryGetBackupKeys = () => {
+  return useQuery(['backupKeys'], () =>
+    APIClient.get<boolean>(`/api/v1/maintenance/backup_keys`)
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+};
 
+// needs changes
 // Send backup keys
-const sendBackupKeys = () => {
-    return useMutation((id: number) =>
-        APIClient.put<any>(`/api/v1/maintenance/backup_keys`)
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}
+const useMutateSendBackupKeys = () => {
+  return useMutation((id: number) =>
+    APIClient.put<boolean>(`/api/v1/maintenance/backup_keys`)
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+};
+
+// needs changes
+const useMutatePostFileKey = () => {
+  return useMutation((fileID: number) =>
+    APIClient.post<boolean>(`/api/v1/maintenance/KEY/${fileID}`)
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+};
 
 // Deleting file key
-const deleteFileKey = () => {
-    return useMutation((id: number) =>
-        APIClient.delete<any>(`/api/v1/maintenance/backup_keys`)
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}
+const useMutateDeleteFileKey = () => {
+  return useMutation((fileID: number) =>
+    APIClient.delete<boolean>(`/api/v1/maintenance/KEY/${fileID}`)
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+};
 
-//
-
+// needs changes
+const useMutatePostFolderKey = () => {
+  useMutation((folderID: number) =>
+    APIClient.post<boolean>(`/api/v1/maintenance/key/${folderID}`)
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+};
 
 // Deleting folder key
-const deleteFolderKey = () => {
-    return useMutation((id: number) =>
-        APIClient.delete<any>(`/api/v1/maintenance/backup_keys`)
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}
-
-//
+const useMutateDeleteFolderKey = () => {
+  useMutation((folderID: number) =>
+    APIClient.delete<any>(`/api/v1/maintenance/key/${folderID}`)
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+};
 
 // Deletion master key
-const deleteMasterKey = () => {
-    return useMutation((id: number) =>
-        APIClient.delete<any>(`/api/v1/maintenance/backup_keys`)
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}
+const useMutationDeleteMasterKey = () => {
+  useMutation((serverID: number) =>
+    APIClient.delete<boolean>(`/api/v1/maintenance/key/${serverID}`)
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+};
 
 // Request master key
-const requestMasterKey = () => {
-    return useMutation((id: number) =>
-        APIClient.put<any>(`/api/v1/maintenance/backup_keys`)
-        .then((res) => res.data)
-        .catch(typedError)
-    );
-}*/
+export const useMutationRequestMasterKey = () => {
+  useMutation((serverID: number) =>
+    APIClient.put<boolean>(`/api/v1/maintenance/key/${serverID}`)
+      .then((res) => res.data)
+      .catch(typedError)
+  );
+};
