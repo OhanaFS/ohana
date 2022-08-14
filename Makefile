@@ -72,7 +72,8 @@ dev: dev-up
 
 .PHONY: prod-up
 prod-up:
-	docker-compose -f .docker/docker-compose.yml up --build
+	docker-compose -f .docker/docker-compose.yml build
+	docker-compose -f .docker/docker-compose.yml up
 
 .PHONY: format
 format:
