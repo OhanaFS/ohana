@@ -280,7 +280,7 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 	dbfsFile := dbfs.File{
 		FileId:             uuid.New().String(),
 		FileName:           fileName,
-		MIMEType:           "",
+		MIMEType:           file.ContentType,
 		ParentFolderFileId: &folderId, // root folder for now
 		Size:               1024,      // placeholder size
 		VersioningMode:     dbfs.VersioningOff,
