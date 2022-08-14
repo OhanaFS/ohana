@@ -179,9 +179,10 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
           autoClose: 5000,
         });
     } else if (data.id === ChonkyActions.DownloadFiles.id) {
-      window.location.assign(
-        getFileDownloadURL(data.state.selectedFilesForAction[0].id)
-      );
+      if (!data.state.selectedFilesForAction[0].isDir)
+        window.location.assign(
+          getFileDownloadURL(data.state.selectedFilesForAction[0].id)
+        );
     } else if (data.id === ChonkyActions.OpenFiles.id) {
       if (!data.payload.targetFile?.isDir)
         setPreviewFileId(data.payload.targetFile?.id || '');
@@ -197,7 +198,6 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
         file_id: data.state.selectedFilesForAction[0].id,
       });
     } else if (data.id === ChonkyActions.MoveFiles.id) {
-      if (data.payload.draggedFile.isDir) return;
       mMoveFile.mutate({
         file_id: data.payload.draggedFile.id,
         folder_id: data.payload.destination.id,
