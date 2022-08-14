@@ -95,10 +95,8 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
     if (data.action === ChonkyActions.UploadFiles) {
       setFuOpened(true);
     } else if (data.action === ChonkyActions.CreateFolder) {
-      let name = window.prompt('Enter new folder name: ');
-      if (!name) {
-        return;
-      }
+      const name = window.prompt('Enter new folder name', 'New folder');
+      if (!name) return;
       mCreateFolder.mutate({
         folder_name: name,
         parent_folder_id: currentFolderId,
@@ -128,7 +126,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
         setPreviewFileId(data.payload.targetFile?.id || '');
       else navigate(`/home/${data.payload.targetFile?.id || ''}`);
     } else if ((data.id as string) === RenameFiles.id) {
-      let newFileName = window.prompt(
+      const newFileName = window.prompt(
         'Enter new file name',
         data.state.selectedFilesForAction[0].name
       );

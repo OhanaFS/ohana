@@ -1,8 +1,7 @@
 import { ActionIcon, Button, Table } from '@mantine/core';
-import React, { useState } from 'react';
-import { Download, Trash } from 'tabler-icons-react';
+import { IconDownload, IconTrash } from '@tabler/icons';
+import { useState } from 'react';
 import {
-  MetadataKeyMap,
   useMutateDeleteFileVersion,
   useMutateUpdateFile,
   useQueryFileVersionHistory,
@@ -45,12 +44,12 @@ const FileVersions = (props: FileVersionsProps) => {
                 <td>{version.modified_time}</td>
                 <td>
                   <ActionIcon>
-                    <Trash color="red" />
+                    <IconTrash className="text-red-500" />
                   </ActionIcon>
                 </td>
                 <td>
                   <ActionIcon>
-                    <Download color="blue" />
+                    <IconDownload className="text-blue-500" />
                   </ActionIcon>
                 </td>
               </tr>

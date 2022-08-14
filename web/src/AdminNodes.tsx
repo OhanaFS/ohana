@@ -1,6 +1,6 @@
 import { Group, Text, Accordion, Title, ThemeIcon } from '@mantine/core';
+import { IconExclamationMark } from '@tabler/icons';
 import AppBase from './components/AppBase';
-import { ExclamationMark } from 'tabler-icons-react';
 
 const charactersList = [
   {
@@ -61,7 +61,7 @@ function AccordionLabel({ label, warnings }: AccordionLabelProps) {
         >
           {warnings > 0 ? (
             <ThemeIcon color="red" variant="light">
-              <ExclamationMark size={30} />
+              <IconExclamationMark size={30} />
             </ThemeIcon>
           ) : null}
           <Text style={{ padding: '5px' }} color="red">
