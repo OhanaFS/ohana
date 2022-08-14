@@ -14,10 +14,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   EntryType,
   getFileDownloadURL,
+  isUserHome,
   useMutateCopyFile,
   useMutateDeleteFile,
   useMutateMoveFile,
   useMutateUpdateFileMetadata,
+  useQueryFolderPathById,
 } from '../../api/file';
 import {
   useMutateCreateFolder,
@@ -112,14 +114,13 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
         }
       }
     } else if (data.id === ChonkyActions.DownloadFiles.id) {
-      // @ts-ignore
-      window.location = getFileDownloadURL(
-        data.state.selectedFilesForAction[0].id
+      window.location.assign(
+        getFileDownloadURL(data.state.selectedFilesForAction[0].id)
       );
     } else if (data.id === ChonkyActions.OpenFiles.id) {
-      if (!data.state.selectedFilesForAction[0].isDir)
-        setPreviewFileId(data.state.selectedFilesForAction[0].id);
-      else navigate(`/home/${data.state.selectedFilesForAction[0].id}`);
+      if (!data.payload.targetFile?.isDir)
+        setPreviewFileId(data.payload.targetFile?.id || '');
+      else navigate(`/home/${data.payload.targetFile?.id || ''}`);
     } else if ((data.id as string) === RenameFiles.id) {
       let newFileName = window.prompt(
         'Enter new file name',
@@ -169,6 +170,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   );
 
   const qFilesList = useQueryFolderContents(folderID);
+  const qFolderChain = useQueryFolderPathById(folderID);
 
   const mCreateFolder = useMutateCreateFolder();
   const mDeleteFolder = useMutateDeleteFolder();
@@ -194,13 +196,18 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
         } as FileData)
     ) || [];
 
-  const ohanaFolderChain = [{ id: homeFolderID, name: 'Home', isDir: true }];
+  const folderChain = (qFolderChain.data ?? []).reverse().map((folder) => ({
+    id: folder.file_id,
+    name: isUserHome(folder) ? 'Home' : folder.file_name,
+    isDir: true,
+  }));
+
   return (
     <AppBase userType="user">
       <div style={{ height: '100%' }}>
         <FullFileBrowser
           files={ohanaFiles}
-          folderChain={ohanaFolderChain}
+          folderChain={folderChain}
           fileActions={fileActions}
           onFileAction={handleFileAction}
           {...props}

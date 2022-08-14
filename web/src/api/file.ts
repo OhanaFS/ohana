@@ -1,6 +1,12 @@
 import { APIClient, typedError } from './api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+export const K_ROOT_FOLDER_ID = '00000000-0000-0000-0000-000000000000';
+export const K_HOME_PARENT_FOLDER_ID = '00000000-0000-0000-0000-000000000001';
+
+export const isUserHome = (folder: FileMetadata<EntryType.Folder>) =>
+  folder.parent_folder_id === K_HOME_PARENT_FOLDER_ID;
+
 export type FileUploadRequest = {
   file: File;
   folder_id: string;
@@ -353,4 +359,32 @@ export const useMutateDeleteFileVersion = () =>
     APIClient.delete<boolean>(`/api/v1/file/${file_id}/version/${version_id}`)
       .then((res) => res.data)
       .catch(typedError)
+  );
+
+/**
+ * Get a file path by its ID.
+ */
+export const useQueryFilePathById = (fileId: string) =>
+  useQuery(['path', 'file', fileId], () =>
+    !fileId
+      ? Promise.reject()
+      : APIClient.get<FileMetadata<EntryType.Folder>[]>(
+          `/api/v1/file/${fileId}/path`
+        )
+          .then((res) => res.data)
+          .catch(typedError)
+  );
+
+/**
+ * Get a folder path by its ID.
+ */
+export const useQueryFolderPathById = (folderId: string) =>
+  useQuery(['path', 'file', folderId], () =>
+    !folderId
+      ? Promise.reject()
+      : APIClient.get<FileMetadata<EntryType.Folder>[]>(
+          `/api/v1/folder/${folderId}/path`
+        )
+          .then((res) => res.data)
+          .catch(typedError)
   );
