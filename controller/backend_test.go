@@ -156,7 +156,6 @@ func TestBackendController(t *testing.T) {
 			ctxutil.WithUser(context.Background(), user))
 		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
 		req.Header.Add("Content-Type", writer.FormDataContentType())
-		req.Header.Set("file_name", "test.txt")
 		req.Header.Set("folder_id", "00000000-0000-0000-0000-000000000000")
 
 		bc.UploadFile(w, req)

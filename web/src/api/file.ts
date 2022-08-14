@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 export type FileUploadRequest = {
   file: File;
   folder_id: string;
-  file_name?: string;
   frag_count: number;
   parity_count: number;
 };
@@ -70,7 +69,6 @@ export const useMutateUploadFile = () => {
   const queryClient = useQueryClient();
   return useMutation(
     async ({ file, ...headers }: FileUploadRequest) => {
-      if (!headers.file_name) headers.file_name = file.name;
       const form = new FormData();
       form.append('file', file);
       return APIClient.post<FileMetadata<EntryType.File>>(
