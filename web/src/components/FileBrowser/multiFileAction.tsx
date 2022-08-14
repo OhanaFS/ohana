@@ -57,6 +57,7 @@ export const handleMultiFileAction = async function <T>(
         showNotification({
           title: opts.notifications.errorTitle(item, e),
           message: JSON.stringify(e),
+          color: 'red',
         });
       });
   }
