@@ -12,7 +12,7 @@ const FilePreview = ({ fileId }: FilePreviewProps) => {
   return qFile.data?.mime_type.startsWith('image/') ? (
     <Image src={downladUrl} />
   ) : qFile.data?.mime_type.startsWith('video/') ? (
-    <video controls playsInline src={downladUrl}></video>
+    <video className="w-full" controls playsInline src={downladUrl}></video>
   ) : (
     <Text>{qFile.data?.file_name || ''}</Text>
   );
