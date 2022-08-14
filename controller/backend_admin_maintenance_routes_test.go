@@ -44,7 +44,7 @@ func TestGetAllJobs(t *testing.T) {
 		ServerName: "localServer",
 		HostName:   "localhost",
 		BindIp:     "127.0.0.1",
-		Port:       "5555",
+		Port:       "5556",
 		CaCert:     certPaths.CaCertPath,
 		PublicCert: certPaths.PublicCertPath,
 		PrivateKey: certPaths.PrivateKeyPath,
