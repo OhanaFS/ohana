@@ -1,9 +1,5 @@
 import { Modal, FileButton, Button, Loader } from '@mantine/core';
-import {
-  showNotification,
-  updateNotification,
-  useNotifications,
-} from '@mantine/notifications';
+import { showNotification, updateNotification } from '@mantine/notifications';
 import { IconCheck } from '@tabler/icons';
 import {
   useMutateUpdateFile,
@@ -33,8 +29,6 @@ const UploadFileModal = (props: UploadFileModalProps) => {
   const qFileMeta = useQueryFileMetadata(
     props.update ? props.updateFileId : ''
   );
-
-  const notifications = useNotifications();
 
   const handleUpload = async (files: File | File[]) => {
     if (!files) {
