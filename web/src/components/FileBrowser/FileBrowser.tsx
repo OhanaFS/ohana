@@ -107,14 +107,14 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
     } else if (data.id === ChonkyActions.DeleteFiles.id) {
       for (const selectedItem of data.state.selectedFilesForAction) {
         if (selectedItem.isDir) {
-          mDeleteFolder.mutateAsync(selectedItem.id).then(() =>
+          await mDeleteFolder.mutateAsync(selectedItem.id).then(() =>
             showNotification({
               title: `${selectedItem.name} deleted`,
               message: 'Successfully Deleted',
             })
           );
         } else {
-          mDeleteFile.mutateAsync(selectedItem.id).then(() =>
+          await mDeleteFile.mutateAsync(selectedItem.id).then(() =>
             showNotification({
               title: `${selectedItem.name} deleted`,
               message: 'Successfully Deleted',
