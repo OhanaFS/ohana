@@ -1,7 +1,6 @@
 package inc_test
 
 import (
-	"context"
 	"fmt"
 	"github.com/OhanaFS/ohana/config"
 	"github.com/OhanaFS/ohana/controller/inc"
@@ -83,6 +82,6 @@ func TestRegisterServer(t *testing.T) {
 
 	})
 
-	defer incServer.HttpServer.Shutdown(context.Background())
+	incServer.HttpServer.Close()
 
 }

@@ -1,7 +1,6 @@
 package inc_test
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/OhanaFS/ohana/config"
@@ -451,7 +450,7 @@ func TestFragmentHandler(t *testing.T) {
 		Assert.NoError(err)
 	})
 
-	defer Inc.HttpServer.Shutdown(context.Background())
+	Inc.HttpServer.Close()
 
 }
 
@@ -799,6 +798,8 @@ func TestStitchFragment(t *testing.T) {
 		Assert.Equal(1, len(results), results)
 
 	})
+
+	Inc.HttpServer.Close()
 
 }
 

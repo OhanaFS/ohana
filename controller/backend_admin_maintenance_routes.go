@@ -13,7 +13,9 @@ import (
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -298,6 +300,21 @@ func (bc *BackendController) FixFullShardsResult(w http.ResponseWriter, r *http.
 		// TODO: Should be a thread pool
 		if result.Fix {
 			err = bc.RebuildShard(result.DataId, result.Password)
+			if err != nil {
+				util.HttpError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			// Mark as good
+			err := bc.Db.Model(&dbfs.ResultsAFSHC{}).Where("data_id = ? and job_id = ?",
+				result.DataId, jobId).
+				Updates(map[string]interface{}{
+					"error_type": dbfs.CronErrorTypeSolved,
+					"error":      "Reconstructed",
+				}).Error
+			if err != nil {
+				util.HttpError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
 		} else if result.Delete {
 			// get/delete file
 			var files []dbfs.File
@@ -312,6 +329,18 @@ func (bc *BackendController) FixFullShardsResult(w http.ResponseWriter, r *http.
 			// get/delete file version
 			err = bc.Db.Model(&dbfs.FileVersion{}).Where("data_id = ?", result.DataId).
 				Update("status", dbfs.FileStatusToBeDeleted).Error
+			if err != nil {
+				util.HttpError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+
+			// Mark as good
+			err := bc.Db.Model(&dbfs.ResultsAFSHC{}).Where("data_id = ? and job_id = ?",
+				result.DataId, jobId).
+				Updates(map[string]interface{}{
+					"error_type": dbfs.CronErrorTypeSolved,
+					"error":      "Deleted",
+				}).Error
 			if err != nil {
 				util.HttpError(w, http.StatusInternalServerError, err.Error())
 				return
@@ -424,6 +453,20 @@ func (bc *BackendController) RebuildShard(dataId, password string) error {
 
 	reader, err := decoder.NewReadSeeker(shards, key, iv)
 
+	// read to the disk first, then upload (because weird bug)
+
+	file, err := ioutil.TempFile("", "temp-file-reconstruct")
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(file, reader)
+	if err != nil {
+		return err
+	}
+
+	file.Seek(0, 0)
+
 	// Setting up the writer, write with .shardNEW extension
 
 	stitchParams, err := dbfs.GetStitchParams(bc.Db, bc.Logger)
@@ -436,22 +479,27 @@ func (bc *BackendController) RebuildShard(dataId, password string) error {
 		KeyThreshold: uint8(keyThreshold),
 	})
 
-	shardWriters := make([]io.Writer, totalShards)
 	beforeShardName := make([]string, totalShards)
 	finalShardName := make([]string, totalShards)
 
 	for i := 0; i < totalShards; i++ {
-		beforeShardName[i] = fv.DataId + ".shardNEW" + strconv.Itoa(i)
-		finalShardName[i] = fv.DataId + ".shard" + strconv.Itoa(i)
+		beforeShardName[i] = fv.DataId + ".shardnew" + strconv.Itoa(i+1)
+		finalShardName[i] = fv.DataId + ".shard" + strconv.Itoa(i+1)
 	}
 
 	// Open the output writers
 
 	servers, err := bc.Inc.AssignShardServer(context.Background(), totalShards)
 
+	// Prepare the writers
+	shardWriters := make([]io.Writer, totalShards)
+
+	ctx := context.Background()
+
+	// Open the output writers
 	for i := 0; i < totalShards; i++ {
 		shardWriter, err := bc.Inc.NewShardWriter(
-			context.Background(), servers[i].Name, beforeShardName[i])
+			ctx, servers[i].Name, beforeShardName[i])
 		if err != nil {
 			return err
 		}
@@ -459,9 +507,20 @@ func (bc *BackendController) RebuildShard(dataId, password string) error {
 	}
 
 	// Let the copying begin
-	_, err = encoder.Encode(reader, shardWriters, key, iv)
+	_, err = encoder.Encode(file, shardWriters, key, iv)
 	if err != nil {
 		return err
+	}
+
+	file.Close()
+
+	os.Remove(file.Name())
+
+	// Close the output writers
+	for _, writer := range shardWriters {
+		if err := writer.(io.WriteCloser).Close(); err != nil {
+			return err
+		}
 	}
 
 	// Updating fragments on the server to be named correctly (.shardNEW -> .shard)
@@ -476,19 +535,21 @@ func (bc *BackendController) RebuildShard(dataId, password string) error {
 	// the right count for dataShards, parityShards, and keyThreshold
 	err = bc.Db.Transaction(func(tx *gorm.DB) error {
 
-		if bc.Db.Model(&dbfs.FileVersion{}).Where("data_id = ?", fv.DataId).
+		// ERRORING
+		err := tx.Model(&dbfs.FileVersion{}).Where("data_id = ?", fv.DataId).
 			Updates(map[string]interface{}{
 				"data_shards":   dataShards,
 				"parity_shards": parityShards,
 				"key_threshold": keyThreshold,
 				"total_shards":  totalShards,
 				"status":        dbfs.FileStatusGood},
-			).Error != nil {
+			).Error
+		if err != nil {
 			return fmt.Errorf("could not update file version %s", fv.DataId)
 		}
 
 		// Update file as well if exists
-		err = bc.Db.Model(&dbfs.File{}).
+		err = tx.Model(&dbfs.File{}).
 			Where("data_id = ?", fv.DataId).Updates(map[string]interface{}{
 			"data_shards":   dataShards,
 			"parity_shards": parityShards,
@@ -509,15 +570,12 @@ func (bc *BackendController) RebuildShard(dataId, password string) error {
 		fvVn := shardsMeta[0].FileVersionVersionNo
 		fvDidV := shardsMeta[0].FileVersionDataIdVersion
 
-		// delete old shard.
-		for _, shard := range shardsMeta {
-			if bc.Db.Delete(&shard) != nil {
-				return fmt.Errorf("could not delete shard %s", shard.FileFragmentPath)
-			}
-		}
+		// delete old shards.
+
+		err = tx.Where("file_version_data_id = ?", fvDId).Delete(&dbfs.Fragment{}).Error
 
 		// create new ones
-		for i := 1; i < totalShards; i++ {
+		for i := 1; i <= totalShards; i++ {
 			shard := dbfs.Fragment{
 				FileVersionFileId:        fvFId,
 				FileVersionDataId:        fvDId,
@@ -530,7 +588,7 @@ func (bc *BackendController) RebuildShard(dataId, password string) error {
 				TotalShards:              totalShards,
 				Status:                   dbfs.FragmentStatusGood,
 			}
-			if bc.Db.Create(&shard).Error != nil {
+			if tx.Create(&shard).Error != nil {
 				return fmt.Errorf("could not create fragment %s", finalShardName[i])
 			}
 		}

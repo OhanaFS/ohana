@@ -11,6 +11,7 @@ const (
 	CronErrorTypeInternalError = 1
 	CronErrorTypeNotAvailable  = 2
 	CronErrorTypeCorrupted     = 3
+	CronErrorTypeSolved        = 4 // The error was solved
 	JobStatusRunning           = 1
 	JobStatusCompleteErrors    = 2
 	JobStatusCompleteNoErrors  = 3

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 )
 
@@ -232,24 +233,22 @@ func (i *Inc) ReplaceShardRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	oldShardPath = filepath.Join(i.ShardsLocation, oldShardPath)
+	newShardPath = filepath.Join(i.ShardsLocation, newShardPath)
+
 	// Check if the old shard path exists
 	if _, err := os.Stat(oldShardPath); os.IsNotExist(err) {
 		util.HttpError(w, http.StatusBadRequest, "Old shard path does not exist")
 		return
 	}
-	// Check if the new shard path exists
-	if _, err := os.Stat(newShardPath); os.IsNotExist(err) {
-		util.HttpError(w, http.StatusBadRequest, "New shard path does not exist")
-		return
-	}
 
 	// Delete old file, rename new file to old file path
-	err := os.Remove(oldShardPath)
+	err := os.Remove(newShardPath)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, "Error deleting old shard")
 		return
 	}
-	err = os.Rename(newShardPath, oldShardPath)
+	err = os.Rename(oldShardPath, newShardPath)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, "Error renaming new shard")
 		return

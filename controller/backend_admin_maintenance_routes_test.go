@@ -14,6 +14,7 @@ import (
 	selfsigntestutils "github.com/OhanaFS/ohana/selfsign/test_utils"
 	"github.com/OhanaFS/ohana/util/ctxutil"
 	"github.com/OhanaFS/ohana/util/testutil"
+	"github.com/OhanaFS/stitch"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -119,6 +120,10 @@ func TestGetAllJobs(t *testing.T) {
 
 	var newJob dbfs.Job
 
+	data1 := "Hello this is the first version of the file. Hopefully it won't get corrupted poggies"
+	data2 := "Hello this is the second version of the file. " +
+		"It won't get corrupted like the other one because this file isn't cringe."
+
 	t.Run("GetAllJobs", func(t *testing.T) {
 
 		Assert := assert.New(t)
@@ -197,6 +202,8 @@ func TestGetAllJobs(t *testing.T) {
 
 	})
 
+	var testFileID string
+
 	t.Run("StartJob", func(t *testing.T) {
 
 		// Before starting our full shards check, we want to create a few files so that it
@@ -214,11 +221,13 @@ func TestGetAllJobs(t *testing.T) {
 			ParentFolderId: rootFolder.FileId,
 			Server:         incConfig.ServerName,
 			FragmentPath:   stitchConfig.ShardsLocation,
-			FileData:       "Hello this is the first version of the file. Hopefully it won't get corrupted poggies",
+			FileData:       data1,
 			Size:           50,
 			ActualSize:     50,
 		})
 		Assert.NoError(err)
+
+		testFileID = testFile.FileId
 
 		// Turn on versioning
 		Assert.NoError(testFile.UpdateMetaData(db, dbfs.FileMetadataModification{
@@ -236,9 +245,8 @@ func TestGetAllJobs(t *testing.T) {
 			NewSize:       70,
 			NewActualSize: 70,
 			FragmentPath:  stitchConfig.ShardsLocation,
-			FileData: "Hello this is the second version of the file. It won't get corrupted like the other one" +
-				" because this file isn't cringe.",
-			Server: incConfig.ServerName,
+			FileData:      data2,
+			Server:        incConfig.ServerName,
 		}, user))
 
 		shards2, err := testFile.GetFileFragments(db, user)
@@ -360,10 +368,71 @@ func TestGetAllJobs(t *testing.T) {
 		Assert.Equal(http.StatusOK, w.Code)
 		body = w.Body.String()
 
-		//var verificationResult stitch.ShardVerificationResult
+		var verificationResult stitch.ShardVerificationResult
+		Assert.NoError(json.Unmarshal([]byte(body), &verificationResult))
+		Assert.Equal(true, verificationResult.IsAvailable)
+		Assert.Equal(0, len(verificationResult.BrokenBlocks))
 
 		fmt.Println(body)
 
+		// Check that fragments are updated properly
+
+		var fragments []dbfs.Fragment
+		Assert.Nil(db.Where("file_version_data_id = ?", resultsAFSHC[0].DataId).Find(&fragments).Error)
+		Assert.Equal(3, len(fragments))
+
+		// Try to download the file
+
+		req = httptest.NewRequest("GET", "/api/v1/file/", nil).WithContext(
+			ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req = mux.SetURLVars(req, map[string]string{
+			"fileID": testFileID,
+		})
+		w = httptest.NewRecorder()
+		bc.DownloadFileVersion(w, req)
+		Assert.Equal(http.StatusOK, w.Code, w.Body.String())
+		Assert.Contains(w.Body.String(), data2)
+
+		// Try to download the older version of the file
+
+		req = httptest.NewRequest("GET", "/api/v1/file/", nil).WithContext(
+			ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req = mux.SetURLVars(req, map[string]string{
+			"fileID":    testFileID,
+			"versionID": "1",
+		})
+		w = httptest.NewRecorder()
+		bc.DownloadFileVersion(w, req)
+		Assert.Equal(http.StatusOK, w.Code, w.Body.String())
+		Assert.Contains(w.Body.String(), data1)
+
+		// Checking the cron job to see it being marked as done.
+
+		// Get the resultsAFSHC
+		req = httptest.NewRequest("GET",
+			"/api/v1/cluster/maintenance/job/2/full_shards",
+			nil).WithContext(
+			ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		// mux
+		req = mux.SetURLVars(req, map[string]string{
+			"id": strconv.Itoa(int(newJob.JobId)),
+		})
+		w = httptest.NewRecorder()
+		bc.GetFullShardsResult(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		body = w.Body.String()
+
+		Assert.NoError(json.Unmarshal([]byte(body), &resultsAFSHC))
+		Assert.Equal(2, len(resultsAFSHC))
+		Assert.Equal(dbfs.CronErrorTypeSolved, resultsAFSHC[0].ErrorType)
+		Assert.Equal(dbfs.CronErrorTypeSolved, resultsAFSHC[1].ErrorType)
+
 	})
+
+	Inc.HttpServer.Close()
 
 }

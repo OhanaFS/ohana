@@ -336,6 +336,9 @@ func TestAdminClusterHistoricalRoutes(t *testing.T) {
 
 	})
 
+	// Close everything
+	Inc.HttpServer.Close()
+
 }
 
 func TestAdminClusterRoutes(t *testing.T) {
@@ -924,6 +927,9 @@ func TestAdminClusterRoutes(t *testing.T) {
 		})
 	*/
 	os.RemoveAll(tempDir)
+
+	Inc.HttpServer.Close()
+
 }
 
 func getTempDir() (string, error) {

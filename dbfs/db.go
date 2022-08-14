@@ -37,6 +37,7 @@ func InitDB(db *gorm.DB) error {
 					RefreshToken: "",
 					AccessToken:  "",
 					Activated:    true,
+					HomeFolderId: "00000000-0000-0000-0000-000000000000",
 					AccountType:  AccountTypeAdmin,
 				}
 				result := db.Create(&userAccount)

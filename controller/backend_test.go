@@ -1029,4 +1029,6 @@ func TestBackendController(t *testing.T) {
 
 	})
 
+	bc.Inc.HttpServer.Close()
+
 }

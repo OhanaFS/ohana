@@ -8,6 +8,7 @@ import (
 	"github.com/OhanaFS/ohana/util"
 	"github.com/OhanaFS/stitch"
 	"gorm.io/gorm"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -820,7 +821,7 @@ func (i *Inc) ReplaceShard(serverName, oldName, newName string) error {
 	if err != nil {
 		return err
 	}
-	url := fmt.Sprintf("https://%s%s", host, ReplaceShardPath)
+	url := fmt.Sprintf("https://%s%s", host, "/api/v1/node/replace_shard")
 
 	// create the request
 	req, err := http.NewRequest("POST", url, nil)
@@ -831,9 +832,11 @@ func (i *Inc) ReplaceShard(serverName, oldName, newName string) error {
 	}
 
 	// send the request
-	resp, err := i.HttpClient.Do(req)
+	resp, _ := i.HttpClient.Do(req)
+	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		bodyString := string(bodyBytes)
+		return fmt.Errorf("%s: %s", err, bodyString)
 	}
 
 	defer resp.Body.Close()
