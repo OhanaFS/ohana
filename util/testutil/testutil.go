@@ -81,12 +81,6 @@ func NewPostgresDB(t *testing.T, dbString string) *gorm.DB {
 
 	// TODO Clear the database
 
-	var tables []string
-	db.
-		Raw("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;").
-		Scan(&tables)
-	t.Logf("Tables: %v", tables)
-
 	return db
 }
 

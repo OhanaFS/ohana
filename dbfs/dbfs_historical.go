@@ -23,9 +23,9 @@ var (
 )
 
 type HistoricalStats struct {
-	Day            int
-	Month          int
-	Year           int
+	Day            int `gorm:"primary_key"`
+	Month          int `gorm:"primary_key"`
+	Year           int `gorm:"primary_key"`
 	NonReplicaUsed int64
 	ReplicaUsed    int64
 	NumOfFiles     int64
@@ -120,6 +120,48 @@ func DumpDailyStats(db *gorm.DB) error {
 		"NumOfFiles":     numOfFiles,
 	}).Error
 
+}
+
+// MOCKDumpDailyStats TODO: REMOVE IN FINAL PRODUCT
+// DumpDailyStats calculates statistics such as NonReplicaUsed Data
+// and more in HistoricalStats and dump it into it.
+func MOCKDumpDailyStats(db *gorm.DB) error {
+
+	// Load the db with HistoricalStats that can be used for testing
+
+	fakeStartLoadDataDate := time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
+	fakeEndLoadDataDate := time.Now()
+
+	// days between fakeStartLoadDataDate and fakeEndLoadDataDate
+	daysBetween := int(fakeEndLoadDataDate.Sub(fakeStartLoadDataDate).Hours() / 24)
+	tempLoadData := make([]HistoricalStats, daysBetween)
+	num := 0
+
+	for (fakeStartLoadDataDate.Unix() - fakeEndLoadDataDate.Unix()) < 0 {
+		// load fake data in the db
+
+		tempD := fakeStartLoadDataDate.Day()
+		tempM := int(fakeStartLoadDataDate.Month())
+		tempY := fakeStartLoadDataDate.Year()
+
+		if num >= len(tempLoadData) {
+			tempLoadData = append(tempLoadData, HistoricalStats{})
+		}
+
+		tempLoadData[num] = HistoricalStats{
+			Day:            tempD,
+			Month:          tempM,
+			Year:           tempY,
+			NonReplicaUsed: int64(tempD+tempM+tempY) * 10000000,
+			ReplicaUsed:    int64(tempD+tempM+tempY) * 2 * 10000000,
+			NumOfFiles:     int64(tempD+tempM+tempY) * 3,
+		}
+		num++
+
+		fakeStartLoadDataDate = fakeStartLoadDataDate.Add(time.Hour * 24)
+	}
+
+	return db.Save(&tempLoadData).Error
 }
 
 func GetDayStat(db *gorm.DB, day int, month int, year int) (HistoricalStats, error) {

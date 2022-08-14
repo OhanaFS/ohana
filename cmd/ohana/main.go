@@ -67,6 +67,8 @@ func main() {
 
 			// Inc
 			inc.RegisterIncServices,
+			inc.MOCKDumpLogs,
+			dbfs.MOCKDumpDailyStats,
 		),
 	).Run()
 }

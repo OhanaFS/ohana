@@ -4,8 +4,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"github.com/OhanaFS/ohana/dbfs"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/OhanaFS/ohana/config"
@@ -109,4 +111,47 @@ func NewInc(config *config.Config, db *gorm.DB) *Inc {
 	}()
 
 	return newInc
+}
+
+func MOCKDumpLogs(db *gorm.DB, i *Inc) {
+
+	const (
+		fatalCount   = 5
+		errorCount   = 10
+		warningCount = 15
+		infoCount    = 20
+		debugCount   = 25
+		traceCount   = 30
+	)
+
+	logsToCreate := map[int8]int{
+		dbfs.LogServerFatal:   fatalCount,
+		dbfs.LogServerError:   errorCount,
+		dbfs.LogServerWarning: warningCount,
+		dbfs.LogServerInfo:    infoCount,
+		dbfs.LogServerDebug:   debugCount,
+		dbfs.LogServerTrace:   traceCount,
+	}
+
+	dbfsLogger := dbfs.NewLogger(db, i.ServerName)
+
+	for logType, count := range logsToCreate {
+		for i := 0; i < count; i++ {
+			switch logType {
+			case dbfs.LogServerFatal:
+				dbfsLogger.LogFatal("fatal log " + strconv.Itoa(i))
+			case dbfs.LogServerError:
+				dbfsLogger.LogError("error log " + strconv.Itoa(i))
+			case dbfs.LogServerWarning:
+				dbfsLogger.LogWarning("warning log " + strconv.Itoa(i))
+			case dbfs.LogServerInfo:
+				dbfsLogger.LogInfo("info log " + strconv.Itoa(i))
+			case dbfs.LogServerDebug:
+				dbfsLogger.LogDebug("debug log " + strconv.Itoa(i))
+			case dbfs.LogServerTrace:
+				dbfsLogger.LogTrace("trace log	" + strconv.Itoa(i))
+			}
+		}
+	}
+
 }
