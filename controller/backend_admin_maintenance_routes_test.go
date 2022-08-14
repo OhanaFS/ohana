@@ -1,13 +1,16 @@
 package controller_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/OhanaFS/ohana/config"
 	"github.com/OhanaFS/ohana/controller"
 	"github.com/OhanaFS/ohana/controller/inc"
 	"github.com/OhanaFS/ohana/controller/middleware"
 	"github.com/OhanaFS/ohana/dbfs"
+	dbfstestutils "github.com/OhanaFS/ohana/dbfs/test_utils"
 	selfsigntestutils "github.com/OhanaFS/ohana/selfsign/test_utils"
 	"github.com/OhanaFS/ohana/util/ctxutil"
 	"github.com/OhanaFS/ohana/util/testutil"
@@ -15,8 +18,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
+	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -194,6 +199,59 @@ func TestGetAllJobs(t *testing.T) {
 
 	t.Run("StartJob", func(t *testing.T) {
 
+		// Before starting our full shards check, we want to create a few files so that it
+		// can be tested
+
+		// Get root folder
+
+		Assert := assert.New(t)
+
+		rootFolder, err := dbfs.GetRootFolder(db)
+		Assert.NoError(err)
+
+		testFile, err := dbfstestutils.EXAMPLECreateFile(db, user, dbfstestutils.ExampleFile{
+			FileName:       "Test123",
+			ParentFolderId: rootFolder.FileId,
+			Server:         incConfig.ServerName,
+			FragmentPath:   stitchConfig.ShardsLocation,
+			FileData:       "Hello this is the first version of the file. Hopefully it won't get corrupted poggies",
+			Size:           50,
+			ActualSize:     50,
+		})
+		Assert.NoError(err)
+
+		// Turn on versioning
+		Assert.NoError(testFile.UpdateMetaData(db, dbfs.FileMetadataModification{
+			VersioningMode: dbfs.VersioningOnVersions,
+		}, user))
+
+		// Get the shards for the file to corrupt it later pepelaugh
+		shards, err := testFile.GetFileFragments(db, user)
+		Assert.NoError(err)
+		Assert.True(len(shards) > 2, shards) // This is a sanity check to make sure we have at least 3 shards
+
+		// Update the file
+
+		Assert.NoError(dbfstestutils.EXAMPLEUpdateFile(db, testFile, dbfstestutils.ExampleUpdate{
+			NewSize:       70,
+			NewActualSize: 70,
+			FragmentPath:  stitchConfig.ShardsLocation,
+			FileData: "Hello this is the second version of the file. It won't get corrupted like the other one" +
+				" because this file isn't cringe.",
+			Server: incConfig.ServerName,
+		}, user))
+
+		shards2, err := testFile.GetFileFragments(db, user)
+		Assert.NoError(err)
+		Assert.True(len(shards) > 2, shards) // This is a sanity check to make sure we have at least 3 shards
+
+		// Corrupt one of the shards from both versions
+		corruptPath := path.Join(stitchConfig.ShardsLocation, shards[0].FileFragmentPath)
+		Assert.NoError(dbfstestutils.EXAMPLECorruptFragments(corruptPath))
+
+		corruptPath = path.Join(stitchConfig.ShardsLocation, shards2[0].FileFragmentPath)
+		Assert.NoError(dbfstestutils.EXAMPLECorruptFragments(corruptPath))
+
 		// Starting a job with a full shards check
 		req := httptest.NewRequest("POST", "/api/v1/cluster/maintenance/job/start", nil).WithContext(
 			ctxutil.WithUser(context.Background(), user))
@@ -211,9 +269,8 @@ func TestGetAllJobs(t *testing.T) {
 		bc.StartJob(w, req)
 
 		var jobs []dbfs.Job
-		assert.NoError(t, db.Find(&jobs).Error)
+		Assert.NoError(db.Find(&jobs).Error)
 
-		Assert := assert.New(t)
 		Assert.Equal(http.StatusOK, w.Code)
 		body := w.Body.String()
 
@@ -223,12 +280,14 @@ func TestGetAllJobs(t *testing.T) {
 
 	})
 
+	var resultsAFSHC []dbfs.ResultsAFSHC
+
 	t.Run("Get Full Shards Result", func(t *testing.T) {
 
 		time.Sleep(1 * time.Second)
 		Assert := assert.New(t)
 
-		// Get the result
+		// Get the resultsAFSHC
 		req := httptest.NewRequest("GET",
 			"/api/v1/cluster/maintenance/job/2/full_shards",
 			nil).WithContext(
@@ -243,10 +302,68 @@ func TestGetAllJobs(t *testing.T) {
 		Assert.Equal(http.StatusOK, w.Code)
 
 		body := w.Body.String()
-		var result []dbfs.ResultsAFSHC
-		Assert.NoError(json.Unmarshal([]byte(body), &result))
 
-		Assert.Equal(len(result), 0)
+		Assert.NoError(json.Unmarshal([]byte(body), &resultsAFSHC))
+		Assert.Equal(2, len(resultsAFSHC))
+	})
+
+	t.Run("Repair said shards", func(t *testing.T) {
+
+		// This test is reliant on the previous test running successfully
+		// As we are using the results from resultsAFSHC which is populated from the previous test
+
+		Assert := assert.New(t)
+
+		// Repair said shards
+
+		// Creating the request to fix all shards
+		fixAFSHC := make([]dbfs.FixAFSHC, len(resultsAFSHC))
+		for i, result := range resultsAFSHC {
+			fixAFSHC[i] = dbfs.FixAFSHC{
+				DataId: result.DataId,
+				Fix:    true,
+			}
+		}
+
+		fixAFSHCBytes, err := json.Marshal(fixAFSHC)
+		Assert.NoError(err)
+
+		req := httptest.NewRequest("POST", "/api/v1/cluster/maintenance/job/2/full_shards",
+			bytes.NewReader(fixAFSHCBytes)).WithContext(
+			ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req.Header.Add("Content-Type", "application/json") // technically not required but good practice
+		req = mux.SetURLVars(req, map[string]string{
+			"id": strconv.Itoa(int(newJob.JobId)),
+		})
+
+		w := httptest.NewRecorder()
+		bc.FixFullShardsResult(w, req)
+
+		Assert.Equal(http.StatusOK, w.Code)
+		body := w.Body.String()
+		Assert.Contains(body, "true")
+
+		// In theory all the shards should be fixed. Let's check that
+
+		req = httptest.NewRequest("GET",
+			strings.Replace(inc.FragmentHealthCheckPath,
+				inc.PathReplaceShardString, resultsAFSHC[0].FragPath, -1),
+			nil).
+			WithContext(ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req = mux.SetURLVars(req, map[string]string{
+			"shardPath": resultsAFSHC[0].FragPath,
+		})
+		w = httptest.NewRecorder()
+		Inc.ShardHealthCheckRoute(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+		body = w.Body.String()
+
+		//var verificationResult stitch.ShardVerificationResult
+
+		fmt.Println(body)
+
 	})
 
 }
