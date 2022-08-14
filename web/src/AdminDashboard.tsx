@@ -56,8 +56,6 @@ export function AdminDashboard() {
   //const clearserverlogs = clearserverLogs();
   //const clearalertsID = clearAlertsID(1);
 
-  console.log('Test', getnumfiles.data);
-
   const renderCustomizedLabel = ({
     cx,
     cy,
@@ -87,71 +85,10 @@ export function AdminDashboard() {
   // all the logs
   const [logsModal, setOpened] = useState(false);
 
-  var logsDetails = [
-    {
-      'Date and time': '09/16/2019, 14:07',
-      Node: 'Peter',
-      Change: 'Added a node ip address 45.2.1.6',
-    },
-    {
-      'Date and time': '09/16/2019, 14:07',
-      Node: 'Peter',
-      Change: 'Added a node ip address 95.2.2.6',
-    },
-    {
-      'Date and time': '09/16/2019, 14:09',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.6',
-    },
-    {
-      'Date and time': '09/16/2019, 14:10',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.6',
-    },
-    {
-      'Date and time': '09/16/2019, 14:10',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.7',
-    },
-    {
-      'Date and time': '09/16/2019, 14:10',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.8',
-    },
-    {
-      'Date and time': '09/16/2019, 14:10',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.9',
-    },
-    {
-      'Date and time': '09/16/2019, 14:10',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.10',
-    },
-    {
-      'Date and time': '09/16/2019, 14:10',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.11',
-    },
-    {
-      'Date and time': '09/16/2019, 14:10',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.12',
-    },
-    {
-      'Date and time': '09/16/2019, 14:10',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.13',
-    },
-    {
-      'Date and time': '09/16/2019, 14:10',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.14',
-    },
-  ];
+  const qServerLogs = useQueryGetserverLogs(0, '', '', '');
 
   // data for logs
-  const [logs, setlogs] = useState(logsDetails);
+  const [logs, setlogs] = useState(qServerLogs.data);
 
   // data for clusterhealth
   const ClusterHealthChartData = [
@@ -321,11 +258,10 @@ export function AdminDashboard() {
       </th>
     </tr>
   );
-
   // display the recent 4 row from log
-  const recentRows = logs.map((items, index) =>
+  const recentRows = qServerLogs?.data?.map((items, index) =>
     index < 4 ? (
-      <tr>
+      <tr key={index}>
         <td
           width="15%"
           style={{
@@ -335,7 +271,7 @@ export function AdminDashboard() {
             color: 'black',
           }}
         >
-          {items['Date and time']}
+          {items.TimeStamp}
         </td>
         <td
           width="10%"
@@ -346,7 +282,7 @@ export function AdminDashboard() {
             color: 'black',
           }}
         >
-          {items['Node']}
+          {items.ServerName}
         </td>
         <td
           width="30%"
@@ -357,7 +293,7 @@ export function AdminDashboard() {
             color: 'black',
           }}
         >
-          {items['Change']}
+          {items.Message}
         </td>
       </tr>
     ) : (
@@ -366,8 +302,8 @@ export function AdminDashboard() {
   );
 
   // display the all the row from log
-  const rows = logs.map((items, index) => (
-    <tr>
+  const rows = qServerLogs?.data?.map((items, index) => (
+    <tr key={index}>
       <td
         width="15%"
         style={{
@@ -377,7 +313,7 @@ export function AdminDashboard() {
           color: 'black',
         }}
       >
-        {items['Date and time']}
+        {items.TimeStamp}
       </td>
       <td
         width="10%"
@@ -388,7 +324,7 @@ export function AdminDashboard() {
           color: 'black',
         }}
       >
-        {items['Node']}
+        {items.ServerName}
       </td>
       <td
         width="30%"
@@ -399,7 +335,7 @@ export function AdminDashboard() {
           color: 'black',
         }}
       >
-        {items['Change']}
+        {items.Message}
       </td>
     </tr>
   ));
@@ -740,18 +676,24 @@ export function AdminDashboard() {
                     Logs
                   </caption>
                   <thead>{ths}</thead>
-                  <tbody>{recentRows}</tbody>
+                  {(qServerLogs.data ?? []).length === 0 ? (
+                    <Text className=" ml-2 mt-2 mb-5">Nothing here!</Text>
+                  ) : (
+                    <tbody>{recentRows}</tbody>
+                  )}
                 </Table>
               </ScrollArea>
-              <Button
-                variant="default"
-                color="dark"
-                size="md"
-                style={{ textAlign: 'right' }}
-                onClick={() => setOpened(true)}
-              >
-                View All Logs
-              </Button>
+              {(qServerLogs.data ?? []).length > 4 ? (
+                <Button
+                  variant="default"
+                  color="dark"
+                  size="md"
+                  style={{ textAlign: 'right' }}
+                  onClick={() => setOpened(true)}
+                >
+                  View All Logs
+                </Button>
+              ) : null}
             </Card>
           </div>
         </div>

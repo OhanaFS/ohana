@@ -120,11 +120,11 @@ export type Alerts = {
 };
 
 export type LogEntry = {
-  id: number;
-  log_type: number;
-  server_name: string;
-  message: string;
-  timestamp: string;
+  LogId: number;
+  LogType: number;
+  ServerName: string;
+  Message: string;
+  TimeStamp: string;
 };
 
 // Get all alerts related to the cluster
@@ -171,11 +171,11 @@ export const useQueryGetserverLogs = (
   filter: string
 ) =>
   useQuery(['serverLogs', start, startDate, endDate, filter], () =>
-    APIClient.get<LogEntry>(`/api/v1/cluster/stats/logs`, {
+    APIClient.get<LogEntry[]>(`/api/v1/cluster/stats/logs`, {
       headers: {
         startNum: start,
-        startDate: new Date(startDate).toISOString(),
-        endDate: new Date(endDate).toISOString(),
+        startDate: startDate,
+        endDate: endDate,
         filter: filter,
       },
     })
