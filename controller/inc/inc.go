@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"time"
 
@@ -70,9 +71,10 @@ func NewInc(config *config.Config, db *gorm.DB) *Inc {
 				RootCAs:      caCertPool,
 				Certificates: []tls.Certificate{clientCert},
 			},
+			Dial: func(network, addr string) (net.Conn, error) {
+				return net.DialTimeout(network, addr, time.Millisecond*100)
+			},
 		},
-		// Quick timeout for quick failover
-		Timeout: time.Second,
 	}
 
 	// register routes

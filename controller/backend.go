@@ -132,9 +132,18 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Get header parameters
+	// Get file
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "file not found: "+err.Error())
+		return
+	}
+	defer file.Close()
+
+	// Get parameters
+	fileSize := header.Size
+	fileName := header.Filename
 	folderId := r.Header.Get("folder_id")
-	fileName := r.Header.Get("file_name")
 
 	if folderId == "" {
 		util.HttpError(w, http.StatusBadRequest, "folder_id is required")
@@ -167,7 +176,8 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 
 	// Get encoder params and create new encoder
 	stitchParams, err := dbfs.GetStitchParams(bc.Db, bc.Logger)
-	dataShards, parityShards, keyThreshold := stitchParams.DataShards, stitchParams.ParityShards, stitchParams.KeyThreshold
+	dataShards, parityShards, keyThreshold :=
+		stitchParams.DataShards, stitchParams.ParityShards, stitchParams.KeyThreshold
 	totalShards := dataShards + parityShards
 
 	encoder := stitch.NewEncoder(&stitch.EncoderOptions{
@@ -189,14 +199,6 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	// Stream file
-	file, header, err := r.FormFile("file")
-	if err != nil {
-		util.HttpError(w, http.StatusBadRequest, "file not found: "+err.Error())
-		return
-	}
-	fileSize := header.Size
 
 	// File, PasswordProtect entries for dbfs.
 	dbfsFile := dbfs.File{
@@ -1219,13 +1221,8 @@ func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.
 	} else {
 		w.Header().Set("Content-Disposition", "inline; filename="+file.FileName)
 	}
-	w.WriteHeader(http.StatusOK)
 
-	_, err = io.Copy(w, reader)
-	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
+	http.ServeContent(w, r, file.FileName, file.ModifiedTime, reader)
 }
 
 // DeleteFileVersion deletes a file version

@@ -26,14 +26,14 @@ func NewHttpWriteCloser(ctx context.Context, client *http.Client, method, url st
 		// Construct a new request
 		req, err := http.NewRequestWithContext(ctx, method, url, rd)
 		if err != nil {
-			rd.CloseWithError(err)
+			rd.CloseWithError(fmt.Errorf("failed to create request: %w", err))
 			return
 		}
 
 		// Perform the request
 		resp, err := client.Do(req)
 		if err != nil {
-			rd.CloseWithError(err)
+			rd.CloseWithError(fmt.Errorf("failed to perform http request: %w", err))
 			return
 		}
 
@@ -44,8 +44,8 @@ func NewHttpWriteCloser(ctx context.Context, client *http.Client, method, url st
 		}
 
 		// Discard all output
+		defer resp.Body.Close()
 		io.Copy(io.Discard, resp.Body)
-		resp.Body.Close()
 	}()
 
 	// Return the writer
