@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -59,7 +60,9 @@ func TestAdminClusterHistoricalRoutes(t *testing.T) {
 
 	session := testutil.NewMockSession(t)
 	sessionId, err := session.Create(nil, "superuser", time.Hour)
-	Inc := inc.NewInc(configFile, db)
+
+	fakeLogger, _ := zap.NewDevelopment()
+	Inc := inc.NewInc(configFile, db, fakeLogger)
 	inc.RegisterIncServices(Inc)
 
 	// Wait for inc to start
@@ -370,7 +373,8 @@ func TestAdminClusterRoutes(t *testing.T) {
 
 	session := testutil.NewMockSession(t)
 	sessionId, err := session.Create(nil, "superuser", time.Hour)
-	Inc := inc.NewInc(configFile, db)
+	fakeLogger, _ := zap.NewDevelopment()
+	Inc := inc.NewInc(configFile, db, fakeLogger)
 	inc.RegisterIncServices(Inc)
 
 	// Wait for inc to start

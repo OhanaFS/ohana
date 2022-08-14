@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"go.uber.org/zap"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -31,9 +32,7 @@ type Inc struct {
 	Shutdown          chan bool
 }
 
-func NewInc(config *config.Config, db *gorm.DB) *Inc {
-
-	// TODO ? Put a zap logger here
+func NewInc(config *config.Config, db *gorm.DB, logger *zap.Logger) *Inc {
 
 	// Setting up a router for it
 	router := mux.NewRouter()
@@ -42,7 +41,7 @@ func NewInc(config *config.Config, db *gorm.DB) *Inc {
 
 	caCert, err := ioutil.ReadFile(config.Inc.CaCert)
 	if err != nil {
-		panic(err) // TODO put logger here
+		logger.Fatal("Error reading CA cert", zap.Error(err))
 	}
 
 	caCertPool := x509.NewCertPool()
@@ -62,7 +61,7 @@ func NewInc(config *config.Config, db *gorm.DB) *Inc {
 	// Loading client certificates
 	clientCert, err := tls.LoadX509KeyPair(config.Inc.PublicCert, config.Inc.PrivateKey)
 	if err != nil {
-		panic(err) // TODO put logger here
+		logger.Fatal("Error loading client certificates", zap.Error(err))
 	}
 
 	client := &http.Client{

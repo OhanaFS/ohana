@@ -666,8 +666,8 @@ func (i Inc) LocalAllFilesShardsHealthCheck(jobId int) error {
 
 	// Get all the fragments belonging to this server
 
-	// We will first reference the files table so that we get the latest file names
-	// If there are stuff no longer there, it will be "" and we will find it later.
+	// We will first reference the file's table so that we get the latest file names
+	// If there are files no longer there, it will be an empty string which we will handle later.
 	err = i.Db.Model(&dbfs.Fragment{}).Select(
 		"files.file_id, files.file_name, fragments.file_version_data_id, fragments.file_fragment_path, fragments.server_name").
 		Joins("JOIN files ON fragments.file_version_file_id = files.file_id").
@@ -798,12 +798,16 @@ func (i Inc) LocalAllFilesShardsHealthCheck(jobId int) error {
 	}
 
 	// Insert the results into the database
+	// and update the status of the shards and the associated file versions
 	for _, result := range resultsMap {
 		err = i.Db.Create(result).Error
 		if err != nil {
 			log.Println(err)
 			return err
 		}
+
+		// TODO: Update database with the file versions and the shards being bad.
+
 	}
 
 	// Close the job progress
@@ -862,6 +866,7 @@ func (i *Inc) StartJob(job *dbfs.Job) (map[string]string, error) {
 
 	allErrors := make(map[string]string)
 
+	// TODO: Put this in a goroutine (oh god testing this is going to be a pain)
 	for _, server := range servers {
 		if job.AllFilesShardsHealthCheck {
 			if server.Name != i.ServerName {
@@ -892,6 +897,32 @@ func (i *Inc) StartJob(job *dbfs.Job) (map[string]string, error) {
 			}
 		}
 
+		if job.QuickShardsHealthCheck {
+			if server.Name != i.ServerName {
+				r, _ := http.NewRequest("POST",
+					"https://"+server.HostName+":"+server.Port+CurrentFilesHealthPath, nil)
+				r.Header.Set("job_id", strconv.Itoa(int(job.JobId)))
+				resp, err := i.HttpClient.Do(r)
+				if err != nil {
+					allErrors[server.Name] = err.Error()
+					continue
+				}
+				if resp.StatusCode != http.StatusOK {
+					b, err := ioutil.ReadAll(resp.Body)
+					if err != nil {
+						allErrors[server.Name] = err.Error()
+						continue
+					}
+					allErrors[server.Name] = string(b)
+				}
+			} else {
+				// Perform the job on this server
+				err = i.LocalCurrentFilesShardsHealthCheck(int(job.JobId))
+				if err != nil {
+					allErrors[server.Name] = err.Error()
+				}
+			}
+		}
 	}
 
 	if len(allErrors) > 0 {

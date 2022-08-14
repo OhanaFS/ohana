@@ -8,6 +8,7 @@ import (
 	selfsigntestutils "github.com/OhanaFS/ohana/selfsign/test_utils"
 	"github.com/OhanaFS/ohana/util/testutil"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"testing"
 )
 
@@ -49,7 +50,8 @@ func TestRegisterServer(t *testing.T) {
 
 		Assert := assert.New(t)
 
-		incServer = inc.NewInc(configFile, db)
+		fakeLogger, _ := zap.NewDevelopment()
+		incServer = inc.NewInc(configFile, db, fakeLogger)
 		inc.RegisterIncServices(incServer)
 
 		err := incServer.RegisterServer(true)

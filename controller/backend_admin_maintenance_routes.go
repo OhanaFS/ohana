@@ -79,7 +79,7 @@ func (bc *BackendController) GetAllJobs(w http.ResponseWriter, r *http.Request) 
 			util.HttpError(w, http.StatusBadRequest, "Invalid filter")
 			return
 		}
-		if filter < 0 || filter > dbfs.JobStatusCompleteNoErrors {
+		if filter < 0 || filter > dbfs.JobHasErrors {
 			util.HttpError(w, http.StatusBadRequest, "Invalid filter")
 			return
 		}
@@ -277,6 +277,14 @@ func (bc *BackendController) FixFullShardsResult(w http.ResponseWriter, r *http.
 
 	// Check that jobId exists
 	originalResults, err := dbfs.GetResultsAFSHC(bc.Db, jobId)
+	if err != nil {
+		if errors.Is(err, dbfs.ErrorCronJobDoesNotExist) {
+			util.HttpError(w, http.StatusNotFound, err.Error())
+		} else {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
 
 	// make it a map so I can easily check if a file is in the map
 	originalResultsMap := make(map[string]bool)
@@ -285,7 +293,7 @@ func (bc *BackendController) FixFullShardsResult(w http.ResponseWriter, r *http.
 	}
 
 	// Decoding the request body
-	var results []dbfs.FixAFSHC
+	var results []dbfs.ShardActions
 	err = json.NewDecoder(r.Body).Decode(&results)
 	if err != nil {
 		util.HttpError(w, http.StatusBadRequest, "Invalid request body")
@@ -336,6 +344,150 @@ func (bc *BackendController) FixFullShardsResult(w http.ResponseWriter, r *http.
 
 			// Mark as good
 			err := bc.Db.Model(&dbfs.ResultsAFSHC{}).Where("data_id = ? and job_id = ?",
+				result.DataId, jobId).
+				Updates(map[string]interface{}{
+					"error_type": dbfs.CronErrorTypeSolved,
+					"error":      "Deleted",
+				}).Error
+			if err != nil {
+				util.HttpError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+		}
+
+	}
+
+	util.HttpJson(w, http.StatusOK, true)
+}
+
+// GetQuickShardsResult returns the result of the full shards check for the given jobId
+func (bc *BackendController) GetQuickShardsResult(w http.ResponseWriter, r *http.Request) {
+
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// Check if user is admin
+	if user.AccountType != dbfs.AccountTypeAdmin {
+		util.HttpError(w, http.StatusForbidden, "You are not an admin")
+		return
+	}
+
+	vars := mux.Vars(r)
+	jobIdString := vars["id"]
+	jobId, err := strconv.Atoi(jobIdString)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "Invalid jobId")
+		return
+	}
+	result, err := dbfs.GetResultsCFSHC(bc.Db, jobId)
+	if err != nil {
+		if errors.Is(err, dbfs.ErrorCronJobDoesNotExist) {
+			util.HttpError(w, http.StatusNotFound, err.Error())
+		} else {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+	util.HttpJson(w, http.StatusOK, result)
+}
+
+// FixQuickShardsResult takes the request body,
+// decodes the results, and fixes based on the user input
+// and fixes the full shards check for the given jobId
+func (bc *BackendController) FixQuickShardsResult(w http.ResponseWriter, r *http.Request) {
+
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// Check if user is admin
+	if user.AccountType != dbfs.AccountTypeAdmin {
+		util.HttpError(w, http.StatusForbidden, "You are not an admin")
+		return
+	}
+
+	vars := mux.Vars(r)
+	jobIdString := vars["id"]
+	jobId, err := strconv.Atoi(jobIdString)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "Invalid jobId")
+		return
+	}
+
+	// Check that jobId exists
+	originalResults, err := dbfs.GetResultsCFSHC(bc.Db, jobId)
+	if err != nil {
+		if errors.Is(err, dbfs.ErrorCronJobDoesNotExist) {
+			util.HttpError(w, http.StatusNotFound, err.Error())
+		} else {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+
+	// make it a map so I can easily check if a file is in the map
+	originalResultsMap := make(map[string]bool)
+	for _, file := range originalResults {
+		originalResultsMap[file.DataId] = true
+	}
+
+	// Decoding the request body
+	var results []dbfs.ShardActions
+	err = json.NewDecoder(r.Body).Decode(&results)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	for _, result := range results {
+		_, ok := originalResultsMap[result.DataId]
+		if !ok {
+			continue
+		}
+		// TODO: Should be a thread pool
+		if result.Fix {
+			err = bc.RebuildShard(result.DataId, result.Password)
+			if err != nil {
+				util.HttpError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			// Mark as good
+			err := bc.Db.Model(&dbfs.ResultsCFSHC{}).Where("data_id = ? and job_id = ?",
+				result.DataId, jobId).
+				Updates(map[string]interface{}{
+					"error_type": dbfs.CronErrorTypeSolved,
+					"error":      "Reconstructed",
+				}).Error
+			if err != nil {
+				util.HttpError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+		} else if result.Delete {
+			// get/delete file
+			var files []dbfs.File
+			bc.Db.Model(&dbfs.File{}).Where("data_id = ?", result.DataId).Find(&files)
+			for _, file := range files {
+				err := file.Delete(bc.Db, user, "")
+				if err != nil {
+					util.HttpError(w, http.StatusInternalServerError, err.Error())
+					return
+				}
+			}
+			// get/delete file version
+			err = bc.Db.Model(&dbfs.FileVersion{}).Where("data_id = ?", result.DataId).
+				Update("status", dbfs.FileStatusToBeDeleted).Error
+			if err != nil {
+				util.HttpError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+
+			// Mark as good
+			err := bc.Db.Model(&dbfs.ResultsCFSHC{}).Where("data_id = ? and job_id = ?",
 				result.DataId, jobId).
 				Updates(map[string]interface{}{
 					"error_type": dbfs.CronErrorTypeSolved,

@@ -242,13 +242,8 @@ func (i *Inc) ReplaceShardRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Delete old file, rename new file to old file path
-	err := os.Remove(newShardPath)
-	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, "Error deleting old shard")
-		return
-	}
-	err = os.Rename(oldShardPath, newShardPath)
+	// Rename new file. (will automatically delete old file)
+	err := os.Rename(oldShardPath, newShardPath)
 	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, "Error renaming new shard")
 		return

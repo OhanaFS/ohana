@@ -2,8 +2,10 @@ package dbfs
 
 import (
 	"errors"
+	"fmt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"math"
 	"time"
 )
 
@@ -13,8 +15,8 @@ const (
 	CronErrorTypeCorrupted     = 3
 	CronErrorTypeSolved        = 4 // The error was solved
 	JobStatusRunning           = 1
-	JobStatusCompleteErrors    = 2
-	JobStatusCompleteNoErrors  = 3
+	JobNoErrors                = 2
+	JobHasErrors               = 3
 )
 
 var (
@@ -23,27 +25,39 @@ var (
 )
 
 type Job struct {
-	JobId                        uint `gorm:"primaryKey; not null"`
-	StartTime                    time.Time
-	EndTime                      time.Time
-	TotalTimeTaken               time.Duration
-	TotalShardsScanned           int
-	TotalFilesScanned            int
-	MissingShardsCheck           bool
-	MissingShardsProgress        []JobProgressMissingShard `gorm:"foreignkey:JobId"`
-	OrphanedShardsCheck          bool
-	OrphanedShardsProgress       []JobProgressOrphanedShard `gorm:"foreignkey:JobId"`
-	QuickShardsHealthCheck       bool
-	QuickShardsHealthProgress    []JobProgressCFSHC `gorm:"foreignkey:JobId"`
+	JobId              uint `gorm:"primaryKey; not null"`
+	StartTime          time.Time
+	EndTime            time.Time
+	TotalTimeTaken     time.Duration
+	TotalShardsScanned int
+	TotalFilesScanned  int
+	// MissingShardsCheck has a weightage of 10 in the progress calculation
+	MissingShardsCheck    bool
+	MissingShardsProgress []JobProgressMissingShard `gorm:"foreignkey:JobId"`
+	// OrphanedShardsCheck Check has a weightage of 10 in the progress calculation
+	OrphanedShardsCheck    bool
+	OrphanedShardsProgress []JobProgressOrphanedShard `gorm:"foreignkey:JobId"`
+	// QuickShardsCheck Check has a weightage of 50 in the progress calculation
+	QuickShardsHealthCheck    bool
+	QuickShardsHealthProgress []JobProgressCFSHC `gorm:"foreignkey:JobId"`
+	// AllFilesShardsHealthCheck Check has a weightage of 100 in the progress calculation
 	AllFilesShardsHealthCheck    bool
 	AllFilesShardsHealthProgress []JobProgressAFSHC `gorm:"foreignkey:JobId"`
-	PermissionCheck              bool
-	PermissionResults            []JobProgressPermissionCheck `gorm:"foreignkey:JobId"`
-	DeleteFragments              bool
-	DeleteFragmentsResults       []JobProgressDeleteFragments `gorm:"foreignkey:JobId"`
-	Progress                     int
-	StatusMsg                    string
-	Status                       int
+	// PermissionCheck Check has a weightage of 20 in the progress calculation
+	PermissionCheck   bool
+	PermissionResults *JobProgressPermissionCheck `gorm:"foreignkey:JobId"`
+	// DeleteFragments Check has a weightage of 10 in the progress calculation
+	DeleteFragments        bool
+	DeleteFragmentsResults []JobProgressDeleteFragments `gorm:"foreignkey:JobId"`
+	// OrphanedFilesCheck has a weightage of 20 in the progress calculation
+	OrphanedFilesCheck bool
+	// TODO: OrphanedFilesResults
+	// OrphanedFilesResults []JobProgressOrphanedFiles `gorm:"foreignkey:JobId"`
+	// Progress is the percentage of the job that is complete.
+	Progress  int
+	StatusMsg string
+	Status    int
+	// Status is computed on the fly based on the progress of the job.
 }
 
 // ResultsCFSHC Current files shards health check result
@@ -80,7 +94,7 @@ type ResultsAFSHC struct {
 	ErrorType int
 }
 
-type FixAFSHC struct {
+type ShardActions struct {
 	DataId   string
 	Fix      bool
 	Delete   bool
@@ -168,7 +182,6 @@ type JobParameters struct {
 // GetAllJobs Returns all jobs in the database based on the paramters passed in
 func GetAllJobs(tx *gorm.DB, startNum int, startDate, endDate time.Time, filter int) ([]Job, error) {
 
-	// TODO Calculate the Progress
 	var jobs []Job
 	var err error
 	if filter == 0 {
@@ -192,7 +205,108 @@ func GetAllJobs(tx *gorm.DB, startNum int, startDate, endDate time.Time, filter 
 	if err != nil {
 		return nil, err
 	}
+
+	// get number of servers working on it
+	servers, err := GetServers(tx)
+	if err != nil {
+		return nil, fmt.Errorf("Error getting servers: %v", err)
+	}
+
+	for _, job := range jobs {
+		job.Progress = calculateProgress(job, len(servers))
+		if job.Progress == 100 {
+			// update job via gorm to set status to complete
+			tx.Model(&job).Where("job_id = ?", job.JobId).Update("progress", 100)
+		}
+	}
+
 	return jobs, nil
+}
+
+func calculateProgress(job Job, numOfServers int) int {
+
+	// map of string to int
+	progressMap := map[string]int{
+		"MissingShardsCheck":        10,
+		"OrphanedShardsCheck":       10,
+		"QuickShardsHealthCheck":    50,
+		"AllFilesShardsHealthCheck": 100,
+		"PermissionCheck":           20,
+		"DeleteFragments":           10,
+		"OrphanedFilesCheck":        20,
+	}
+	var totalProgress int
+
+	if job.MissingShardsCheck {
+		totalProgress += progressMap["MissingShardsCheck"]
+	}
+	if job.OrphanedShardsCheck {
+		totalProgress += progressMap["OrphanedShardsCheck"]
+	}
+	if job.QuickShardsHealthCheck {
+		totalProgress += progressMap["QuickShardsHealthCheck"]
+	}
+	if job.AllFilesShardsHealthCheck {
+		totalProgress += progressMap["AllFilesShardsHealthCheck"]
+	}
+	if job.PermissionCheck {
+		totalProgress += progressMap["PermissionCheck"]
+	}
+	if job.DeleteFragments {
+		totalProgress += progressMap["DeleteFragments"]
+	}
+	if job.OrphanedFilesCheck {
+		totalProgress += progressMap["OrphanedFilesCheck"]
+	}
+
+	currentProgress := float64(0)
+	if job.MissingShardsCheck {
+		for _, progress := range job.MissingShardsProgress {
+			if !progress.InProgress {
+				currentProgress += float64(progressMap["MissingShardsCheck"]) / float64(numOfServers)
+			}
+		}
+	}
+	if job.OrphanedShardsCheck {
+		for _, progress := range job.OrphanedShardsProgress {
+			if !progress.InProgress {
+				currentProgress += float64(progressMap["OrphanedShardsCheck"]) / float64(numOfServers)
+			}
+		}
+	}
+	if job.QuickShardsHealthCheck {
+		for _, progress := range job.QuickShardsHealthProgress {
+			if !progress.InProgress {
+				currentProgress += float64(progressMap["QuickShardsHealthCheck"]) / float64(numOfServers)
+			}
+		}
+	}
+	if job.AllFilesShardsHealthCheck {
+		for _, progress := range job.AllFilesShardsHealthProgress {
+			if !progress.InProgress {
+				currentProgress += float64(progressMap["AllFilesShardsHealthCheck"]) / float64(numOfServers)
+			}
+		}
+	}
+	if job.PermissionCheck {
+		if job.PermissionResults != nil {
+			if !job.PermissionResults.InProgress {
+				currentProgress += float64(progressMap["PermissionCheck"])
+			}
+		}
+	}
+	if job.DeleteFragments {
+		for _, progress := range job.DeleteFragmentsResults {
+			if !progress.InProgress {
+				currentProgress += float64(progressMap["DeleteFragments"]) / float64(numOfServers)
+			}
+		}
+	}
+	if job.OrphanedFilesCheck {
+		// TODO: to be implemented
+	}
+
+	return int(math.Ceil(currentProgress / float64(totalProgress) * float64(100)))
 }
 
 // GetJob Returns a job by id
@@ -207,6 +321,20 @@ func GetJob(tx *gorm.DB, jobId int) (*Job, error) {
 		}
 		return nil, err
 	}
+
+	// Progress
+
+	// get number of servers working on it
+	servers, err := GetServers(tx)
+	if err != nil {
+		return nil, fmt.Errorf("Error getting servers: %v", err)
+	}
+	job.Progress = calculateProgress(job, len(servers))
+	if job.Progress == 100 {
+		// update job via gorm to set status to complete
+		tx.Model(&job).Where("job_id = ?", job.JobId).Update("progress", 100)
+	}
+
 	return &job, nil
 }
 
@@ -249,8 +377,8 @@ func DeleteJob(tx *gorm.DB, jobId int) error {
 				return err
 			}
 		}
-		for _, result := range job.PermissionResults {
-			err := tx.Delete(&result).Error
+		if job.PermissionCheck {
+			err := tx.Delete(job.PermissionResults).Error
 			if err != nil {
 				return err
 			}

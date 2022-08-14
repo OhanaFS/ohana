@@ -90,7 +90,7 @@ func TestFragmentHandler(t *testing.T) {
 	dataShards, parityShards, keyThreshold := stitchParams.DataShards, stitchParams.ParityShards, stitchParams.KeyThreshold
 	totalShards := dataShards + parityShards
 
-	Inc := inc.NewInc(configFile, db)
+	Inc := inc.NewInc(configFile, db, logger)
 	inc.RegisterIncServices(Inc)
 
 	t.Run("Creating random files", func(t *testing.T) {
@@ -501,7 +501,8 @@ func TestStitchFragment(t *testing.T) {
 		},
 	}
 
-	Inc := inc.NewInc(configFile, db)
+	fakeLogger, _ := zap.NewDevelopment()
+	Inc := inc.NewInc(configFile, db, fakeLogger)
 	inc.RegisterIncServices(Inc)
 
 	logger := config.NewLogger(configFile)
