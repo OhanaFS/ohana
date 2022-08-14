@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"strconv"
@@ -124,6 +126,81 @@ func (bc *BackendController) InitialiseShardsFolder() {
 	}
 }
 
+type MultipartFileStream struct {
+	reader      *multipart.Reader
+	part        *multipart.Part
+	formName    string
+	isDone      bool
+	ContentType string
+	Filename    string
+}
+
+var _ io.ReadCloser = &MultipartFileStream{}
+
+// Read implements io.ReadCloser
+func (mf *MultipartFileStream) Read(p []byte) (int, error) {
+	if mf.isDone {
+		return 0, io.EOF
+	}
+
+	n, err := io.ReadAtLeast(mf.part, p, len(p))
+	if n < len(p) {
+		mf.isDone = true
+		return n, nil
+	}
+
+	return n, err
+}
+
+// Close implements io.ReadCloser
+func (mf *MultipartFileStream) Close() error {
+	return mf.part.Close()
+}
+
+func NewMultipartFileReader(req *http.Request, fieldName string) (*MultipartFileStream, error) {
+	_, params, err := mime.ParseMediaType(req.Header.Get("Content-Type"))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to parse Content-Type header: %w", err)
+	}
+	boundary, ok := params["boundary"]
+	if !ok {
+		return nil, fmt.Errorf("Failed to get multipart boundary")
+	}
+	reader := multipart.NewReader(req.Body, boundary)
+
+	mfs := &MultipartFileStream{
+		reader:      reader,
+		part:        nil,
+		formName:    fieldName,
+		ContentType: "",
+		Filename:    "",
+	}
+
+	for {
+		part, err := reader.NextPart()
+		if err == io.EOF {
+			break
+		}
+
+		for part.FormName() != fieldName {
+			io.Copy(io.Discard, part)
+			part.Close()
+
+			if part, err = reader.NextPart(); err == io.EOF {
+				break
+			}
+		}
+
+		mfs.part = part
+		mfs.ContentType = part.Header.Get("Content-Type")
+		mfs.Filename = part.FileName()
+
+		return mfs, nil
+	}
+
+	return nil, fmt.Errorf("No matching field name")
+}
+
 // UploadFile allows a user to upload a file to the system
 func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) {
 	user, err := ctxutil.GetUser(r.Context())
@@ -133,7 +210,7 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Get file
-	file, header, err := r.FormFile("file")
+	file, err := NewMultipartFileReader(r, "file")
 	if err != nil {
 		util.HttpError(w, http.StatusBadRequest, "file not found: "+err.Error())
 		return
@@ -141,8 +218,7 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 	defer file.Close()
 
 	// Get parameters
-	fileSize := header.Size
-	fileName := header.Filename
+	fileName := file.Filename
 	folderId := r.Header.Get("folder_id")
 
 	if folderId == "" {
@@ -204,9 +280,9 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 	dbfsFile := dbfs.File{
 		FileId:             uuid.New().String(),
 		FileName:           fileName,
-		MIMEType:           "",
+		MIMEType:           file.ContentType,
 		ParentFolderFileId: &folderId, // root folder for now
-		Size:               int(fileSize),
+		Size:               1024,      // placeholder size
 		VersioningMode:     dbfs.VersioningOff,
 		TotalShards:        totalShards,
 		DataShards:         dataShards,
@@ -337,6 +413,7 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 	// checksum
 	checksum := hex.EncodeToString(result.FileHash)
 
+	dbfsFile.Size = int(result.FileSize)
 	err = dbfs.FinishFile(bc.Db, &dbfsFile, user, int(result.FileSize), checksum)
 	if err != nil {
 		err2 := dbfsFile.Delete(bc.Db, user, bc.ServerName)
@@ -411,15 +488,16 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Stream file
-	file, header, err := r.FormFile("file")
+	// Get file
+	file, err := NewMultipartFileReader(r, "file")
 	if err != nil {
 		util.HttpError(w, http.StatusBadRequest, "file not found: "+err.Error())
 		return
 	}
-	fileSize := header.Size
+	defer file.Close()
 
-	err = dbfsFile.UpdateFile(bc.Db, int(fileSize), int(fileSize), "TODO:CHECKSUM", "", dataKey, dataIv, password, user, header.Filename)
+	// Use placeholder size values as it is not yet known at this point
+	err = dbfsFile.UpdateFile(bc.Db, 1024, 1024, "TODO:CHECKSUM", "", dataKey, dataIv, password, user, file.Filename)
 	if err != nil {
 		if errors.Is(err, dbfs.ErrIncorrectPassword) {
 			util.HttpError(w, http.StatusForbidden, err.Error())
@@ -429,7 +507,17 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Open the output files
+	// Fetch a list of servers
+	servers, err := bc.Inc.AssignShardServer(r.Context(), totalShards)
+	if err != nil {
+		util.HttpError(w,
+			http.StatusInternalServerError,
+			fmt.Sprintf("failed to assign servers: %s", err.Error()),
+		)
+		return
+	}
+
+	// Prepare the writers
 	shardWriters := make([]io.Writer, totalShards)
 	shardNames := make([]string, totalShards)
 
@@ -440,9 +528,8 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 
 	// Open the output writers
 	for i := 0; i < totalShards; i++ {
-		// TODO: currently this only streams to the current server. Need to replace
-		// bc.ServerName with names of other servers chosen by some method.
-		shardWriter, err := bc.Inc.NewShardWriter(r.Context(), bc.ServerName, shardNames[i])
+		shardWriter, err := bc.Inc.NewShardWriter(
+			r.Context(), servers[i].Name, shardNames[i])
 		if err != nil {
 			util.HttpError(w,
 				http.StatusInternalServerError,
@@ -508,6 +595,8 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 	// checksum
 	checksum := hex.EncodeToString(result.FileHash)
 
+	dbfsFile.Size = int(result.FileSize)
+	dbfsFile.ActualSize = int(result.FileSize)
 	err = dbfsFile.FinishUpdateFile(bc.Db, checksum)
 	if err != nil {
 		errString := err.Error()

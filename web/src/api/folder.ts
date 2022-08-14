@@ -6,29 +6,39 @@ import { EntryType, FileMetadata, FilePermission, Permission } from './file';
  * Get contents of a folder by ID.
  */
 export const useQueryFolderContents = (folderId: string) =>
-  useQuery(['folder', 'contents', 'id', folderId], () =>
-    !folderId
-      ? Promise.reject()
-      : APIClient.get<FileMetadata<EntryType.Folder | EntryType.File>[]>(
-          `/api/v1/folder/${folderId}`
-        )
-          .then((res) => res.data)
-          .catch(typedError)
+  useQuery(
+    ['folder', 'contents', 'id', folderId],
+    () =>
+      !folderId
+        ? Promise.reject()
+        : APIClient.get<FileMetadata<EntryType.Folder | EntryType.File>[]>(
+            `/api/v1/folder/${folderId}`
+          )
+            .then((res) => res.data)
+            .catch(typedError),
+    {
+      keepPreviousData: true,
+    }
   );
 
 /**
  * Get contents of a folder by its path. Use this if the ID is not known.
  */
 export const useQueryFolderContentsByPath = (path: string) =>
-  useQuery(['folder', 'contents', 'path', path], () =>
-    !path
-      ? Promise.reject()
-      : APIClient.get<FileMetadata<EntryType.Folder | EntryType.File>[]>(
-          `/api/v1/folder`,
-          { headers: { path } }
-        )
-          .then((res) => res.data)
-          .catch(typedError)
+  useQuery(
+    ['folder', 'contents', 'path', path],
+    () =>
+      !path
+        ? Promise.reject()
+        : APIClient.get<FileMetadata<EntryType.Folder | EntryType.File>[]>(
+            `/api/v1/folder`,
+            { headers: { path } }
+          )
+            .then((res) => res.data)
+            .catch(typedError),
+    {
+      keepPreviousData: true,
+    }
   );
 
 export type UpdateFolderMetadataRequest = {

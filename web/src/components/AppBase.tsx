@@ -29,6 +29,7 @@ import {
 import { MainLinks } from './MainLinks';
 import { UserButton } from './UserButton';
 import { useQueryUser } from '../api/auth';
+import { useNavigate } from 'react-router-dom';
 
 const useStyles = createStyles((theme) => ({
   navbar: {
@@ -76,6 +77,7 @@ export default function AppBase(props: AppBaseProps) {
   const { classes } = useStyles();
   const theme = useMantineTheme();
   const user = useQueryUser();
+  const navigate = useNavigate();
   const [opened, setOpened] = useState(false);
   const data_user = [
     { icon: <IconHome2 size={16} />, color: 'blue', label: 'Home' },
@@ -91,6 +93,10 @@ export default function AppBase(props: AppBaseProps) {
     { icon: <IconRotate2 size={16} />, color: 'blue', label: 'Rotate Key' },
     { icon: <IconEdit size={16} />, color: 'blue', label: 'Manage Keys' },
   ];
+
+  React.useEffect(() => {
+    if (user.isError && !(user.error as any)?.response?.data?.ok) navigate('/');
+  }, [user]);
 
   return (
     <AppShell

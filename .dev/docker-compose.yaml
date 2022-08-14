@@ -1,4 +1,8 @@
 version: '3'
+
+volumes:
+  postgres_data:
+
 services:
   postgres:
     image: postgres:14.2
@@ -8,6 +12,8 @@ services:
       POSTGRES_USER: ohanaAdmin
       POSTGRES_PASSWORD: ohanaMeansFamily
       POSTGRES_DB: ohana
+    volumes:
+    - postgres_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7

@@ -8,13 +8,11 @@ import {
   FileData,
   FullFileBrowser,
 } from 'chonky';
-import { showNotification } from '@mantine/notifications';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   EntryType,
   getFileDownloadURL,
-  isUserHome,
   useMutateCopyFile,
   useMutateDeleteFile,
   useMutateMoveFile,
@@ -30,6 +28,7 @@ import { useQueryUser } from '../../api/auth';
 import UploadFileModal from './UploadFileModal';
 import FilePreviewModal from './FilePreviewModal';
 import FilePropertiesDrawer from './FilePropertiesDrawer';
+import { handleMultiFileAction } from './multiFileAction';
 
 export type VFSProps = Partial<FileBrowserProps>;
 
@@ -75,13 +74,22 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   const navigate = useNavigate();
 
   const qUser = useQueryUser();
-  const homeFolderID: string = qUser.data?.home_folder_id || '';
+  const homeFolderId: string = qUser.data?.home_folder_id || '';
+  const currentFolderId = params.id || '';
+
+  const qFilesList = useQueryFolderContents(currentFolderId);
+  const qFolderChain = useQueryFolderPathById(currentFolderId);
+
+  const mCreateFolder = useMutateCreateFolder();
+  const mDeleteFolder = useMutateDeleteFolder();
+  const mDeleteFile = useMutateDeleteFile();
+  const mUpdateFileMetadata = useMutateUpdateFileMetadata();
+  const mMoveFile = useMutateMoveFile();
+  const mCopyFile = useMutateCopyFile();
 
   useEffect(() => {
-    if (!params.id && homeFolderID) navigate(`/home/${homeFolderID}`);
-  }, [params, homeFolderID]);
-
-  const folderID = params.id || '';
+    if (!params.id && homeFolderId) navigate(`/home/${homeFolderId}`);
+  }, [params, homeFolderId]);
 
   const handleFileAction: FileActionHandler = async (data) => {
     if (data.action === ChonkyActions.UploadFiles) {
@@ -93,30 +101,28 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
       }
       mCreateFolder.mutate({
         folder_name: name,
-        parent_folder_id: folderID,
+        parent_folder_id: currentFolderId,
       });
     } else if (data.id === ChonkyActions.DeleteFiles.id) {
-      for (const selectedItem of data.state.selectedFilesForAction) {
-        if (selectedItem.isDir) {
-          mDeleteFolder.mutateAsync(selectedItem.id).then(() =>
-            showNotification({
-              title: `${selectedItem.name} deleted`,
-              message: 'Successfully Deleted',
-            })
-          );
-        } else {
-          mDeleteFile.mutateAsync(selectedItem.id).then(() =>
-            showNotification({
-              title: `${selectedItem.name} deleted`,
-              message: 'Successfully Deleted',
-            })
-          );
-        }
-      }
+      await handleMultiFileAction({
+        notifications: {
+          loadingTitle: (success, _, total) =>
+            `Deleting files... ${success + 1} / ${total}`,
+          doneTitle: 'Finished deleting files',
+          errorTitle: (item, _) => `Error deleting ${item.name}`,
+          itemName: (item) => item.name,
+        },
+        items: data.state.selectedFilesForAction,
+        handler: (item) =>
+          item.isDir
+            ? mDeleteFolder.mutateAsync(item.id)
+            : mDeleteFile.mutateAsync(item.id),
+      });
     } else if (data.id === ChonkyActions.DownloadFiles.id) {
-      window.location.assign(
-        getFileDownloadURL(data.state.selectedFilesForAction[0].id)
-      );
+      if (!data.state.selectedFilesForAction[0].isDir)
+        window.location.assign(
+          getFileDownloadURL(data.state.selectedFilesForAction[0].id)
+        );
     } else if (data.id === ChonkyActions.OpenFiles.id) {
       if (!data.payload.targetFile?.isDir)
         setPreviewFileId(data.payload.targetFile?.id || '');
@@ -132,13 +138,22 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
         file_id: data.state.selectedFilesForAction[0].id,
       });
     } else if (data.id === ChonkyActions.MoveFiles.id) {
-      if (data.payload.draggedFile.isDir) return;
-      mMoveFile.mutate({
-        file_id: data.payload.draggedFile.id,
-        folder_id: data.payload.destination.id,
+      await handleMultiFileAction({
+        notifications: {
+          loadingTitle: (success, _, total) =>
+            `Moving files... ${success + 1} / ${total}`,
+          doneTitle: 'Finished moving files',
+          errorTitle: (item, _) => `Error moving ${item.name}`,
+          itemName: (item) => item.name,
+        },
+        items: data.payload.selectedFiles,
+        handler: (item) =>
+          mMoveFile.mutateAsync({
+            file_id: item.id,
+            folder_id: data.payload.destination.id,
+          }),
       });
     } else if (data.id === ChonkyActions.CopyFiles.id) {
-      console.log(data);
       setClipboardsIds(
         data.state.selectedFilesForAction.map((file) => file.id)
       );
@@ -146,7 +161,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
       for (const item of clipboardIds) {
         await mCopyFile.mutateAsync({
           file_id: item,
-          folder_id: folderID,
+          folder_id: currentFolderId,
         });
       }
     } else if ((data.id as string) === FileProperties.id) {
@@ -169,38 +184,38 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
     []
   );
 
-  const qFilesList = useQueryFolderContents(folderID);
-  const qFolderChain = useQueryFolderPathById(folderID);
+  const ohanaFiles = useMemo(
+    () =>
+      qFilesList.data?.map?.(
+        (file) =>
+          ({
+            id: file.file_id,
+            name: file.file_name,
+            isDir: file.entry_type === EntryType.Folder,
+            modDate: file.modified_time,
+            size: file.size,
+            thumbnailUrl:
+              file.entry_type === EntryType.File &&
+              file.mime_type.startsWith('image/')
+                ? getFileDownloadURL(file.file_id, { inline: true })
+                : undefined,
+          } as FileData)
+      ) || [],
+    [qFilesList.data]
+  );
 
-  const mCreateFolder = useMutateCreateFolder();
-  const mDeleteFolder = useMutateDeleteFolder();
-  const mDeleteFile = useMutateDeleteFile();
-  const mUpdateFileMetadata = useMutateUpdateFileMetadata();
-  const mMoveFile = useMutateMoveFile();
-  const mCopyFile = useMutateCopyFile();
-
-  const ohanaFiles =
-    qFilesList.data?.map?.(
-      (file) =>
-        ({
-          id: file.file_id,
-          name: file.file_name,
-          isDir: file.entry_type === EntryType.Folder,
-          modDate: file.modified_time,
-          size: file.size,
-          thumbnailUrl:
-            file.entry_type === EntryType.File &&
-            file.mime_type.startsWith('image/')
-              ? getFileDownloadURL(file.file_id, { inline: true })
-              : undefined,
-        } as FileData)
-    ) || [];
-
-  const folderChain = (qFolderChain.data ?? []).reverse().map((folder) => ({
-    id: folder.file_id,
-    name: isUserHome(folder) ? 'Home' : folder.file_name,
-    isDir: true,
-  }));
+  const folderChain = useMemo(
+    () =>
+      (qFolderChain.data ?? [])
+        .slice()
+        .reverse()
+        .map((folder) => ({
+          id: folder.file_id,
+          name: folder.file_id === homeFolderId ? 'Home' : folder.file_name,
+          isDir: true,
+        })),
+    [homeFolderId, qFolderChain.data]
+  );
 
   return (
     <AppBase userType="user">
@@ -217,7 +232,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
       <UploadFileModal
         onClose={() => setFuOpened(false)}
         opened={fuOpened}
-        parentFolderId={folderID}
+        parentFolderId={currentFolderId}
         update={false}
       />
       <FilePreviewModal

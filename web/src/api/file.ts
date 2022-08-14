@@ -4,9 +4,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 export const K_ROOT_FOLDER_ID = '00000000-0000-0000-0000-000000000000';
 export const K_HOME_PARENT_FOLDER_ID = '00000000-0000-0000-0000-000000000001';
 
-export const isUserHome = (folder: FileMetadata<EntryType.Folder>) =>
-  folder.parent_folder_id === K_HOME_PARENT_FOLDER_ID;
-
 export type FileUploadRequest = {
   file: File;
   folder_id: string;
@@ -190,14 +187,22 @@ export type MoveFileRequest = {
 /**
  * Move a file to a new folder.
  */
-export const useMutateMoveFile = () =>
-  useMutation(({ file_id, folder_id }: MoveFileRequest) =>
-    APIClient.post<boolean>(`/api/v1/file/${file_id}/move`, null, {
-      headers: { folder_id },
-    })
-      .then((res) => res.data)
-      .catch(typedError)
+export const useMutateMoveFile = () => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ file_id, folder_id }: MoveFileRequest) =>
+      APIClient.post<boolean>(`/api/v1/file/${file_id}/move`, null, {
+        headers: { folder_id },
+      })
+        .then((res) => res.data)
+        .catch(typedError),
+    {
+      onSuccess: () => {
+        queryClient.clear();
+      },
+    }
   );
+};
 
 /**
  * Copy a file to a new folder.
