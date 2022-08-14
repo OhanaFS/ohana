@@ -8,13 +8,11 @@ import {
   FileData,
   FullFileBrowser,
 } from 'chonky';
-import { showNotification, updateNotification } from '@mantine/notifications';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   EntryType,
   getFileDownloadURL,
-  isUserHome,
   useMutateCopyFile,
   useMutateDeleteFile,
   useMutateMoveFile,
@@ -30,7 +28,7 @@ import { useQueryUser } from '../../api/auth';
 import UploadFileModal from './UploadFileModal';
 import FilePreviewModal from './FilePreviewModal';
 import FilePropertiesDrawer from './FilePropertiesDrawer';
-import { IconCheck } from '@tabler/icons';
+import { handleMultiFileAction } from './multiFileAction';
 
 export type VFSProps = Partial<FileBrowserProps>;
 
@@ -106,78 +104,20 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
         parent_folder_id: currentFolderId,
       });
     } else if (data.id === ChonkyActions.DeleteFiles.id) {
-      const loaderNotificationId = 'delete-loader';
-      const totalCount = data.state.selectedFilesForAction.length;
-      const showLoader = totalCount > 3;
-      let deletedCount = 0;
-
-      if (showLoader)
-        showNotification({
-          id: loaderNotificationId,
-          title: 'Deleting files...',
-          message: 'Please wait',
-          loading: true,
-          autoClose: false,
-          disallowClose: true,
-        });
-
-      for (const selectedItem of data.state.selectedFilesForAction) {
-        if (showLoader)
-          updateNotification({
-            id: loaderNotificationId,
-            title: `Deleting files... ${deletedCount + 1} / ${totalCount}`,
-            message: selectedItem.name,
-            loading: true,
-            autoClose: false,
-            disallowClose: true,
-          });
-
-        if (selectedItem.isDir) {
-          await mDeleteFolder
-            .mutateAsync(selectedItem.id)
-            .then(() => {
-              deletedCount++;
-              if (!showLoader)
-                showNotification({
-                  title: `${selectedItem.name} deleted`,
-                  message: 'Successfully Deleted',
-                });
-            })
-            .catch((e) =>
-              showNotification({
-                title: `Error deleting ${selectedItem.name}`,
-                message: JSON.stringify(e),
-              })
-            );
-        } else {
-          await mDeleteFile
-            .mutateAsync(selectedItem.id)
-            .then(() => {
-              deletedCount++;
-              if (!showLoader)
-                showNotification({
-                  title: `${selectedItem.name} deleted`,
-                  message: 'Successfully Deleted',
-                });
-            })
-            .catch((e) =>
-              showNotification({
-                title: `Error deleting ${selectedItem.name}`,
-                message: JSON.stringify(e),
-              })
-            );
-        }
-      }
-
-      if (showLoader)
-        updateNotification({
-          id: loaderNotificationId,
-          title: 'Finished deleting',
-          message: `Deleted ${deletedCount} / ${totalCount}`,
-          color: 'teal',
-          icon: <IconCheck size={16} />,
-          autoClose: 5000,
-        });
+      await handleMultiFileAction({
+        notifications: {
+          loadingTitle: (success, _, total) =>
+            `Deleting files... ${success + 1} / ${total}`,
+          doneTitle: 'Finished deleting files',
+          errorTitle: (item, _) => `Error deleting ${item.name}`,
+          itemName: (item) => item.name,
+        },
+        items: data.state.selectedFilesForAction,
+        handler: (item) =>
+          item.isDir
+            ? mDeleteFolder.mutateAsync(item.id)
+            : mDeleteFile.mutateAsync(item.id),
+      });
     } else if (data.id === ChonkyActions.DownloadFiles.id) {
       if (!data.state.selectedFilesForAction[0].isDir)
         window.location.assign(
@@ -198,12 +138,22 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
         file_id: data.state.selectedFilesForAction[0].id,
       });
     } else if (data.id === ChonkyActions.MoveFiles.id) {
-      mMoveFile.mutate({
-        file_id: data.payload.draggedFile.id,
-        folder_id: data.payload.destination.id,
+      await handleMultiFileAction({
+        notifications: {
+          loadingTitle: (success, _, total) =>
+            `Moving files... ${success + 1} / ${total}`,
+          doneTitle: 'Finished moving files',
+          errorTitle: (item, _) => `Error moving ${item.name}`,
+          itemName: (item) => item.name,
+        },
+        items: data.payload.selectedFiles,
+        handler: (item) =>
+          mMoveFile.mutateAsync({
+            file_id: item.id,
+            folder_id: data.payload.destination.id,
+          }),
       });
     } else if (data.id === ChonkyActions.CopyFiles.id) {
-      console.log(data);
       setClipboardsIds(
         data.state.selectedFilesForAction.map((file) => file.id)
       );
