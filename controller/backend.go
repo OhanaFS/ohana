@@ -1221,13 +1221,8 @@ func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.
 	} else {
 		w.Header().Set("Content-Disposition", "inline; filename="+file.FileName)
 	}
-	w.WriteHeader(http.StatusOK)
 
-	_, err = io.Copy(w, reader)
-	if err != nil {
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
+	http.ServeContent(w, r, file.FileName, file.ModifiedTime, reader)
 }
 
 // DeleteFileVersion deletes a file version
