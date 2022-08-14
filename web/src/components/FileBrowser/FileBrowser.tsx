@@ -210,6 +210,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
           folderChain={folderChain}
           fileActions={fileActions}
           onFileAction={handleFileAction}
+          clearSelectionOnOutsideClick
           {...props}
         />
       </div>
