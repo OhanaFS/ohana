@@ -101,6 +101,12 @@ type ShardActions struct {
 	Password string
 }
 
+type OrphanedShardActions struct {
+	ServerId string
+	Path     string
+	Delete   bool
+}
+
 // JobProgressAFSHC All files fragment health check job progress
 type JobProgressAFSHC struct {
 	JobId      uint `gorm:"primary_key"`
@@ -135,9 +141,11 @@ type JobProgressMissingShard struct {
 
 // ResultsOrphanedShard Orphaned shards result
 type ResultsOrphanedShard struct {
-	JobId    uint
-	ServerId string
-	FileName string
+	JobId     uint
+	ServerId  string
+	FileName  string
+	Error     string
+	ErrorType int
 }
 
 // JobProgressOrphanedShard Orphaned shards job progress

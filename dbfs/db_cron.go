@@ -257,3 +257,26 @@ func SetHowLongToKeepFileVersions(tx *gorm.DB, days int) error {
 	return tx.Model(&KeyValueDBPair{}).Where("key = ?", CronJobDeleteKeepVersionsFor).
 		Update("value_int", days).Error
 }
+
+// CheckOrphanedFiles checks if there are any orphaned files.
+// i.e. files that have an invalid parent folder.
+// This only checks the files table.
+func CheckOrphanedFiles(tx *gorm.DB) (int64, error) {
+
+	// TODO: To be implemented
+
+	// Use Find In Batches
+
+	return int64(0), nil
+}
+
+// CheckWrongPermissions checks if there are any permissions that are invalid.
+// This only checks the files table.
+func CheckWrongPermissions(tx *gorm.DB) (int64, error) {
+	// TODO: To be implemented
+
+	// Goes from root to all folders and checks if the permissions are valid.
+	// If not, it updates the permissions to be valid.
+
+	return int64(0), nil
+}

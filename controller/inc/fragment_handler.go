@@ -923,6 +923,60 @@ func (i *Inc) StartJob(job *dbfs.Job) (map[string]string, error) {
 				}
 			}
 		}
+
+		if job.MissingShardsCheck {
+			if server.Name != i.ServerName {
+				r, _ := http.NewRequest("POST",
+					"https://"+server.HostName+":"+server.Port+FragmentMissingPath, nil)
+				r.Header.Set("job_id", strconv.Itoa(int(job.JobId)))
+				resp, err := i.HttpClient.Do(r)
+				if err != nil {
+					allErrors[server.Name] = err.Error()
+					continue
+				}
+				if resp.StatusCode != http.StatusOK {
+					b, err := ioutil.ReadAll(resp.Body)
+					if err != nil {
+						allErrors[server.Name] = err.Error()
+						continue
+					}
+					allErrors[server.Name] = string(b)
+				}
+			} else {
+				// Perform the job on this server
+				_, err = i.LocalMissingShardsCheck(int(job.JobId), true)
+				if err != nil {
+					allErrors[server.Name] = err.Error()
+				}
+			}
+		}
+
+		if job.OrphanedShardsCheck {
+			if server.Name != i.ServerName {
+				r, _ := http.NewRequest("POST",
+					"https://"+server.HostName+":"+server.Port+FragmentOrphanedPath, nil)
+				r.Header.Set("job_id", strconv.Itoa(int(job.JobId)))
+				resp, err := i.HttpClient.Do(r)
+				if err != nil {
+					allErrors[server.Name] = err.Error()
+					continue
+				}
+				if resp.StatusCode != http.StatusOK {
+					b, err := ioutil.ReadAll(resp.Body)
+					if err != nil {
+						allErrors[server.Name] = err.Error()
+						continue
+					}
+					allErrors[server.Name] = string(b)
+				}
+			} else {
+				// Perform the job on this server
+				_, err = i.LocalOrphanedShardsCheck(int(job.JobId), true)
+				if err != nil {
+					allErrors[server.Name] = err.Error()
+				}
+			}
+		}
 	}
 
 	if len(allErrors) > 0 {
