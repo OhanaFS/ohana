@@ -20,6 +20,7 @@
     "axios": "^0.27.2",
     "chonky": "^2.3.2",
     "chonky-icon-fontawesome": "^2.3.2",
+    "moment": "^2.29.4",
     "react": "^18.1.0",
     "react-aspect-ratio": "^1.1.2",
     "react-countdown-circle-timer": "^3.0.9",
