@@ -17,6 +17,7 @@ const (
 	JobStatusRunning           = 1
 	JobNoErrors                = 2
 	JobHasErrors               = 3
+	CronErrorTypeMissingFile   = 1
 )
 
 var (
@@ -185,6 +186,28 @@ type JobParameters struct {
 	AllFilesShardsCheck bool
 	PermissionCheck     bool
 	DeleteFragments     bool
+}
+
+// ResultsOrphanedFile Orphaned File result
+type ResultsOrphanedFile struct {
+	JobId    uint `gorm:"primary_key"`
+	FileName string
+	FileId   string `gorm:"primary_key"`
+	Error    string
+	// Error will store the path route it took to get to the error
+	ErrorType int
+	// ErrorType will store what happened with the file (orphaned, moved, deleted)
+}
+
+// JobProgressOrphanedFile Orphaned File job progress
+type JobProgressOrphanedFile struct {
+	JobId      uint `gorm:"primary_key"`
+	StartTime  time.Time
+	EndTime    time.Time
+	Processed  int64
+	Total      int64
+	InProgress bool
+	Msg        string
 }
 
 // GetAllJobs Returns all jobs in the database based on the paramters passed in
