@@ -33,7 +33,7 @@ const (
 	VersioningOnDeltas       = int8(3)
 	UsersFolderId            = "00000000-0000-0000-0000-000000000001"
 	GroupsFolderId           = "00000000-0000-0000-0000-000000000002"
-	SharedURLRegexConstriant = "^[a-zA-Z0-9]{1,20}$"
+	SharedURLRegexConstriant = "^[a-zA-Z0-9]{1,40}$"
 )
 
 var (
