@@ -2,6 +2,10 @@ import { Code, Image, Loader, Text } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { APIClient } from '../../api/api';
 import { getFileDownloadURL, useQueryFileMetadata } from '../../api/file';
+import {
+  getSharingLinkURL,
+  useQuerySharingLinkMetadata,
+} from '../../api/sharing';
 
 type TextFilePreviewProps = {
   url: string;
@@ -21,24 +25,32 @@ const TextFilePreview = ({ url }: TextFilePreviewProps) => {
   );
 };
 
-export type FilePreviewProps = {
-  fileId: string;
-};
+export type FilePreviewProps =
+  | {
+      fileId: string;
+    }
+  | { shareId: string };
 
-const FilePreview = ({ fileId }: FilePreviewProps) => {
-  const qFile = useQueryFileMetadata(fileId);
-  const downloadUrl = getFileDownloadURL(fileId, { inline: true });
+const FilePreview = (props: FilePreviewProps) => {
+  const isShare = 'shareId' in props;
+  const qFile = useQueryFileMetadata(!isShare ? props.fileId : '');
+  const qShare = useQuerySharingLinkMetadata(isShare ? props.shareId : '');
 
-  return qFile.data?.mime_type.startsWith('image/') ? (
+  const downloadUrl = !isShare
+    ? getFileDownloadURL(props.fileId, { inline: true })
+    : getSharingLinkURL(props.shareId, 'inline');
+  const metadata = !isShare ? qFile.data : qShare.data;
+
+  return metadata?.mime_type.startsWith('image/') ? (
     <Image src={downloadUrl} />
-  ) : qFile.data?.mime_type.startsWith('video/') ? (
+  ) : metadata?.mime_type.startsWith('video/') ? (
     <video className="w-full" controls playsInline src={downloadUrl}></video>
-  ) : qFile.data?.mime_type.startsWith('audio/') ? (
+  ) : metadata?.mime_type.startsWith('audio/') ? (
     <audio className="w-full" controls playsInline src={downloadUrl}></audio>
-  ) : qFile.data?.mime_type.startsWith('text/') ? (
+  ) : metadata?.mime_type.startsWith('text/') ? (
     <TextFilePreview url={downloadUrl} />
   ) : (
-    <Text>{qFile.data?.file_name || ''}</Text>
+    <Text>{metadata?.file_name || ''}</Text>
   );
 };
 

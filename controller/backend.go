@@ -94,9 +94,11 @@ func NewBackend(
 	r.HandleFunc("/api/v1/file/{folderID}/copy", bc.CopyFile).Methods("POST")
 	r.HandleFunc("/api/v1/folder/{folderID}/details", bc.GetMetadataFile).Methods("GET")
 
-	// Shared Routes :
-	r.HandleFunc("/api/v1/shared/{shortenedLink}/metadata", bc.GetMetadataSharedLink).Methods("GET")
-	r.HandleFunc("/api/v1/shared/{shortenedLink}", bc.DownloadSharedLink).Methods("GET")
+	// Shared Routes
+	// Use a fresh subrouter to skip auth
+	rPub := router.NewRoute().Subrouter()
+	rPub.HandleFunc("/api/v1/shared/{shortenedLink}/metadata", bc.GetMetadataSharedLink).Methods("GET")
+	rPub.HandleFunc("/api/v1/shared/{shortenedLink}", bc.DownloadSharedLink).Methods("GET")
 
 	// Cluster Routes
 	r.HandleFunc("/api/v1/cluster/stats/num_of_files", bc.GetNumOfFiles).Methods("GET")

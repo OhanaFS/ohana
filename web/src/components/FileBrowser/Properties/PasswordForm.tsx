@@ -10,11 +10,11 @@ import { showNotification } from '@mantine/notifications';
 import { IconX } from '@tabler/icons';
 
 type PasswordFormProps = {
-  fileID: string;
+  fileId: string;
 };
 
 const PasswordForm = (props: PasswordFormProps) => {
-  const qFileMeta = useQueryFileMetadata(props.fileID);
+  const qFileMeta = useQueryFileMetadata(props.fileId);
   const mFileMeta = useMutateUpdateFileMetadata();
 
   const form = useForm({
@@ -35,7 +35,7 @@ const PasswordForm = (props: PasswordFormProps) => {
         onSubmit={form.onSubmit((values) => {
           if (qFileMeta.data?.password_protected) {
             mFileMeta.mutate({
-              file_id: props.fileID,
+              file_id: props.fileId,
               old_password: values.password,
               new_password: values.password_c,
               password_modification: true,
@@ -53,7 +53,7 @@ const PasswordForm = (props: PasswordFormProps) => {
               return;
             }
             mFileMeta.mutate({
-              file_id: props.fileID,
+              file_id: props.fileId,
               new_password: values.password,
               password_modification: true,
               password_protected: true,
