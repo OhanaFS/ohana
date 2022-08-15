@@ -889,6 +889,9 @@ func TestAdminClusterRoutes(t *testing.T) {
 	})
 
 	t.Run("DeleteServer", func(t *testing.T) {
+
+		t.Skip("Test will kill server")
+
 		Assert := assert.New(t)
 
 		req := httptest.NewRequest("DELETE", "/api/v1/cluster/stats/server_statuses/localServer", nil).WithContext(

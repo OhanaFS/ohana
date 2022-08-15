@@ -36,7 +36,7 @@ func TestWebEmbed(t *testing.T) {
 	r = httptest.NewRequest("GET", scriptPath, nil)
 	handler.ServeHTTP(w, r)
 	assert.Equal(http.StatusOK, w.Result().StatusCode)
-	assert.Contains(w.Result().Header.Get("Content-Type"), "text/javascript")
+	assert.Contains(w.Result().Header.Get("Content-Type"), "javascript")
 	jsbody, err := io.ReadAll(w.Result().Body)
 	assert.NoError(err)
 	assert.NotEmpty(jsbody)

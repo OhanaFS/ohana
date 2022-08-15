@@ -10,7 +10,8 @@ import (
 // InitDB Initiates the DB with gorm.db.AutoMigrate
 func InitDB(db *gorm.DB) error {
 	err := db.AutoMigrate(&User{}, &Group{}, &File{}, &FileVersion{}, &Fragment{}, &Permission{}, &PermissionHistory{},
-		&PasswordProtect{}, &Server{}, KeyValueDBPair{}, DataCopies{}, &Log{}, &Role{}, &Alert{},
+		&PasswordProtect{}, &Server{}, KeyValueDBPair{}, DataCopies{}, SharedLink{},
+		&Log{}, &Role{}, &Alert{},
 		// Cron Jobs
 		&ResultsCFSHC{}, &JobProgressCFSHC{}, &ResultsAFSHC{}, &JobProgressAFSHC{},
 		&ResultsMissingShard{}, &JobProgressMissingShard{}, &ResultsOrphanedShard{}, &JobProgressOrphanedShard{},

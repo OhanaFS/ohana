@@ -2,8 +2,10 @@ package dbfs
 
 import (
 	"errors"
+	"github.com/OhanaFS/ohana/util/random_phrase_generator"
 	"mime"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -31,21 +33,25 @@ const (
 	VersioningOnDeltas       = int8(3)
 	UsersFolderId            = "00000000-0000-0000-0000-000000000001"
 	GroupsFolderId           = "00000000-0000-0000-0000-000000000002"
+	SharedURLRegexConstriant = "^[a-zA-Z0-9]{1,40}$"
 )
 
 var (
-	ErrFileNotFound      = errors.New("file or folder not found")
-	ErrFileFolderExists  = errors.New("file/folder already exists")
-	ErrFolderNotEmpty    = errors.New("folder contains files")
-	ErrNoPermission      = errors.New("no permission")
-	ErrNotFolder         = errors.New("not a folder")
-	ErrNotFile           = errors.New("not a file")
-	ErrInvalidAction     = errors.New("invalid action")
-	ErrInvalidFile       = errors.New("invalid file. please check the parameters and try again")
-	ErrVersionNotFound   = errors.New("version not found")
-	ErrPasswordRequired  = errors.New("password required")
-	ErrPasswordIncorrect = errors.New("password incorrect")
-	ErrNoPassword        = errors.New("no password")
+	ErrFileNotFound       = errors.New("file or folder not found")
+	ErrFileFolderExists   = errors.New("file/folder already exists")
+	ErrFolderNotEmpty     = errors.New("folder contains files")
+	ErrNoPermission       = errors.New("no permission")
+	ErrNotFolder          = errors.New("not a folder")
+	ErrNotFile            = errors.New("not a file")
+	ErrInvalidAction      = errors.New("invalid action")
+	ErrInvalidFile        = errors.New("invalid file. please check the parameters and try again")
+	ErrVersionNotFound    = errors.New("version not found")
+	ErrPasswordRequired   = errors.New("password required")
+	ErrPasswordIncorrect  = errors.New("password incorrect")
+	ErrNoPassword         = errors.New("no password")
+	ErrLinkExists         = errors.New("link already exists")
+	ErrSharedLinkNotFound = errors.New("shared link not found")
+	ErrLinkConstraint     = errors.New("link must be alphanumerical and between 1-40 characters")
 )
 
 type File struct {
@@ -114,6 +120,10 @@ type FileInterface interface {
 	UpdatePermission(tx *gorm.DB, oldPermission *Permission, newPermission *Permission, user *User) error
 	UpdateFile(tx *gorm.DB, newSize int, newActualSize int, checksum string, handlingServer string, dataKey string, dataIv string, password string, user *User, newFileName string) error
 	UpdateFragment(tx *gorm.DB, fragmentId int, fileFragmentPath string, checksum string, serverId string) error
+	CreateSharedLink(tx *gorm.DB, user *User, link string) (*SharedLink, error)
+	GetSharedLinks(tx *gorm.DB, user *User) ([]SharedLink, error)
+	DeleteSharedLink(tx *gorm.DB, user *User, link string) error
+	UpdateSharedLink(tx *gorm.DB, user *User, link string, newLink string) error
 }
 
 var _ FileInterface = &File{}
@@ -639,17 +649,27 @@ func deleteSubFoldersCascade(tx *gorm.DB, file *File, user *User, server string)
 
 // GetFileFragments returns the fragments associated with the File
 func (f File) GetFileFragments(tx *gorm.DB, user *User) ([]Fragment, error) {
+
 	// Check if the user has read file permissions to it
 
-	hasPermission, err := user.HasPermission(tx, &f, &PermissionNeeded{Read: true})
-	if err != nil {
-		return nil, err
-	} else if !hasPermission {
-		return nil, ErrFileNotFound
+	if user != nil {
+		hasPermission, err := user.HasPermission(tx, &f, &PermissionNeeded{Read: true})
+		if err != nil {
+			return nil, err
+		} else if !hasPermission {
+			return nil, ErrFileNotFound
+		}
+	} else {
+		// Check if the file is public
+		var count int64
+		tx.Model(&SharedLink{}).Where("file_id = ?", f.FileId).Count(&count)
+		if count == 0 {
+			return nil, ErrFileNotFound
+		}
 	}
 
 	var fragments []Fragment
-	err = tx.Where("file_version_data_id = ?", f.DataId).Find(&fragments).Error
+	err := tx.Where("file_version_data_id = ?", f.DataId).Find(&fragments).Error
 	if err != nil {
 		return nil, err
 	}
@@ -1566,18 +1586,27 @@ func (f File) IsFileOrEmptyFolder(tx *gorm.DB, user *User) (bool, error) {
 // GetDecryptionKey returns the Key and IV of a file given a password (or not)
 func (f *File) GetDecryptionKey(tx *gorm.DB, user *User, password string) (string, string, error) {
 
-	// Check if user has read permission (if not 404)
-	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
-	if !hasPermissions {
-		return "", "", ErrFileNotFound
-	} else if err != nil {
-		return "", "", err
+	if user != nil {
+		// Check if user has read permission (if not 404)
+		hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
+		if !hasPermissions {
+			return "", "", ErrFileNotFound
+		} else if err != nil {
+			return "", "", err
+		}
+	} else {
+		// Check if the file is public
+		var count int64
+		tx.Model(&SharedLink{}).Where("file_id = ?", f.FileId).Count(&count)
+		if count == 0 {
+			return "", "", ErrFileNotFound
+		}
 	}
 
 	// Get FileKey, FileIv from PasswordProtect
 
 	var passwordProtect PasswordProtect
-	err = tx.Model(&PasswordProtect{}).Where("file_id = ?", f.FileId).First(&passwordProtect).Error
+	err := tx.Model(&PasswordProtect{}).Where("file_id = ?", f.FileId).First(&passwordProtect).Error
 	if err != nil {
 		return "", "", err
 	}
@@ -1715,4 +1744,146 @@ func (f *File) GetPath(tx *gorm.DB, user *User) ([]File, error) {
 	}
 
 	return files, nil
+}
+
+// CreateSharedLink creates a shared link for a file
+// If link is not provided, it will generate a random one
+func (f *File) CreateSharedLink(tx *gorm.DB, user *User, link string) (*SharedLink, error) {
+
+	// Check if user has shared link permission
+	permission, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true, Share: true})
+	if err != nil {
+		return nil, err
+	}
+	if !permission {
+		return nil, ErrNoPermission
+	}
+
+	if link == "" {
+		// Generate a random link
+
+		uniqueLink := false
+
+		for !uniqueLink {
+			rpg := random_phrase_generator.New()
+			link = rpg.GenerateRandomPhrase()
+
+			// Check that the link is unique
+			var count int64
+			tx.Model(&SharedLink{}).Where("shortened_link = ?", link).Count(&count)
+			if count == 0 {
+				uniqueLink = true
+			}
+		}
+
+	} else {
+
+		// Check that the new link passes REGEX test
+		match, _ := regexp.MatchString(SharedURLRegexConstriant, link)
+		if !match {
+			return nil, ErrLinkConstraint
+		}
+
+		// Check that the link is unique
+		var count int64
+		tx.Model(&SharedLink{}).Where("shortened_link = ?", link).Count(&count)
+		if count != 0 {
+			return nil, ErrLinkExists
+		}
+	}
+
+	// Create the shared link
+	sharedLink := SharedLink{
+		FileId:        f.FileId,
+		ShortenedLink: link,
+		CreatedTime:   time.Now(),
+	}
+	if tx.Create(&sharedLink).Error != nil {
+		return nil, err
+	}
+
+	return &sharedLink, nil
+}
+
+// GetSharedLinks returns all shared links for a file
+func (f *File) GetSharedLinks(tx *gorm.DB, user *User) ([]SharedLink, error) {
+	// Check if user has read permission
+	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
+	if err != nil {
+		return nil, err
+	}
+	if !hasPermissions {
+		return nil, ErrFileNotFound
+	}
+
+	// Get the shared links
+	var sharedLinks []SharedLink
+	err = tx.Model(&SharedLink{}).Where("file_id = ?", f.FileId).Find(&sharedLinks).Error
+
+	return sharedLinks, err
+}
+
+// DeleteSharedLink deletes a shared link for a file given it's link
+func (f *File) DeleteSharedLink(tx *gorm.DB, user *User, link string) error {
+	// Check if user has read permission
+	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
+	if err != nil {
+		return err
+	}
+	if !hasPermissions {
+		return ErrFileNotFound
+	}
+
+	// Check if user has shared link permission
+	permission, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true, Share: true})
+	if err != nil {
+		return err
+	}
+	if !permission {
+		return ErrNoPermission
+	}
+	// Delete the shared link
+	return tx.Where("file_id = ? AND shortened_link = ?", f.FileId, link).Delete(&SharedLink{}).Error
+}
+
+// UpdateSharedLink updates a shared link for a file with a new link
+func (f *File) UpdateSharedLink(tx *gorm.DB, user *User, link string, newLink string) error {
+	// Check if user has read permission
+	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
+	if err != nil {
+		return err
+	}
+	if !hasPermissions {
+		return ErrFileNotFound
+	}
+
+	// Check if user has shared link permission
+	permission, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true, Share: true})
+	if err != nil {
+		return err
+	}
+	if !permission {
+		return ErrNoPermission
+	}
+
+	// Check that the new link passes REGEX test
+	match, _ := regexp.MatchString(SharedURLRegexConstriant, newLink)
+	if !match {
+		return ErrLinkConstraint
+	}
+
+	// Check that the new link is unique
+
+	var count int64
+	err = tx.Model(&SharedLink{}).Where("shortened_link = ?", newLink).Count(&count).Error
+	if err != nil {
+		return err
+	}
+	if count != 0 {
+		return ErrLinkExists
+	}
+
+	// Update the shared link
+	return tx.Model(&SharedLink{}).Where("file_id = ? AND shortened_link = ?", f.FileId, link).
+		Update("shortened_link", newLink).Error
 }
