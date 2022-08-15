@@ -70,6 +70,10 @@ func NewBackend(
 	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.GetFolderPermissions).Methods("GET")
 	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.AddPermissionsFolder).Methods("POST")
 	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.UpdateFolderMetadata).Methods("PATCH")
+	r.HandleFunc("/api/v1/file/{fileID}/share", bc.GetFileSharedLinks).Methods("GET")
+	r.HandleFunc("/api/v1/file/{fileID}/share", bc.CreateFileSharedLink).Methods("POST")
+	r.HandleFunc("/api/v1/file/{fileID}/share", bc.PatchFileSharedLink).Methods("PATCH")
+	r.HandleFunc("/api/v1/file/{fileID}/share", bc.DeleteFileSharedLink).Methods("DELETE")
 	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}/metadata", bc.GetFileVersionMetadata).Methods("GET")
 	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}", bc.DownloadFileVersion).Methods("GET")
 	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}", bc.DeleteFileVersion).Methods("DELETE")
@@ -88,6 +92,10 @@ func NewBackend(
 	r.HandleFunc("/api/v1/folder/{folderID}/move", bc.MoveFolder).Methods("POST")
 	r.HandleFunc("/api/v1/file/{folderID}/copy", bc.CopyFile).Methods("POST")
 	r.HandleFunc("/api/v1/folder/{folderID}/details", bc.GetMetadataFile).Methods("GET")
+
+	// Shared Routes :
+	r.HandleFunc("/api/v1/shared/{shortenedLink}/metadata", bc.GetMetadataSharedLink).Methods("GET")
+	r.HandleFunc("/api/v1/shared/{shortenedLink}", bc.DownloadSharedLink).Methods("GET")
 
 	// Cluster Routes
 	r.HandleFunc("/api/v1/cluster/stats/num_of_files", bc.GetNumOfFiles).Methods("GET")
@@ -2013,4 +2021,313 @@ func (bc *BackendController) GetPath(w http.ResponseWriter, r *http.Request) {
 	folders, err := folder.GetPath(bc.Db, user)
 
 	util.HttpJson(w, http.StatusOK, folders)
+}
+
+// GetFileSharedLinks returns all shared links for a file
+func (bc *BackendController) GetFileSharedLinks(w http.ResponseWriter, r *http.Request) {
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// fileID
+	vars := mux.Vars(r)
+	fileID := vars["fileID"]
+	if fileID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No FileID provided")
+		return
+	}
+	// get file
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// Check if file is actually a file
+	if file.EntryType != dbfs.IsFile {
+		util.HttpError(w, http.StatusBadRequest, "File is not a file")
+		return
+	}
+
+	// Get File Shared Links
+	sharedLinks, err := file.GetSharedLinks(bc.Db, user)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError,
+			fmt.Sprintf("Error getting shared links: %s", err.Error()))
+		return
+	}
+
+	// success
+	util.HttpJson(w, http.StatusOK, sharedLinks)
+}
+
+// CreateFileSharedLink creates a shared link for a file
+func (bc *BackendController) CreateFileSharedLink(w http.ResponseWriter, r *http.Request) {
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// Get link from headers
+	link := r.Header.Get("link")
+
+	// fileID
+	vars := mux.Vars(r)
+	fileID := vars["fileID"]
+	if fileID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No FileID provided")
+		return
+	}
+	// get file
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// Check if file is actually a file
+	if file.EntryType != dbfs.IsFile {
+		util.HttpError(w, http.StatusBadRequest, "File is not a file")
+		return
+	}
+
+	// Create Shared Link
+	sharedLink, err := file.CreateSharedLink(bc.Db, user, link)
+	if err != nil {
+		if errors.Is(err, dbfs.ErrLinkExists) {
+			util.HttpError(w, http.StatusConflict, err.Error())
+			return
+		}
+		util.HttpError(w, http.StatusInternalServerError,
+			fmt.Sprintf("Error creating shared link: %s", err.Error()))
+		return
+	}
+
+	// success
+	util.HttpJson(w, http.StatusOK, sharedLink)
+}
+
+// DeleteFileSharedLink deletes a shared link for a file
+func (bc *BackendController) DeleteFileSharedLink(w http.ResponseWriter, r *http.Request) {
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// Get link from headers
+	link := r.Header.Get("link")
+
+	// fileID
+	vars := mux.Vars(r)
+	fileID := vars["fileID"]
+	if fileID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No FileID provided")
+		return
+	}
+	// get file
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// Check if file is actually a file
+	if file.EntryType != dbfs.IsFile {
+		util.HttpError(w, http.StatusBadRequest, "File is not a file")
+		return
+	}
+
+	// Delete Shared Link
+	err = file.DeleteSharedLink(bc.Db, user, link)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError,
+			fmt.Sprintf("Error deleting shared link: %s", err.Error()))
+		return
+	}
+
+	// success
+	util.HttpJson(w, http.StatusOK, true)
+}
+
+// PatchFileSharedLink updates a shared link for a file
+func (bc *BackendController) PatchFileSharedLink(w http.ResponseWriter, r *http.Request) {
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// Get link from headers
+	link := r.Header.Get("link")
+	newLink := r.Header.Get("new_link")
+
+	// fileID
+	vars := mux.Vars(r)
+	fileID := vars["fileID"]
+	if fileID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No FileID provided")
+		return
+	}
+	// get file
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// Check if file is actually a file
+	if file.EntryType != dbfs.IsFile {
+		util.HttpError(w, http.StatusBadRequest, "File is not a file")
+		return
+	}
+
+	// Update Shared Link
+	err = file.UpdateSharedLink(bc.Db, user, link, newLink)
+	if err != nil {
+		if errors.Is(err, dbfs.ErrLinkExists) {
+			util.HttpError(w, http.StatusConflict, err.Error())
+			return
+		}
+		util.HttpError(w, http.StatusInternalServerError,
+			fmt.Sprintf("Error updating shared link: %s", err.Error()))
+		return
+	}
+
+	// success
+	util.HttpJson(w, http.StatusOK, true)
+}
+
+// GetMetadataSharedLink returns the metadata for the requested file based on ID
+func (bc *BackendController) GetMetadataSharedLink(w http.ResponseWriter, r *http.Request) {
+
+	vars := mux.Vars(r)
+	shortenedLink := vars["shortenedLink"]
+
+	if shortenedLink == "" {
+		util.HttpError(w, http.StatusBadRequest, "No shortenedLink provided")
+		return
+	}
+
+	// get file
+	file, err := dbfs.GetFileFromShortenedLink(bc.Db, shortenedLink)
+	if err != nil {
+		if errors.Is(err, dbfs.ErrSharedLinkNotFound) {
+			util.HttpError(w, http.StatusNotFound, err.Error())
+			return
+		} else {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+	// json encode file
+	util.HttpJson(w, http.StatusOK, file)
+}
+
+//DownloadSharedLink downloads a file version
+func (bc *BackendController) DownloadSharedLink(w http.ResponseWriter, r *http.Request) {
+
+	vars := mux.Vars(r)
+	shortenedLink := vars["shortenedLink"]
+
+	queries := r.URL.Query()
+	inline := queries.Get("inline")
+
+	isDownload := true
+
+	// get password
+	password := r.Header.Get("password")
+
+	if shortenedLink == "" {
+		util.HttpError(w, http.StatusBadRequest, "No shortenedLink provided")
+		return
+	}
+
+	if inline == "true" {
+		isDownload = false
+	}
+
+	// get file
+	file, err := dbfs.GetFileFromShortenedLink(bc.Db, shortenedLink)
+	if err != nil {
+		if errors.Is(err, dbfs.ErrSharedLinkNotFound) {
+			util.HttpError(w, http.StatusNotFound, err.Error())
+			return
+		} else {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	// get file
+	shardsMeta, err := file.GetFileFragments(bc.Db, nil) // nil will check if the file is public
+	if err != nil {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	// Opening input files
+	var shards []io.ReadSeeker
+	for _, shardMeta := range shardsMeta {
+		shardReader, err := bc.Inc.NewShardReader(
+			r.Context(), shardMeta.ServerName, shardMeta.FileFragmentPath)
+		if err == nil {
+			shards = append(shards, shardReader)
+		}
+	}
+
+	hexKey, hexIv, err := file.GetDecryptionKey(bc.Db, nil, password)
+	if err != nil {
+		if errors.Is(err, dbfs.ErrIncorrectPassword) {
+			util.HttpError(w, http.StatusForbidden, err.Error())
+			return
+		}
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Getting key and iv
+	key, err := hex.DecodeString(hexKey)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	iv, err := hex.DecodeString(hexIv)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	encoder := stitch.NewEncoder(&stitch.EncoderOptions{
+		DataShards:   uint8(file.DataShards),
+		ParityShards: uint8(file.ParityShards),
+		KeyThreshold: uint8(file.KeyThreshold)},
+	)
+
+	// Decode file
+	reader, err := encoder.NewReadSeeker(shards, key, iv)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", file.MIMEType)
+	if isDownload {
+		w.Header().Set("Content-Disposition", "attachment; filename="+file.FileName)
+	} else {
+		w.Header().Set("Content-Disposition", "inline; filename="+file.FileName)
+	}
+
+	http.ServeContent(w, r, file.FileName, file.ModifiedTime, reader)
 }

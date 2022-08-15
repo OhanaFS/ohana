@@ -117,7 +117,7 @@ type FileInterface interface {
 	UpdatePermission(tx *gorm.DB, oldPermission *Permission, newPermission *Permission, user *User) error
 	UpdateFile(tx *gorm.DB, newSize int, newActualSize int, checksum string, handlingServer string, dataKey string, dataIv string, password string, user *User, newFileName string) error
 	UpdateFragment(tx *gorm.DB, fragmentId int, fileFragmentPath string, checksum string, serverId string) error
-	CreateSharedLink(tx *gorm.DB, link string, user *User) (*SharedLink, error)
+	CreateSharedLink(tx *gorm.DB, user *User, link string) (*SharedLink, error)
 	GetSharedLinks(tx *gorm.DB, user *User) ([]SharedLink, error)
 	DeleteSharedLink(tx *gorm.DB, user *User, link string) error
 	UpdateSharedLink(tx *gorm.DB, user *User, link string, newLink string) error
@@ -646,17 +646,27 @@ func deleteSubFoldersCascade(tx *gorm.DB, file *File, user *User, server string)
 
 // GetFileFragments returns the fragments associated with the File
 func (f File) GetFileFragments(tx *gorm.DB, user *User) ([]Fragment, error) {
+
 	// Check if the user has read file permissions to it
 
-	hasPermission, err := user.HasPermission(tx, &f, &PermissionNeeded{Read: true})
-	if err != nil {
-		return nil, err
-	} else if !hasPermission {
-		return nil, ErrFileNotFound
+	if user != nil {
+		hasPermission, err := user.HasPermission(tx, &f, &PermissionNeeded{Read: true})
+		if err != nil {
+			return nil, err
+		} else if !hasPermission {
+			return nil, ErrFileNotFound
+		}
+	} else {
+		// Check if the file is public
+		var count int64
+		tx.Model(&SharedLink{}).Where("file_id = ?", f.FileId).Count(&count)
+		if count == 0 {
+			return nil, ErrFileNotFound
+		}
 	}
 
 	var fragments []Fragment
-	err = tx.Where("file_version_data_id = ?", f.DataId).Find(&fragments).Error
+	err := tx.Where("file_version_data_id = ?", f.DataId).Find(&fragments).Error
 	if err != nil {
 		return nil, err
 	}
@@ -1573,18 +1583,27 @@ func (f File) IsFileOrEmptyFolder(tx *gorm.DB, user *User) (bool, error) {
 // GetDecryptionKey returns the Key and IV of a file given a password (or not)
 func (f *File) GetDecryptionKey(tx *gorm.DB, user *User, password string) (string, string, error) {
 
-	// Check if user has read permission (if not 404)
-	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
-	if !hasPermissions {
-		return "", "", ErrFileNotFound
-	} else if err != nil {
-		return "", "", err
+	if user != nil {
+		// Check if user has read permission (if not 404)
+		hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
+		if !hasPermissions {
+			return "", "", ErrFileNotFound
+		} else if err != nil {
+			return "", "", err
+		}
+	} else {
+		// Check if the file is public
+		var count int64
+		tx.Model(&SharedLink{}).Where("file_id = ?", f.FileId).Count(&count)
+		if count == 0 {
+			return "", "", ErrFileNotFound
+		}
 	}
 
 	// Get FileKey, FileIv from PasswordProtect
 
 	var passwordProtect PasswordProtect
-	err = tx.Model(&PasswordProtect{}).Where("file_id = ?", f.FileId).First(&passwordProtect).Error
+	err := tx.Model(&PasswordProtect{}).Where("file_id = ?", f.FileId).First(&passwordProtect).Error
 	if err != nil {
 		return "", "", err
 	}
@@ -1726,7 +1745,7 @@ func (f *File) GetPath(tx *gorm.DB, user *User) ([]File, error) {
 
 // CreateSharedLink creates a shared link for a file
 // If link is not provided, it will generate a random one
-func (f *File) CreateSharedLink(tx *gorm.DB, link string, user *User) (*SharedLink, error) {
+func (f *File) CreateSharedLink(tx *gorm.DB, user *User, link string) (*SharedLink, error) {
 
 	// Check if user has shared link permission
 	permission, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true, Share: true})

@@ -7,9 +7,9 @@ import (
 )
 
 type SharedLink struct {
-	ShortenedLink string `gorm:"primary_key; unique"`
-	FileId        string `gorm:"primary_key"`
-	CreatedTime   time.Time
+	ShortenedLink string    `gorm:"primary_key; unique" json:"shortened_link"`
+	FileId        string    `gorm:"primary_key" json:"file_id"`
+	CreatedTime   time.Time `json:"created_time"`
 }
 
 // GetFileFromShortenedLink Provides the File when given a shortened link

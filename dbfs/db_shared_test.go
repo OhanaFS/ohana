@@ -24,14 +24,14 @@ func TestCreateSharedLinks(t *testing.T) {
 	assert.NotNil(t, newFile)
 
 	// Creating a shared link
-	shortenedLink, err := newFile.CreateSharedLink(db, "", &superUser)
+	shortenedLink, err := newFile.CreateSharedLink(db, &superUser, "")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, shortenedLink)
 
 	t.Run("Creating duplicate shortnames", func(t *testing.T) {
 
 		// Creating a shared link
-		_, err := newFile.CreateSharedLink(db, shortenedLink.ShortenedLink, &superUser)
+		_, err := newFile.CreateSharedLink(db, &superUser, shortenedLink.ShortenedLink)
 		assert.Error(t, err)
 		assert.Equal(t, dbfs.ErrLinkExists, err)
 	})

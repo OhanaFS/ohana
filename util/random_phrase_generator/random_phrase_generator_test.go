@@ -4,11 +4,7 @@ import "testing"
 
 func TestRandomPhraseGenerator(t *testing.T) {
 
-	pg, err := New()
-
-	if err != nil {
-		t.Error(err)
-	}
+	pg := New()
 
 	phrase := pg.GenerateRandomPhrase()
 	t.Log(phrase)
