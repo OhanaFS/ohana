@@ -74,14 +74,16 @@ export const useQueryGethistoricalStorageUsed = (
   endDate: string
 ) =>
   useQuery(['nonReplicaUsedHistorical', range, startDate, endDate], () =>
-    APIClient.get<number>(`/api/v1/cluster/stats/non_replica_used_historical`, {
-      headers: {
-        rangeType: range,
-        // iso format using toisostring
-        startDate: new Date(startDate).toISOString(),
-        endDate: new Date(endDate).toISOString(),
-      },
-    })
+    APIClient.get<UsedRes[]>(
+      `/api/v1/cluster/stats/non_replica_used_historical`,
+      {
+        headers: {
+          range_type: range,
+          start_date: startDate,
+          end_date: endDate,
+        },
+      }
+    )
       .then((res) => res.data)
       .catch(typedError)
   );

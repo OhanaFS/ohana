@@ -17,21 +17,24 @@ import '../src/assets/styles.css';
 import {
   useQueryGetnumOfFiles,
   useQueryGetnumOfHistoricalFiles,
-  useQueryGetstorageUsed,
-  useQueryGethistoricalStorageUsed,
   useQueryGetstorageUsedWithParity,
   useQueryGethistoricalStorageUsedWithParity,
-  useQueryGetAlerts,
-  useMutationClearAlerts,
-  useQueryGetAlertsID,
-  useMutationClearAlertsID,
   useQueryGetserverLogs,
-  useMutationClearserverLogs,
-  useQueryGetserverLogsID,
-  useQueryGetserverStatuses,
-  useQueryGetserverStatusesID,
-  useMutationDeleteserverStatusesID,
+  useQueryGethistoricalStorageUsed,
+  useQueryGetstorageUsed,
 } from './api/cluster';
+
+function formatBytes(bytes: number, decimals = 2) {
+  if (bytes === 0) return '0 Bytes';
+
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
 
 export function AdminDashboard() {
   // Pie chart
@@ -40,22 +43,19 @@ export function AdminDashboard() {
 
   const qGetnumfiles = useQueryGetnumOfFiles();
   const qGetStorageUsed = useQueryGetstorageUsedWithParity();
-  //500const getnumofhistoricalfiles = getnumOfHistoricalFiles();
-  //500const getstorageused = getstorageUsed();
-  //500 - (backend_admin_cluster_routes.go:112 ERROR: column "file_versions.file_id" must appear in the GROUP BY clause or be used in an aggregate function )
-  //const gethistoricalstorageused = gethistoricalStorageUsed();
-  //const getstorageusedwithparity = getstorageUsedWithParity();
-  //431 - const gethistoricalstorageusedwithparity = gethistoricalStorageUsedWithParity();
-  //const getalerts = ();
-  //const getalertsid = useQueryGetAlertsID(1);
-  //const getserverlogs = useQueryGetserverLogs()
-  //const getserverlogsID = useQueryGetserverLogsID(1);
-  //const getserverstatuses = getserverStatuses();
-  //const getserverstatusesID = getserverStatusesID('alpaca');
-  //const deleteserverstatusesID = deleteserverStatusesID('alpaca');
-  //const clearalerts = clearAlerts();
-  //const clearserverlogs = clearserverLogs();
-  //const clearalertsID = clearAlertsID(1);
+  const qGetStorageUsedWOParity = useQueryGetstorageUsed();
+  const qHistoricalDataUsage = useQueryGethistoricalStorageUsedWithParity(
+    1,
+    '',
+    ''
+  );
+  const qHistoricalStorageUsedWOParity = useQueryGethistoricalStorageUsed(
+    1,
+    '',
+    ''
+  );
+
+  const qNumberOfHistoricalFiles = useQueryGetnumOfHistoricalFiles(1, '', '');
 
   const renderCustomizedLabel = ({
     cx,
@@ -123,109 +123,6 @@ export function AdminDashboard() {
     {
       name: 'Offline',
       value: 400,
-    },
-  ];
-  const qHistoricalDataUsage = useQueryGethistoricalStorageUsedWithParity(
-    1,
-    '',
-    ''
-  );
-  console.log(qHistoricalDataUsage.data);
-  // data for new user
-  const NewUserChartData = [
-    {
-      Date: 'jan 20',
-      'Total Data Used': 4000,
-    },
-    {
-      Date: 'feb 20',
-      'Total Data Used': 3000,
-    },
-    {
-      Date: 'mar 20',
-      'Total Data Used': 2000,
-    },
-    {
-      Date: 'apr 20',
-      'Total Data Used': 2780,
-    },
-    {
-      Date: 'may 20',
-      'Total Data Used': 1890,
-    },
-    {
-      Date: 'jun 20',
-      'Total Data Used': 2390,
-    },
-    {
-      Date: 'july 20',
-      'Total Data Used': 3490,
-    },
-  ];
-
-  // data for new user
-  const SizeOfFiles = [
-    {
-      Date: 'jan 20',
-      'Total bytes': 4000,
-    },
-    {
-      Date: 'feb 20',
-      'Total bytes': 3000,
-    },
-    {
-      Date: 'mar 20',
-      'Total bytes': 2000,
-    },
-    {
-      Date: 'apr 20',
-      'Total bytes': 2780,
-    },
-    {
-      Date: 'may 20',
-      'Total bytes': 1890,
-    },
-    {
-      Date: 'jun 20',
-      'Total bytes': 2390,
-    },
-    {
-      Date: 'july 20',
-      'Total bytes': 3490,
-    },
-  ];
-
-  const qNumberOfHistoricalFiles = useQueryGetnumOfHistoricalFiles(1, '', '');
-  console.log(qNumberOfHistoricalFiles?.data);
-  // data for new files
-  const NewFileChartData = [
-    {
-      Date: 'jan 20',
-      'Total New File Stored': 1000,
-    },
-    {
-      Date: 'feb 20',
-      'Total New File Stored': 2500,
-    },
-    {
-      Date: 'mar 20',
-      'Total New File Stored': 2000,
-    },
-    {
-      Date: 'apr 20',
-      'Total New File Stored': 2780,
-    },
-    {
-      Date: 'may 20',
-      'Total New File Stored': 1890,
-    },
-    {
-      Date: 'jun 20',
-      'Total New File Stored': 2390,
-    },
-    {
-      Date: 'july 20',
-      'Total New File Stored': 3490,
     },
   ];
 
@@ -442,7 +339,12 @@ export function AdminDashboard() {
             }}
           >
             <Card className="dashboardCard" shadow="sm" p="xl">
-              <Text weight={700}>Total Data Used: {qGetStorageUsed.data}</Text>
+              <Text weight={700}>
+                Total Data Used:{' '}
+                {qGetStorageUsed.data
+                  ? formatBytes(qGetStorageUsed.data)
+                  : null}
+              </Text>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart
                   data={qHistoricalDataUsage.data}
@@ -588,11 +490,14 @@ export function AdminDashboard() {
           >
             <Card className="dashboardCard" p="xl">
               <Text weight={700}>
-                Total files size stored (not incl. replicas):
+                Total data used (not incl. replicas):{' '}
+                {qGetStorageUsedWOParity.data
+                  ? formatBytes(qGetStorageUsedWOParity.data)
+                  : null}
               </Text>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart
-                  data={SizeOfFiles}
+                  data={qHistoricalStorageUsedWOParity.data}
                   margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
                 >
                   <defs>
@@ -607,12 +512,12 @@ export function AdminDashboard() {
                   </defs>
                   //delete this if dont want mouseover
                   <Tooltip></Tooltip>
-                  <XAxis dataKey="Date" />
-                  <YAxis dataKey="Total bytes" />
+                  <XAxis dataKey="date" />
+                  <YAxis dataKey="value" />
                   //use this if want axis CartesianGrid strokeDasharray="1 1"
                   <Area
                     type="monotone"
-                    dataKey="Total bytes"
+                    dataKey="value"
                     stroke="#8884d8"
                     fillOpacity={1}
                     fill="url(#color)"
