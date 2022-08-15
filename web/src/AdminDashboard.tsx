@@ -23,6 +23,7 @@ import {
   useQueryGetserverLogs,
   useQueryGethistoricalStorageUsed,
   useQueryGetstorageUsed,
+  useQueryGetserverStatuses,
 } from './api/cluster';
 
 function formatBytes(bytes: number, decimals = 2) {
@@ -55,8 +56,13 @@ export function AdminDashboard() {
     '',
     ''
   );
-
   const qNumberOfHistoricalFiles = useQueryGetnumOfHistoricalFiles(1, '', '');
+  const qServerStatus = useQueryGetserverStatuses();
+  console.log(qServerStatus.data);
+  var pieDiskFree = 0;
+  qServerStatus?.data?.map((item) => (pieDiskFree += item.free_space));
+  var pieDiskUsed = 0;
+  qServerStatus?.data?.map((item) => (pieDiskUsed += item.used_space));
 
   const renderCustomizedLabel = ({
     cx,
@@ -107,11 +113,11 @@ export function AdminDashboard() {
   const DiskUsageChartData = [
     {
       name: 'Empty',
-      value: 600,
+      value: pieDiskFree,
     },
     {
       name: 'Filled',
-      value: 400,
+      value: pieDiskUsed,
     },
   ];
   const NodesStatus = [

@@ -217,7 +217,7 @@ export const useQueryGetserverLogsID = (
 // Return server statuses
 export const useQueryGetserverStatuses = () =>
   useQuery(['serverStatuses'], () =>
-    APIClient.get<Server>(`/api/v1/cluster/stats/servers`)
+    APIClient.get<Server[]>(`/api/v1/cluster/stats/servers`)
       .then((res) => res.data)
       .catch(typedError)
   );
