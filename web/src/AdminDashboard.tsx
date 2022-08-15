@@ -38,7 +38,8 @@ export function AdminDashboard() {
   const barColors = ['#1f77b4', '#ff0000'];
   const RADIAN = Math.PI / 180;
 
-  const getnumfiles = useQueryGetnumOfFiles();
+  const qGetnumfiles = useQueryGetnumOfFiles();
+  const qGetStorageUsed = useQueryGetstorageUsedWithParity();
   //500const getnumofhistoricalfiles = getnumOfHistoricalFiles();
   //500const getstorageused = getstorageUsed();
   //500 - (backend_admin_cluster_routes.go:112 ERROR: column "file_versions.file_id" must appear in the GROUP BY clause or be used in an aggregate function )
@@ -86,6 +87,7 @@ export function AdminDashboard() {
   const [logsModal, setOpened] = useState(false);
 
   const qServerLogs = useQueryGetserverLogs(0, '', '', '');
+  console.log(qServerLogs.data);
 
   // data for logs
   const [logs, setlogs] = useState(qServerLogs.data);
@@ -123,6 +125,12 @@ export function AdminDashboard() {
       value: 400,
     },
   ];
+  const qHistoricalDataUsage = useQueryGethistoricalStorageUsedWithParity(
+    1,
+    '',
+    ''
+  );
+  console.log(qHistoricalDataUsage.data);
   // data for new user
   const NewUserChartData = [
     {
@@ -187,6 +195,8 @@ export function AdminDashboard() {
     },
   ];
 
+  const qNumberOfHistoricalFiles = useQueryGetnumOfHistoricalFiles(1, '', '');
+  console.log(qNumberOfHistoricalFiles?.data);
   // data for new files
   const NewFileChartData = [
     {
@@ -432,10 +442,10 @@ export function AdminDashboard() {
             }}
           >
             <Card className="dashboardCard" shadow="sm" p="xl">
-              <Text weight={700}>Total Data Used:</Text>
+              <Text weight={700}>Total Data Used: {qGetStorageUsed.data}</Text>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart
-                  data={NewUserChartData}
+                  data={qHistoricalDataUsage.data}
                   margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
                 >
                   <defs>
@@ -450,12 +460,12 @@ export function AdminDashboard() {
                   </defs>
                   //delete this if dont want mouseover
                   <Tooltip></Tooltip>
-                  <XAxis dataKey="Date" />
-                  <YAxis dataKey="Total Data Used" />
+                  <XAxis dataKey="date" />
+                  <YAxis dataKey="value" />
                   //use this if want axis CartesianGrid strokeDasharray="1 1"
                   <Area
                     type="monotone"
-                    dataKey="Total Data Used"
+                    dataKey="value"
                     stroke="#8884d8"
                     fillOpacity={1}
                     fill="url(#color)"
@@ -501,10 +511,10 @@ export function AdminDashboard() {
             }}
           >
             <Card className="dashboardCard" shadow="sm" p="xl">
-              <Text weight={700}>Total File Stored:</Text>
+              <Text weight={700}>Total File Stored: {qGetnumfiles.data}</Text>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart
-                  data={NewFileChartData}
+                  data={qNumberOfHistoricalFiles.data}
                   margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
                 >
                   <defs>
@@ -519,12 +529,12 @@ export function AdminDashboard() {
                   </defs>
                   //delete this if dont want mouseover
                   <Tooltip></Tooltip>
-                  <XAxis dataKey="Date" />
-                  <YAxis dataKey="Total New File Stored" />
+                  <XAxis dataKey="date" />
+                  <YAxis dataKey="value" />
                   //use this if want axis CartesianGrid strokeDasharray="1 1"
                   <Area
                     type="monotone"
-                    dataKey="Total New File Stored"
+                    dataKey="value"
                     stroke="#8884d8"
                     fillOpacity={1}
                     fill="url(#color)"

@@ -48,11 +48,11 @@ export const useQueryGetnumOfHistoricalFiles = (
   endDate: string
 ) =>
   useQuery(['numOfHistoricalFiles', range, startDate, endDate], () =>
-    APIClient.get<UsedRes>(`/api/v1/cluster/stats/num_of_files_historical`, {
+    APIClient.get<UsedRes[]>(`/api/v1/cluster/stats/num_of_files_historical`, {
       headers: {
-        rangeType: range,
-        startDate: new Date(startDate).toISOString(),
-        endDate: new Date(endDate).toISOString(),
+        range_type: range,
+        start_date: startDate,
+        end_date: endDate,
       },
     })
       .then((res) => res.data)
@@ -101,11 +101,11 @@ export const useQueryGethistoricalStorageUsedWithParity = (
   endDate: string
 ) =>
   useQuery(['replicaHistorical', range, startDate, endDate], () =>
-    APIClient.get<UsedRes>(`/api/v1/cluster/stats/replica_used_historical`, {
+    APIClient.get<UsedRes[]>(`/api/v1/cluster/stats/replica_used_historical`, {
       headers: {
-        rangeType: range,
-        startDate: new Date(startDate).toISOString(),
-        endDate: new Date(endDate).toISOString(),
+        range_type: range,
+        start_date: startDate,
+        end_date: endDate,
       },
     })
       .then((res) => res.data)
