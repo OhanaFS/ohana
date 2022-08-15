@@ -72,8 +72,9 @@ func NewBackend(
 	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.UpdateFolderMetadata).Methods("PATCH")
 	r.HandleFunc("/api/v1/file/{fileID}/share", bc.GetFileSharedLinks).Methods("GET")
 	r.HandleFunc("/api/v1/file/{fileID}/share", bc.CreateFileSharedLink).Methods("POST")
-	r.HandleFunc("/api/v1/file/{fileID}/share", bc.PatchFileSharedLink).Methods("PATCH")
-	r.HandleFunc("/api/v1/file/{fileID}/share", bc.DeleteFileSharedLink).Methods("DELETE")
+	r.HandleFunc("/api/v1/file/{fileID}/share/{link}", bc.PatchFileSharedLink).Methods("PATCH")
+	r.HandleFunc("/api/v1/file/{fileID}/share/{link}", bc.DeleteFileSharedLink).Methods("DELETE")
+	r.HandleFunc("/api/v1/file/{fileID}/share/{link}", bc.CreateFileSharedLink).Methods("POST")
 	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}/metadata", bc.GetFileVersionMetadata).Methods("GET")
 	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}", bc.DownloadFileVersion).Methods("GET")
 	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}", bc.DeleteFileVersion).Methods("DELETE")
@@ -2073,12 +2074,11 @@ func (bc *BackendController) CreateFileSharedLink(w http.ResponseWriter, r *http
 		return
 	}
 
-	// Get link from headers
-	link := r.Header.Get("link")
-
 	// fileID
 	vars := mux.Vars(r)
 	fileID := vars["fileID"]
+	link := vars["link"]
+
 	if fileID == "" {
 		util.HttpError(w, http.StatusBadRequest, "No FileID provided")
 		return
@@ -2122,14 +2122,12 @@ func (bc *BackendController) DeleteFileSharedLink(w http.ResponseWriter, r *http
 		return
 	}
 
-	// Get link from headers
-	link := r.Header.Get("link")
-
 	// fileID
 	vars := mux.Vars(r)
 	fileID := vars["fileID"]
-	if fileID == "" {
-		util.HttpError(w, http.StatusBadRequest, "No FileID provided")
+	link := vars["link"]
+	if fileID == "" || link == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID or link provided")
 		return
 	}
 	// get file
@@ -2168,16 +2166,17 @@ func (bc *BackendController) PatchFileSharedLink(w http.ResponseWriter, r *http.
 	}
 
 	// Get link from headers
-	link := r.Header.Get("link")
 	newLink := r.Header.Get("new_link")
 
 	// fileID
 	vars := mux.Vars(r)
 	fileID := vars["fileID"]
-	if fileID == "" {
-		util.HttpError(w, http.StatusBadRequest, "No FileID provided")
+	link := vars["link"]
+	if fileID == "" || link == "" || newLink == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID, link, new_link provided")
 		return
 	}
+
 	// get file
 	file, err := dbfs.GetFileById(bc.Db, fileID, user)
 	if errors.Is(err, dbfs.ErrFileNotFound) {

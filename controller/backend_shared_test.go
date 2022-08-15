@@ -102,8 +102,9 @@ func TestBackendController_SharedLinks(t *testing.T) {
 		req := httptest.NewRequest("POST", "/api/v1/file/{fileID}/share", nil).
 			WithContext(ctxutil.WithUser(context.Background(), user))
 		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
-		req = mux.SetURLVars(req, map[string]string{"fileID": file.FileId})
-		req.Header.Add("link", "hello123")
+		req = mux.SetURLVars(req, map[string]string{
+			"fileID": file.FileId,
+			"link":   "hello123"})
 
 		w := httptest.NewRecorder()
 		bc.CreateFileSharedLink(w, req)
@@ -121,8 +122,9 @@ func TestBackendController_SharedLinks(t *testing.T) {
 		req = httptest.NewRequest("POST", "/api/v1/file/{fileID}/share", nil).
 			WithContext(ctxutil.WithUser(context.Background(), user))
 		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
-		req = mux.SetURLVars(req, map[string]string{"fileID": file.FileId})
-		req.Header.Add("link", "hello123")
+		req = mux.SetURLVars(req, map[string]string{
+			"fileID": file.FileId,
+			"link":   "hello123"})
 		w = httptest.NewRecorder()
 		bc.CreateFileSharedLink(w, req)
 
@@ -239,8 +241,9 @@ func TestBackendController_SharedLinks(t *testing.T) {
 		req := httptest.NewRequest("PATCH", "/api/v1/file/{fileID}/share", nil).
 			WithContext(ctxutil.WithUser(context.Background(), user))
 		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
-		req = mux.SetURLVars(req, map[string]string{"fileID": file.FileId})
-		req.Header.Add("link", "hello123")
+		req = mux.SetURLVars(req, map[string]string{
+			"fileID": file.FileId,
+			"link":   "hello123"})
 		req.Header.Add("new_link", "hello456")
 
 		w := httptest.NewRecorder()
@@ -276,8 +279,9 @@ func TestBackendController_SharedLinks(t *testing.T) {
 		req := httptest.NewRequest("DELETE", "/api/v1/file/{fileID}/share", nil).
 			WithContext(ctxutil.WithUser(context.Background(), user))
 		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
-		req = mux.SetURLVars(req, map[string]string{"fileID": file.FileId})
-		req.Header.Add("link", "hello456")
+		req = mux.SetURLVars(req, map[string]string{
+			"fileID": file.FileId,
+			"link":   "hello456"})
 
 		w := httptest.NewRecorder()
 		bc.DeleteFileSharedLink(w, req)

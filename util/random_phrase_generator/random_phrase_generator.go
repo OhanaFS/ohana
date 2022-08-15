@@ -3,7 +3,6 @@ package random_phrase_generator
 import (
 	"math/rand"
 	"strings"
-	"time"
 )
 
 type PhraseGenerator struct {
@@ -22,22 +21,22 @@ func New() *PhraseGenerator {
 
 func (pg PhraseGenerator) GenerateRandomPhrase() string {
 
-	// We'll assume 2 x ( 1 adj, 1 noun )
+	// We'll assume AdjectiveAdjectiveNoun
 
-	phrase := ""
+	return StringArrayToPascalCase([]string{
+		pg.Adjectives[rand.Intn(len(pg.Adjectives))],
+		pg.Adjectives[rand.Intn(len(pg.Adjectives))],
+		pg.Nouns[rand.Intn(len(pg.Nouns))],
+	})
 
-	// It will be in Pascal Case
-	for i := 0; i < 2; i++ {
-		rand.Seed(time.Now().UnixNano())
-		word := pg.Adjectives[rand.Intn(len(pg.Adjectives))]
-		word = strings.ToUpper(word[:1]) + word[1:]
-		word = strings.Replace(word, " ", "", -1)
-		phrase += word
-		word = pg.Nouns[rand.Intn(len(pg.Nouns))]
-		word = strings.ToUpper(word[:1]) + word[1:]
-		word = strings.Replace(word, " ", "", -1)
-		phrase += word
+}
+
+func StringArrayToPascalCase(arr []string) string {
+
+	for i, v := range arr {
+		arr[i] = strings.ToUpper(v[:1]) + v[1:]
+		arr[i] = strings.Replace(arr[i], " ", "", -1)
 	}
 
-	return phrase
+	return strings.Join(arr, "")
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/OhanaFS/ohana/util/random_phrase_generator"
 	"mime"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -32,6 +33,7 @@ const (
 	VersioningOnDeltas       = int8(3)
 	UsersFolderId            = "00000000-0000-0000-0000-000000000001"
 	GroupsFolderId           = "00000000-0000-0000-0000-000000000002"
+	SharedURLRegexConstriant = "^[a-zA-Z0-9]{1,20}$"
 )
 
 var (
@@ -49,6 +51,7 @@ var (
 	ErrNoPassword         = errors.New("no password")
 	ErrLinkExists         = errors.New("link already exists")
 	ErrSharedLinkNotFound = errors.New("shared link not found")
+	ErrLinkConstraint     = errors.New("link must be alphanumerical and between 1-20 characters")
 )
 
 type File struct {
@@ -1774,6 +1777,13 @@ func (f *File) CreateSharedLink(tx *gorm.DB, user *User, link string) (*SharedLi
 		}
 
 	} else {
+
+		// Check that the new link passes REGEX test
+		match, _ := regexp.MatchString(SharedURLRegexConstriant, link)
+		if !match {
+			return nil, ErrLinkConstraint
+		}
+
 		// Check that the link is unique
 		var count int64
 		tx.Model(&SharedLink{}).Where("shortened_link = ?", link).Count(&count)
@@ -1856,7 +1866,14 @@ func (f *File) UpdateSharedLink(tx *gorm.DB, user *User, link string, newLink st
 		return ErrNoPermission
 	}
 
+	// Check that the new link passes REGEX test
+	match, _ := regexp.MatchString(SharedURLRegexConstriant, newLink)
+	if !match {
+		return ErrLinkConstraint
+	}
+
 	// Check that the new link is unique
+
 	var count int64
 	err = tx.Model(&SharedLink{}).Where("shortened_link = ?", newLink).Count(&count).Error
 	if err != nil {
