@@ -46,7 +46,7 @@ func TestBackendController_SharedLinks(t *testing.T) {
 			PrivateKey: certs.PrivateKeyPath,
 			ServerName: "localhost",
 			HostName:   "localhost",
-			Port:       "5555",
+			Port:       "5558",
 		},
 	}
 	logger := config.NewLogger(configFile)
