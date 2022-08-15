@@ -1577,7 +1577,7 @@ func (bc *BackendController) CreateFolder(w http.ResponseWriter, r *http.Request
 	useID := true
 
 	if parentFolderID == "" && parentFolderPath == "" {
-		util.HttpError(w, http.StatusBadRequest, "Path or Folder ID not provided")
+		util.HttpError(w, http.StatusBadRequest, "FileName or Folder ID not provided")
 		return
 	} else if parentFolderID == "" {
 		useID = false

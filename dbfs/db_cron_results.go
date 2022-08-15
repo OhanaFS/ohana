@@ -104,7 +104,7 @@ type ShardActions struct {
 
 type OrphanedShardActions struct {
 	ServerId string
-	Path     string
+	FileName string
 	Delete   bool
 }
 

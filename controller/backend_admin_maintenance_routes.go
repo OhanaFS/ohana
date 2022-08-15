@@ -743,19 +743,19 @@ func (bc *BackendController) FixOrphanedShardsResult(w http.ResponseWriter, r *h
 
 	for _, result := range results {
 
-		if !serverPaths[ServerPathKey{result.ServerId, result.Path}] {
+		if !serverPaths[ServerPathKey{result.ServerId, result.FileName}] {
 			continue
 		}
 
 		if result.Delete {
 
 			if result.ServerId == bc.ServerName {
-				delPath := path.Join(bc.Inc.ShardsLocation, result.Path)
+				delPath := path.Join(bc.Inc.ShardsLocation, result.FileName)
 				err = os.Remove(delPath)
 				if err != nil {
 					bc.Db.Model(&dbfs.ResultsOrphanedShard{}).
 						Where("job_id = ? AND server_id = ? AND file_name = ?",
-							jobId, result.ServerId, result.Path).Updates(map[string]interface{}{
+							jobId, result.ServerId, result.FileName).Updates(map[string]interface{}{
 						"error_type": dbfs.CronErrorTypeInternalError,
 						"error":      err.Error(),
 					})
@@ -764,12 +764,12 @@ func (bc *BackendController) FixOrphanedShardsResult(w http.ResponseWriter, r *h
 			} else {
 				// Build a POST
 				url := fmt.Sprintf("https://%s%s", result.ServerId,
-					strings.Replace(inc.FragmentPath, "{shardPath}", result.Path, 1))
+					strings.Replace(inc.FragmentPath, "{shardPath}", result.FileName, 1))
 				req, err := http.NewRequest("DELETE", url, nil)
 				if err != nil {
 					bc.Db.Model(&dbfs.ResultsOrphanedShard{}).
 						Where("job_id = ? AND server_id = ? AND file_name = ?",
-							jobId, result.ServerId, result.Path).Updates(map[string]interface{}{
+							jobId, result.ServerId, result.FileName).Updates(map[string]interface{}{
 						"error_type": dbfs.CronErrorTypeInternalError,
 						"error":      err.Error(),
 					})
@@ -779,7 +779,7 @@ func (bc *BackendController) FixOrphanedShardsResult(w http.ResponseWriter, r *h
 				if err != nil {
 					bc.Db.Model(&dbfs.ResultsOrphanedShard{}).
 						Where("job_id = ? AND server_id = ? AND file_name = ?",
-							jobId, result.ServerId, result.Path).Updates(map[string]interface{}{
+							jobId, result.ServerId, result.FileName).Updates(map[string]interface{}{
 						"error_type": dbfs.CronErrorTypeInternalError,
 						"error":      err.Error(),
 					})
@@ -788,7 +788,7 @@ func (bc *BackendController) FixOrphanedShardsResult(w http.ResponseWriter, r *h
 				if resp.StatusCode != http.StatusOK {
 					bc.Db.Model(&dbfs.ResultsOrphanedShard{}).
 						Where("job_id = ? AND server_id = ? AND file_name = ?",
-							jobId, result.ServerId, result.Path).Updates(map[string]interface{}{
+							jobId, result.ServerId, result.FileName).Updates(map[string]interface{}{
 						"error_type": dbfs.CronErrorTypeInternalError,
 						"error":      resp.Body,
 					})
@@ -800,7 +800,7 @@ func (bc *BackendController) FixOrphanedShardsResult(w http.ResponseWriter, r *h
 
 			bc.Db.Model(&dbfs.ResultsOrphanedShard{}).
 				Where("job_id = ? AND server_id = ? AND file_name = ?",
-					jobId, result.ServerId, result.Path).Updates(map[string]interface{}{
+					jobId, result.ServerId, result.FileName).Updates(map[string]interface{}{
 				"error_type": dbfs.CronErrorTypeSolved,
 				"error":      "Deleted",
 			})
@@ -808,7 +808,7 @@ func (bc *BackendController) FixOrphanedShardsResult(w http.ResponseWriter, r *h
 		} else {
 			bc.Db.Model(&dbfs.ResultsOrphanedShard{}).
 				Where("job_id = ? AND server_id = ? AND file_name = ?",
-					jobId, result.ServerId, result.Path).Updates(map[string]interface{}{
+					jobId, result.ServerId, result.FileName).Updates(map[string]interface{}{
 				"error_type": dbfs.CronErrorTypeSolved,
 				"error":      "Deferred/Ignored",
 			})
