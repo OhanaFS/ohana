@@ -560,9 +560,6 @@ func TestFixQuickShardResult(t *testing.T) {
 		w := httptest.NewRecorder()
 		bc.StartJob(w, req)
 
-		var jobs []dbfs.Job
-		Assert.NoError(db.Find(&jobs).Error)
-
 		Assert.Equal(http.StatusOK, w.Code)
 		body := w.Body.String()
 
@@ -722,6 +719,210 @@ func TestFixQuickShardResult(t *testing.T) {
 		Assert.NoError(json.Unmarshal([]byte(body), &job))
 
 		Assert.Equal(100, job.Progress)
+
+	})
+
+	Inc.HttpServer.Close()
+
+}
+
+func TestFixOrphanedFilesResult(t *testing.T) {
+
+	// Setting up env
+
+	tempDir = t.TempDir()
+	shardDir := filepath.Join(tempDir, "shards")
+	certPaths, err := selfsigntestutils.GenCertsTest(tempDir)
+	assert.NoError(t, err)
+
+	//Set up mock Db and session store
+	stitchConfig := config.StitchConfig{
+		ShardsLocation: shardDir,
+	}
+	incConfig := config.IncConfig{
+		ServerName: "localServer",
+		HostName:   "localhost",
+		BindIp:     "127.0.0.1",
+		Port:       "5557",
+		CaCert:     certPaths.CaCertPath,
+		PublicCert: certPaths.PublicCertPath,
+		PrivateKey: certPaths.PrivateKeyPath,
+	}
+
+	configFile := &config.Config{Stitch: stitchConfig, Inc: incConfig}
+	logger := config.NewLogger(configFile)
+	db := testutil.NewMockDB(t)
+
+	session := testutil.NewMockSession(t)
+	sessionId, err := session.Create(nil, "superuser", time.Hour)
+	Inc := inc.NewInc(configFile, db, logger)
+	inc.RegisterIncServices(Inc)
+
+	// Wait for inc to start
+	time.Sleep(time.Second * 3)
+
+	// Setting up controller
+	bc := &controller.BackendController{
+		Db:         db,
+		Logger:     logger,
+		Path:       configFile.Stitch.ShardsLocation,
+		ServerName: configFile.Inc.ServerName,
+		Inc:        Inc,
+	}
+
+	bc.InitialiseShardsFolder()
+
+	// Getting Superuser to use with testing
+	user, err := dbfs.GetUser(db, "superuser")
+	assert.NoError(t, err)
+
+	// Creating files to test with
+
+	// Get root folder
+	//rootFolder, err := dbfs.GetRootFolder(db)
+	//assert.Nil(t, err)
+
+	// Making two file that is like not to be in any folder at all
+	parent := "See! I'm empty"
+	file := dbfs.File{
+		FileId:             "randomfileidlmao",
+		FileName:           "I have no parents",
+		MIMEType:           "please adopt me",
+		EntryType:          dbfs.IsFile,
+		ParentFolderFileId: &parent,
+		VersionNo:          0,
+		DataId:             "I don't have any data as well",
+		DataIdVersion:      0,
+		Size:               0,
+		ActualSize:         0,
+		CreatedTime:        time.Time{},
+		ModifiedUser:       nil,
+		ModifiedUserUserId: nil,
+		ModifiedTime:       time.Time{},
+		VersioningMode:     0,
+		Checksum:           "",
+		TotalShards:        0,
+		DataShards:         0,
+		ParityShards:       0,
+		KeyThreshold:       0,
+		EncryptionKey:      "",
+		EncryptionIv:       "",
+		PasswordProtected:  false,
+		LinkFile:           nil,
+		LinkFileFileId:     nil,
+		LastChecked:        time.Time{},
+		Status:             0,
+		HandledServer:      "",
+	}
+
+	err = db.Create(&file).Error
+	assert.Nil(t, err)
+
+	parent2 := "lonely inside rip"
+	file2 := dbfs.File{
+		FileId:             "whocares",
+		FileName:           "sadge",
+		MIMEType:           "I do tho",
+		EntryType:          dbfs.IsFile,
+		ParentFolderFileId: &parent2,
+		VersionNo:          0,
+		DataId:             "you are still loved",
+		DataIdVersion:      0,
+		Size:               0,
+		ActualSize:         0,
+		CreatedTime:        time.Time{},
+		ModifiedUser:       nil,
+		ModifiedUserUserId: nil,
+		ModifiedTime:       time.Time{},
+		VersioningMode:     0,
+		Checksum:           "",
+		TotalShards:        0,
+		DataShards:         0,
+		ParityShards:       0,
+		KeyThreshold:       0,
+		EncryptionKey:      "",
+		EncryptionIv:       "",
+		PasswordProtected:  false,
+		LinkFile:           nil,
+		LinkFileFileId:     nil,
+		LastChecked:        time.Time{},
+		Status:             0,
+		HandledServer:      "",
+	}
+	err = db.Create(&file2).Error
+	assert.Nil(t, err)
+
+	var newJob dbfs.Job
+	var orphanedFilesResults []dbfs.ResultsOrphanedFile
+
+	t.Run("Check if the files are orphaned", func(t *testing.T) {
+
+		Assert := assert.New(t)
+
+		// Starting a job with a quick shards check
+		req := httptest.NewRequest("POST", "/api/v1/cluster/maintenance/start", nil).WithContext(
+			ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req.Header.Add("orphaned_files_check", "true")
+		w := httptest.NewRecorder()
+		bc.StartJob(w, req)
+
+		Assert.Equal(http.StatusOK, w.Code)
+		body := w.Body.String()
+
+		Assert.NoError(json.Unmarshal([]byte(body), &newJob))
+		Assert.Equal(newJob.JobId, uint(1))
+		Assert.Equal(newJob.OrphanedFilesCheck, true)
+
+		time.Sleep(time.Second * 3)
+
+		// Checking if the files are orphaned
+
+		req = httptest.NewRequest("GET",
+			"/api/v1/cluster/maintenance/job/{id}/orphaned_files",
+			nil).WithContext(
+			ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req = mux.SetURLVars(req, map[string]string{"id": strconv.Itoa(int(newJob.JobId))})
+		w = httptest.NewRecorder()
+		bc.GetOrphanedFilesResult(w, req)
+
+		body = w.Body.String()
+		Assert.Equal(http.StatusOK, w.Code, body)
+
+		Assert.NoError(json.Unmarshal([]byte(body), &orphanedFilesResults))
+		Assert.Equal(len(orphanedFilesResults), 2)
+
+	})
+
+	t.Run("Fixing Orphaned Files", func(t *testing.T) {
+
+		Assert := assert.New(t)
+
+		fixes := make([]dbfs.OrphanedFilesActions, len(orphanedFilesResults))
+		fixes[0] = dbfs.OrphanedFilesActions{
+			ParentFolderId: orphanedFilesResults[0].ParentFolderId,
+			Delete:         true,
+		}
+		fixes[1] = dbfs.OrphanedFilesActions{
+			ParentFolderId: orphanedFilesResults[1].ParentFolderId,
+			Move:           true,
+		}
+
+		b, err := json.Marshal(fixes)
+		Assert.NoError(err)
+
+		req := httptest.NewRequest("POST",
+			"/api/v1/cluster/maintenance/job/{id}/orphaned_files",
+			bytes.NewReader(b)).WithContext(ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req = mux.SetURLVars(req, map[string]string{"id": strconv.Itoa(int(newJob.JobId))})
+		w := httptest.NewRecorder()
+		bc.FixOrphanedFilesResult(w, req)
+
+		Assert.Equal(http.StatusOK, w.Code)
+		body := w.Body.String()
+		Assert.Contains(body, "true")
 
 	})
 

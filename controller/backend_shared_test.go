@@ -14,6 +14,7 @@ import (
 	"github.com/OhanaFS/ohana/util/testutil"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -55,13 +56,16 @@ func TestBackendController_SharedLinks(t *testing.T) {
 	sessionId, err := session.Create(nil, "superuser", time.Hour)
 	Assert.NoError(err)
 
+	// set up mock zapper
+	zapper, _ := zap.NewDevelopment()
+
 	// Setting up controller
 	bc := &controller.BackendController{
 		Db:         db,
 		Logger:     logger,
 		Path:       configFile.Stitch.ShardsLocation,
 		ServerName: "localhost",
-		Inc:        inc.NewInc(configFile, db),
+		Inc:        inc.NewInc(configFile, db, zapper),
 	}
 
 	// Register inc services

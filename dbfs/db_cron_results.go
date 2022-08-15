@@ -108,6 +108,12 @@ type OrphanedShardActions struct {
 	Delete   bool
 }
 
+type OrphanedFilesActions struct {
+	ParentFolderId string
+	Delete         bool
+	Move           bool
+}
+
 // JobProgressAFSHC All files fragment health check job progress
 type JobProgressAFSHC struct {
 	JobId      uint `gorm:"primary_key"`
@@ -186,14 +192,15 @@ type JobParameters struct {
 	AllFilesShardsCheck bool
 	PermissionCheck     bool
 	DeleteFragments     bool
+	OrphanedFilesCheck  bool
 }
 
 // ResultsOrphanedFile Orphaned File result
 type ResultsOrphanedFile struct {
-	JobId    uint `gorm:"primary_key"`
-	FileName string
-	FileId   string `gorm:"primary_key"`
-	Error    string
+	JobId          uint   `gorm:"primary_key"`
+	ParentFolderId string `gorm:"primary_key"`
+	Contents       string
+	Error          string
 	// Error will store the path route it took to get to the error
 	ErrorType int
 	// ErrorType will store what happened with the file (orphaned, moved, deleted)
@@ -451,6 +458,7 @@ func InitializeJob(tx *gorm.DB, parameters JobParameters) (*Job, error) {
 		AllFilesShardsHealthCheck: parameters.AllFilesShardsCheck,
 		PermissionCheck:           parameters.PermissionCheck,
 		DeleteFragments:           parameters.DeleteFragments,
+		OrphanedFilesCheck:        parameters.OrphanedFilesCheck,
 	}
 	err := tx.Create(&job).Error
 	if err != nil {
@@ -461,6 +469,13 @@ func InitializeJob(tx *gorm.DB, parameters JobParameters) (*Job, error) {
 }
 
 func StartJob(tx *gorm.DB, job *Job) error {
+
+	// TODO: NOTE. If you are testing with this, sleep for at least 10 seconds.
+	// Otherwise, sqlite3 and gorm will get locked.
+	if job.OrphanedFilesCheck {
+		go CheckOrphanedFiles(tx, int(job.JobId), true)
+
+	}
 
 	return nil
 }
@@ -548,6 +563,28 @@ func GetResultsOrphanedShard(tx *gorm.DB, jobId int) ([]ResultsOrphanedShard, er
 	}
 
 	var results []ResultsOrphanedShard
+	err = tx.Where("job_id = ?", jobId).Find(&results).Error
+	return results, err
+}
+
+// GetResultsOrphanedFile Returns the results of an orphaned file job based on jobId
+// Will return error if the job doesn't exist or if the job is still running
+func GetResultsOrphanedFile(tx *gorm.DB, jobId int) ([]ResultsOrphanedFile, error) {
+
+	// Check if the job is still running or exists
+	var job JobProgressOrphanedFile
+	err := tx.Where("job_id = ?", jobId).First(&job).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, ErrorCronJobDoesNotExist
+		}
+	} else {
+		if job.InProgress {
+			return nil, ErrorCronJobStillRunning
+		}
+	}
+
+	var results []ResultsOrphanedFile
 	err = tx.Where("job_id = ?", jobId).Find(&results).Error
 	return results, err
 }

@@ -86,7 +86,7 @@ func TestAdminClusterHistoricalRoutes(t *testing.T) {
 	// Load the db with HistoricalStats that can be used for testing
 
 	fakeStartLoadDataDate := time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
-	fakeEndLoadDataDate := time.Now()
+	fakeEndLoadDataDate := time.Now().AddDate(0, 0, 1)
 
 	// days between fakeStartLoadDataDate and fakeEndLoadDataDate
 	daysBetween := int(fakeEndLoadDataDate.Sub(fakeStartLoadDataDate).Hours() / 24)
@@ -160,7 +160,7 @@ func TestAdminClusterHistoricalRoutes(t *testing.T) {
 
 			var numOfFilesHistorical []dbfs.DateInt64Value
 			Assert.NoError(json.Unmarshal([]byte(body), &numOfFilesHistorical))
-			Assert.Equal(10, len(numOfFilesHistorical))
+			Assert.Equal(10, len(numOfFilesHistorical), numOfFilesHistorical)
 			Assert.True(AssertCorrectEntry(numOfFilesHistorical, testType))
 
 			// Today's date vs 10 days ago

@@ -1,12 +1,13 @@
 package dbfs
 
 import (
+	"database/sql"
+	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/OhanaFS/ohana/util"
 	"gorm.io/gorm"
+	"math/rand"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -267,11 +268,6 @@ func SetHowLongToKeepFileVersions(tx *gorm.DB, days int) error {
 // This only checks the files table.
 func CheckOrphanedFiles(tx *gorm.DB, jobId int, storeResults bool) ([]ResultsOrphanedFile, error) { // TODO: Change all to uint
 
-	// GoodSet contains folderIDs that are valid and will lead back to root.
-	// BadSet contains folderIDs that during previous scans couldn't be brought back to root
-	GoodSet := util.NewSet[string]()
-	BadSet := util.NewSet[string]()
-
 	if jobId < 0 {
 		return nil, ErrInvalidCronJobProperty // TODO change all to uint in the first place
 	}
@@ -296,127 +292,213 @@ func CheckOrphanedFiles(tx *gorm.DB, jobId int, storeResults bool) ([]ResultsOrp
 			return nil, err
 		}
 	}
+	// These are all the Parent Folder IDs.
+	// A folder or file is orphaned if it's parent folder does not exist.
 
-	// Use Find In Batches
+	var parentFolderIdsToCheck []sql.NullString
+	err = tx.Model(&File{}).Distinct("parent_folder_file_id").
+		Select("parent_folder_file_id").
+		Find(&parentFolderIdsToCheck).Error
+	if err != nil {
+		return nil, err
+	}
 
-	var files []File
+	missingParentIds := make([]string, 0)
 
 	batchSize := 100
+	for i, parentFolderId := range parentFolderIdsToCheck {
+		var count int64
+		tx.Model(&File{}).Where("file_id = ? AND entry_type =?", parentFolderId, IsFolder).
+			Count(&count)
+		if count == 0 {
+			if parentFolderId.Valid {
+				missingParentIds = append(missingParentIds, parentFolderId.String)
+			}
+		}
 
-	BadFileIds := make([]ResultsOrphanedFile, 0)
+		// Updating status every 100 files
+		if storeResults && i%batchSize == 0 {
+			err = tx.Model(&JobProgressOrphanedFile{}).Where("job_id = ?", uint(jobId)).
+				Update("processed", batchSize*i).Error
+		}
+	}
 
-	result := tx.Where("entry_type = ?", IsFile).FindInBatches(&files, batchSize,
-		func(tx *gorm.DB, batch int) error {
+	// Now we'll scan through the missingParentIDs and ls them to see what missing files are in them
 
-			// BadFileIdsSave store all the files that have orphaned parents
-			BadFileIdsSave := make([]ResultsOrphanedFile, 0)
+	resultOrphanedFile := make([]ResultsOrphanedFile, len(missingParentIds))
 
-			for _, file := range files {
+	for i, missingParentId := range missingParentIds {
+		var orphanedFiles []File
+		err = tx.Model(&File{}).Where("parent_folder_file_id = ?", missingParentId).
+			Find(&orphanedFiles).Error
+		if err != nil {
+			resultOrphanedFile[i] = ResultsOrphanedFile{
+				JobId:          uint(jobId),
+				ParentFolderId: missingParentId,
+				Contents:       "",
+				Error:          "couldn't ls into missing parent:  " + err.Error(),
+				ErrorType:      CronErrorTypeInternalError,
+			}
+			continue
+		}
 
-				// Check if we can recursively get up from file
-				if GoodSet.Has(*file.ParentFolderFileId) {
-					continue
-				}
-				if BadSet.Has(*file.ParentFolderFileId) {
-					BadFileIdsSave = append(BadFileIdsSave)
-				}
+		fileNameArray := make([]string, len(orphanedFiles))
+		for j, file := range orphanedFiles {
+			fileNameArray[j] = file.FileName
+		}
 
-				// function to recursively get up from file
+		fileNamesBytes, err := json.Marshal(fileNameArray)
+		if err != nil {
+			resultOrphanedFile[i] = ResultsOrphanedFile{
+				JobId:          uint(jobId),
+				ParentFolderId: missingParentId,
+				Contents:       "",
+				Error:          "failed to marshal:  " + err.Error(),
+				ErrorType:      CronErrorTypeInternalError,
+			}
+			continue
+		}
 
-				pathRoute, err := recursiveOrphanedFileCheck(tx, file.ParentFolderFileId,
-					[]string{*file.ParentFolderFileId}, GoodSet, BadSet)
+		resultOrphanedFile[i] = ResultsOrphanedFile{
+			JobId:          uint(jobId),
+			ParentFolderId: missingParentId,
+			Contents:       string(fileNamesBytes),
+			Error:          "Missing Parents",
+			ErrorType:      CronErrorTypeMissingFile,
+		}
+	}
+
+	if storeResults {
+		err = tx.Model(&JobProgressOrphanedFile{}).Where("job_id = ?", uint(jobId)).
+			Updates(map[string]interface{}{
+				"in_progress": false,
+				"end_time":    time.Now(),
+				"processed":   count,
+			}).Error
+		if err != nil {
+			return nil, err
+		}
+		if tx.Save(resultOrphanedFile).Error != nil {
+			return nil, err
+		}
+	}
+
+	return resultOrphanedFile, nil
+}
+
+func FixOrphanedFiles(tx *gorm.DB, jobId int, actions []OrphanedFilesActions) error {
+
+	// Get the job id first to see if it's valid
+
+	var resultsOrphanedFile []ResultsOrphanedFile
+
+	err := tx.Model(&ResultsOrphanedFile{}).Where("job_id = ?", uint(jobId)).Find(&resultsOrphanedFile).Error
+	if err != nil {
+		return err
+	}
+
+	if len(resultsOrphanedFile) == 0 {
+		return ErrInvalidCronJobProperty
+	}
+
+	// Creating a map of all missing parent folder ids to their orphaned files
+	// So that we can ensure we are only doing things to the correct folders.
+
+	parentFolderSet := util.NewSet[string]()
+
+	for _, resultOrphanedFile := range resultsOrphanedFile {
+		parentFolderSet.Add(resultOrphanedFile.ParentFolderId)
+	}
+
+	// Ensure we have a folder appropriate for each action
+
+	// Getting superuser. Needed.
+	var superuser User
+	err = tx.Model(&User{}).Where("email = ?", "superuser").Find(&superuser).Error
+	if err != nil {
+		return err
+	}
+
+	// get root folder
+	rootFolder, err := GetRootFolder(tx)
+	if err != nil {
+		return err
+	}
+
+	// Check if there's a folder called "Orphaned Files"
+	var orphanedFilesFolder *File
+	if err := tx.Model(&File{}).Where("file_name = ? AND parent_folder_file_id = ?",
+		"Orphaned Files", rootFolder.FileId).
+		First(orphanedFilesFolder).Error; err != nil {
+		// Create the folder if it doesn't exist
+		orphanedFilesFolder, err = rootFolder.CreateSubFolder(tx, "Orphaned Files",
+			&superuser, "DBFSCLEANUP")
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, action := range actions {
+		if parentFolderSet.Has(action.ParentFolderId) {
+
+			tempFolderName := time.Now().Format(time.RFC3339Nano) + strconv.Itoa(rand.Intn(1000))
+
+			if action.Move || action.Delete {
+				// Create a new folder under the orphaned files folder
+				tempNewFolder, err := orphanedFilesFolder.CreateSubFolder(tx,
+					tempFolderName,
+					&superuser, "DBFSCLEANUP")
+
 				if err != nil {
-					if errors.Is(err, ErrOrphanedFile) {
-						// file is bad, add to BadFileIdsSave
-						BadFileIdsSave = append(BadFileIdsSave, ResultsOrphanedFile{
-							JobId:    uint(jobId),
-							FileName: file.FileName,
-							FileId:   file.FileId,
-							Error: fmt.Sprintf("Invalid parent folder: %s",
-								strings.Join(pathRoute, "/")),
-							ErrorType: CronErrorTypeMissingFile,
-						})
-					} else {
-						BadFileIdsSave = append(BadFileIdsSave, ResultsOrphanedFile{
-							JobId:    uint(jobId),
-							FileName: file.FileName,
-							FileId:   file.FileId,
-							Error: fmt.Sprintf("Error at recursive check: %s",
-								err.Error()),
-							ErrorType: CronErrorTypeInternalError,
-						})
+					return err
+				}
+
+				// Move the files to the new folder
+
+				err = tx.Model(&File{}).Where("parent_folder_file_id = ?", action.ParentFolderId).
+					Update("parent_folder_file_id", tempNewFolder.FileId).Error
+
+				if err != nil {
+					return nil
+				}
+
+				// Both move and delete require a valid parent folder so this is the easiest way to ensure all
+				// child files are deleted as well.
+				if action.Delete {
+					err := tempNewFolder.Delete(tx, &superuser, "DBFSCLEANUP")
+					if err != nil {
+						return err
 					}
 				}
 
 			}
 
-			// at the end of the batch, save BadFileIdsSave to the database
-			// and update status
-			if storeResults {
-				err := tx.Save(&BadFileIdsSave).Error
-				if err != nil {
-					return err
-				}
+			// Update db of the action
 
-				err = tx.Model(&JobProgressOrphanedFile{}).Where("job_id = ?", uint(jobId)).
-					Update("processed", batchSize*batch).Error
-				if err != nil {
-					return err
-				}
+			var errorString string
+			if action.Move {
+				errorString = "Moved to /Orphaned Files/" + tempFolderName
+			} else if action.Delete {
+				errorString = "Deleted"
 			} else {
-				// else append to BadFileIds
-				BadFileIds = append(BadFileIds, BadFileIdsSave...)
+				errorString = "No action"
 			}
 
-			return nil
-		})
+			err = tx.Model(&ResultsOrphanedFile{}).
+				Where("job_id = ? AND parent_folder_id = ?",
+					uint(jobId), action.ParentFolderId).
+				Updates(map[string]interface{}{
+					"error":      errorString,
+					"error_type": CronErrorTypeSolved,
+				}).Error
 
-	if result.Error != nil {
-		return nil, result.Error
-	}
+			if err != nil {
+				return err
+			}
 
-	return BadFileIds, nil
-}
-
-// NOTE: In theory util.Set shouldn't require a pointer to a string... If errors happen check that.
-func recursiveOrphanedFileCheck(tx *gorm.DB, folderID *string,
-	pathTaken []string, goodSet, badSet util.Set[string]) ([]string, error) {
-
-	if *folderID == "00000000-0000-0000-0000-000000000000" {
-		return pathTaken, nil
-	}
-
-	// Get parent folder
-	var parentFolder File
-	err := tx.Model(&File{}).Where("file_id = ?", folderID).First(&parentFolder).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return append(pathTaken, *folderID), ErrOrphanedFile
-		} else {
-			return append(pathTaken, *folderID), err
 		}
 	}
-
-	if goodSet.Has(parentFolder.FileId) {
-		// we know it's good, we can stop here
-		for _, fileId := range pathTaken {
-			goodSet.Add(fileId)
-		}
-		return pathTaken, nil
-	}
-	if badSet.Has(parentFolder.FileId) {
-		// we know it's bad, we can stop here
-		for _, fileId := range pathTaken {
-			badSet.Add(fileId)
-		}
-		return pathTaken, ErrOrphanedFile
-	}
-
-	// Check that parentFolder is a file
-
-	return recursiveOrphanedFileCheck(tx, parentFolder.ParentFolderFileId,
-		append(pathTaken, *folderID), goodSet, badSet)
-
+	return nil
 }
 
 // CheckWrongPermissions checks if there are any permissions that are invalid.

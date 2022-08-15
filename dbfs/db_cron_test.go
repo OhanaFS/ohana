@@ -240,6 +240,171 @@ func TestDeletion(t *testing.T) {
 
 }
 
+func TestCheckOrphanedFiles(t *testing.T) {
+	db := testutil.NewMockDB(t)
+
+	superUser := dbfs.User{}
+
+	// Getting superuser account
+	err := db.Where("email = ?", "superuser").First(&superUser).Error
+	assert.Nil(t, err)
+
+	// Setting up the environment
+
+	// Get root folder
+	rootFolder, err := dbfs.GetRootFolder(db)
+	assert.Nil(t, err)
+
+	// Making a few folders
+
+	folders := make([]*dbfs.File, 5)
+
+	for i := 0; i < 5; i++ {
+		folders[i], err = rootFolder.CreateSubFolder(db, fmt.Sprintf("folder%d", i),
+			&superUser, "testServer")
+		assert.Nil(t, err)
+	}
+
+	// Making a few files
+	for i := 0; i < 5; i++ {
+		if i%2 == 0 {
+			tempFolder, err := folders[i].CreateSubFolder(db, fmt.Sprintf("folder_%d", i),
+				&superUser, "testServer")
+			assert.Nil(t, err)
+			_, err = EXAMPLECreateFile(db, &superUser, "file_lvl3"+fmt.Sprintf("%d", i), tempFolder.FileId)
+			assert.Nil(t, err)
+		}
+		_, err = EXAMPLECreateFile(db, &superUser, "file_lvl2"+fmt.Sprintf("%d", i), folders[i].FileId)
+		assert.Nil(t, err)
+	}
+
+	// Making two file that is like not to be in any folder at all
+	parent := "See! I'm empty"
+	file := dbfs.File{
+		FileId:             "randomfileidlmao",
+		FileName:           "I have no parents",
+		MIMEType:           "please adopt me",
+		EntryType:          dbfs.IsFile,
+		ParentFolderFileId: &parent,
+		VersionNo:          0,
+		DataId:             "I don't have any data as well",
+		DataIdVersion:      0,
+		Size:               0,
+		ActualSize:         0,
+		CreatedTime:        time.Time{},
+		ModifiedUser:       nil,
+		ModifiedUserUserId: nil,
+		ModifiedTime:       time.Time{},
+		VersioningMode:     0,
+		Checksum:           "",
+		TotalShards:        0,
+		DataShards:         0,
+		ParityShards:       0,
+		KeyThreshold:       0,
+		EncryptionKey:      "",
+		EncryptionIv:       "",
+		PasswordProtected:  false,
+		LinkFile:           nil,
+		LinkFileFileId:     nil,
+		LastChecked:        time.Time{},
+		Status:             0,
+		HandledServer:      "",
+	}
+
+	err = db.Create(&file).Error
+	assert.Nil(t, err)
+
+	parent2 := "lonely inside rip"
+	file2 := dbfs.File{
+		FileId:             "whocares",
+		FileName:           "sadge",
+		MIMEType:           "I do tho",
+		EntryType:          dbfs.IsFile,
+		ParentFolderFileId: &parent2,
+		VersionNo:          0,
+		DataId:             "you are still loved",
+		DataIdVersion:      0,
+		Size:               0,
+		ActualSize:         0,
+		CreatedTime:        time.Time{},
+		ModifiedUser:       nil,
+		ModifiedUserUserId: nil,
+		ModifiedTime:       time.Time{},
+		VersioningMode:     0,
+		Checksum:           "",
+		TotalShards:        0,
+		DataShards:         0,
+		ParityShards:       0,
+		KeyThreshold:       0,
+		EncryptionKey:      "",
+		EncryptionIv:       "",
+		PasswordProtected:  false,
+		LinkFile:           nil,
+		LinkFileFileId:     nil,
+		LastChecked:        time.Time{},
+		Status:             0,
+		HandledServer:      "",
+	}
+	err = db.Create(&file2).Error
+	assert.Nil(t, err)
+
+	var orphanedFilesResult []dbfs.ResultsOrphanedFile
+
+	t.Run("CheckOrphanedFiles", func(t *testing.T) {
+
+		Assert := assert.New(t)
+		orphanedFilesResult, err = dbfs.CheckOrphanedFiles(db, 2, true)
+		Assert.NoError(err)
+		Assert.Equal(2, len(orphanedFilesResult), orphanedFilesResult)
+
+	})
+
+	t.Run("FixOrphanedFiles", func(t *testing.T) {
+
+		Assert := assert.New(t)
+
+		// Make the fixes to be passed to FixOrphanedFiles
+		// we are going to do a different fix for each file
+
+		// Make a list of fixes
+
+		fixes := make([]dbfs.OrphanedFilesActions, len(orphanedFilesResult))
+		fixes[0] = dbfs.OrphanedFilesActions{
+			ParentFolderId: orphanedFilesResult[0].ParentFolderId,
+			Delete:         true,
+		}
+		fixes[1] = dbfs.OrphanedFilesActions{
+			ParentFolderId: orphanedFilesResult[1].ParentFolderId,
+			Move:           true,
+		}
+
+		// Send the results
+		err := dbfs.FixOrphanedFiles(db, 2, fixes)
+		Assert.NoError(err)
+
+		// There should be a new folder in the database
+
+		rootContents, err := rootFolder.ListContents(db, &superUser)
+		Assert.NoError(err)
+		fmt.Println(rootContents)
+
+		checkFolder, err := dbfs.GetFileByPath(db, "/Orphaned Files", &superUser, false)
+		Assert.NoError(err)
+		Assert.NotNil(checkFolder)
+
+		// There should be 1 folder inside the folder
+		contents, err := checkFolder.ListContents(db, &superUser)
+		Assert.NoError(err)
+		Assert.Equal(1, len(contents))
+		contentsFile, err := contents[0].ListContents(db, &superUser)
+
+		Assert.Equal(file2.FileId, contentsFile[0].FileId)
+		Assert.Contains(orphanedFilesResult[1].Contents, file2.FileName)
+
+	})
+
+}
+
 func deleteWorker(dataIdFragmentMap map[string][]dbfs.Fragment, input <-chan string, output chan<- string) {
 
 	for j := range input {

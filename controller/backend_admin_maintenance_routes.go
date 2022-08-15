@@ -156,6 +156,7 @@ func (bc *BackendController) StartJob(w http.ResponseWriter, r *http.Request) {
 		AllFilesShardsCheck: strings.TrimSpace(r.Header.Get("full_shards_check")) == "true",
 		PermissionCheck:     strings.TrimSpace(r.Header.Get("permission_check")) == "true",
 		DeleteFragments:     strings.TrimSpace(r.Header.Get("delete_fragments")) == "true",
+		OrphanedFilesCheck:  strings.TrimSpace(r.Header.Get("orphaned_files_check")) == "true",
 	}
 
 	// Starting the job
@@ -1064,4 +1065,91 @@ func (bc *BackendController) RebuildShard(dataId, password string) error {
 	})
 
 	return nil
+}
+
+// GetOrphanedFilesResult returns the result of the orphaned files scan for the given jobId
+func (bc *BackendController) GetOrphanedFilesResult(w http.ResponseWriter, r *http.Request) {
+
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// Check if user is admin
+	if user.AccountType != dbfs.AccountTypeAdmin {
+		util.HttpError(w, http.StatusForbidden, "You are not an admin")
+		return
+	}
+
+	vars := mux.Vars(r)
+	jobIdString := vars["id"]
+	jobId, err := strconv.Atoi(jobIdString)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "Invalid jobId")
+		return
+	}
+	result, err := dbfs.GetResultsOrphanedFile(bc.Db, jobId)
+	if err != nil {
+		if errors.Is(err, dbfs.ErrorCronJobDoesNotExist) {
+			util.HttpError(w, http.StatusNotFound, err.Error())
+		} else {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+	util.HttpJson(w, http.StatusOK, result)
+}
+
+// FixOrphanedFilesResult takes the request body,
+// decodes the results, and fixes based on the user input
+// (delete, move, or leave alone)
+func (bc *BackendController) FixOrphanedFilesResult(w http.ResponseWriter, r *http.Request) {
+
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// Check if user is admin
+	if user.AccountType != dbfs.AccountTypeAdmin {
+		util.HttpError(w, http.StatusForbidden, "You are not an admin")
+		return
+	}
+
+	vars := mux.Vars(r)
+	jobIdString := vars["id"]
+	jobId, err := strconv.Atoi(jobIdString)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "Invalid jobId")
+		return
+	}
+
+	// Check that jobId exists
+	_, err = dbfs.GetResultsOrphanedFile(bc.Db, jobId)
+	if err != nil {
+		if errors.Is(err, dbfs.ErrorCronJobDoesNotExist) {
+			util.HttpError(w, http.StatusNotFound, err.Error())
+		} else {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+
+	// Decoding the request body
+	var results []dbfs.OrphanedFilesActions
+	err = json.NewDecoder(r.Body).Decode(&results)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	err = dbfs.FixOrphanedFiles(bc.Db, jobId, results)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	util.HttpJson(w, http.StatusOK, true)
 }
