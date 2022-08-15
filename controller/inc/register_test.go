@@ -73,6 +73,8 @@ func TestRegisterServer(t *testing.T) {
 
 	t.Run("Mark a server as offline", func(t *testing.T) {
 
+		t.Skip()
+
 		Assert := assert.New(t)
 
 		err := inc.MarkServerOffline(db, incServer.ServerName, "server3")

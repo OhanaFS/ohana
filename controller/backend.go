@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"strconv"
@@ -68,6 +70,11 @@ func NewBackend(
 	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.GetFolderPermissions).Methods("GET")
 	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.AddPermissionsFolder).Methods("POST")
 	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.UpdateFolderMetadata).Methods("PATCH")
+	r.HandleFunc("/api/v1/file/{fileID}/share", bc.GetFileSharedLinks).Methods("GET")
+	r.HandleFunc("/api/v1/file/{fileID}/share", bc.CreateFileSharedLink).Methods("POST")
+	r.HandleFunc("/api/v1/file/{fileID}/share/{link}", bc.PatchFileSharedLink).Methods("PATCH")
+	r.HandleFunc("/api/v1/file/{fileID}/share/{link}", bc.DeleteFileSharedLink).Methods("DELETE")
+	r.HandleFunc("/api/v1/file/{fileID}/share/{link}", bc.CreateFileSharedLink).Methods("POST")
 	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}/metadata", bc.GetFileVersionMetadata).Methods("GET")
 	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}", bc.DownloadFileVersion).Methods("GET")
 	r.HandleFunc("/api/v1/file/{fileID}/versions/{versionsID}", bc.DeleteFileVersion).Methods("DELETE")
@@ -86,6 +93,10 @@ func NewBackend(
 	r.HandleFunc("/api/v1/folder/{folderID}/move", bc.MoveFolder).Methods("POST")
 	r.HandleFunc("/api/v1/file/{folderID}/copy", bc.CopyFile).Methods("POST")
 	r.HandleFunc("/api/v1/folder/{folderID}/details", bc.GetMetadataFile).Methods("GET")
+
+	// Shared Routes :
+	r.HandleFunc("/api/v1/shared/{shortenedLink}/metadata", bc.GetMetadataSharedLink).Methods("GET")
+	r.HandleFunc("/api/v1/shared/{shortenedLink}", bc.DownloadSharedLink).Methods("GET")
 
 	// Cluster Routes
 	r.HandleFunc("/api/v1/cluster/stats/num_of_files", bc.GetNumOfFiles).Methods("GET")
@@ -124,6 +135,81 @@ func (bc *BackendController) InitialiseShardsFolder() {
 	}
 }
 
+type MultipartFileStream struct {
+	reader      *multipart.Reader
+	part        *multipart.Part
+	formName    string
+	isDone      bool
+	ContentType string
+	Filename    string
+}
+
+var _ io.ReadCloser = &MultipartFileStream{}
+
+// Read implements io.ReadCloser
+func (mf *MultipartFileStream) Read(p []byte) (int, error) {
+	if mf.isDone {
+		return 0, io.EOF
+	}
+
+	n, err := io.ReadAtLeast(mf.part, p, len(p))
+	if n < len(p) {
+		mf.isDone = true
+		return n, nil
+	}
+
+	return n, err
+}
+
+// Close implements io.ReadCloser
+func (mf *MultipartFileStream) Close() error {
+	return mf.part.Close()
+}
+
+func NewMultipartFileReader(req *http.Request, fieldName string) (*MultipartFileStream, error) {
+	_, params, err := mime.ParseMediaType(req.Header.Get("Content-Type"))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to parse Content-Type header: %w", err)
+	}
+	boundary, ok := params["boundary"]
+	if !ok {
+		return nil, fmt.Errorf("Failed to get multipart boundary")
+	}
+	reader := multipart.NewReader(req.Body, boundary)
+
+	mfs := &MultipartFileStream{
+		reader:      reader,
+		part:        nil,
+		formName:    fieldName,
+		ContentType: "",
+		Filename:    "",
+	}
+
+	for {
+		part, err := reader.NextPart()
+		if err == io.EOF {
+			break
+		}
+
+		for part.FormName() != fieldName {
+			io.Copy(io.Discard, part)
+			part.Close()
+
+			if part, err = reader.NextPart(); err == io.EOF {
+				break
+			}
+		}
+
+		mfs.part = part
+		mfs.ContentType = part.Header.Get("Content-Type")
+		mfs.Filename = part.FileName()
+
+		return mfs, nil
+	}
+
+	return nil, fmt.Errorf("No matching field name")
+}
+
 // UploadFile allows a user to upload a file to the system
 func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) {
 	user, err := ctxutil.GetUser(r.Context())
@@ -133,7 +219,7 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Get file
-	file, header, err := r.FormFile("file")
+	file, err := NewMultipartFileReader(r, "file")
 	if err != nil {
 		util.HttpError(w, http.StatusBadRequest, "file not found: "+err.Error())
 		return
@@ -141,8 +227,7 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 	defer file.Close()
 
 	// Get parameters
-	fileSize := header.Size
-	fileName := header.Filename
+	fileName := file.Filename
 	folderId := r.Header.Get("folder_id")
 
 	if folderId == "" {
@@ -204,9 +289,9 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 	dbfsFile := dbfs.File{
 		FileId:             uuid.New().String(),
 		FileName:           fileName,
-		MIMEType:           "",
+		MIMEType:           file.ContentType,
 		ParentFolderFileId: &folderId, // root folder for now
-		Size:               int(fileSize),
+		Size:               1024,      // placeholder size
 		VersioningMode:     dbfs.VersioningOff,
 		TotalShards:        totalShards,
 		DataShards:         dataShards,
@@ -337,6 +422,7 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 	// checksum
 	checksum := hex.EncodeToString(result.FileHash)
 
+	dbfsFile.Size = int(result.FileSize)
 	err = dbfs.FinishFile(bc.Db, &dbfsFile, user, int(result.FileSize), checksum)
 	if err != nil {
 		err2 := dbfsFile.Delete(bc.Db, user, bc.ServerName)
@@ -411,15 +497,16 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Stream file
-	file, header, err := r.FormFile("file")
+	// Get file
+	file, err := NewMultipartFileReader(r, "file")
 	if err != nil {
 		util.HttpError(w, http.StatusBadRequest, "file not found: "+err.Error())
 		return
 	}
-	fileSize := header.Size
+	defer file.Close()
 
-	err = dbfsFile.UpdateFile(bc.Db, int(fileSize), int(fileSize), "TODO:CHECKSUM", "", dataKey, dataIv, password, user, header.Filename)
+	// Use placeholder size values as it is not yet known at this point
+	err = dbfsFile.UpdateFile(bc.Db, 1024, 1024, "TODO:CHECKSUM", "", dataKey, dataIv, password, user, file.Filename)
 	if err != nil {
 		if errors.Is(err, dbfs.ErrIncorrectPassword) {
 			util.HttpError(w, http.StatusForbidden, err.Error())
@@ -429,7 +516,17 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Open the output files
+	// Fetch a list of servers
+	servers, err := bc.Inc.AssignShardServer(r.Context(), totalShards)
+	if err != nil {
+		util.HttpError(w,
+			http.StatusInternalServerError,
+			fmt.Sprintf("failed to assign servers: %s", err.Error()),
+		)
+		return
+	}
+
+	// Prepare the writers
 	shardWriters := make([]io.Writer, totalShards)
 	shardNames := make([]string, totalShards)
 
@@ -440,9 +537,8 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 
 	// Open the output writers
 	for i := 0; i < totalShards; i++ {
-		// TODO: currently this only streams to the current server. Need to replace
-		// bc.ServerName with names of other servers chosen by some method.
-		shardWriter, err := bc.Inc.NewShardWriter(r.Context(), bc.ServerName, shardNames[i])
+		shardWriter, err := bc.Inc.NewShardWriter(
+			r.Context(), servers[i].Name, shardNames[i])
 		if err != nil {
 			util.HttpError(w,
 				http.StatusInternalServerError,
@@ -508,6 +604,8 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 	// checksum
 	checksum := hex.EncodeToString(result.FileHash)
 
+	dbfsFile.Size = int(result.FileSize)
+	dbfsFile.ActualSize = int(result.FileSize)
 	err = dbfsFile.FinishUpdateFile(bc.Db, checksum)
 	if err != nil {
 		errString := err.Error()
@@ -1924,4 +2022,311 @@ func (bc *BackendController) GetPath(w http.ResponseWriter, r *http.Request) {
 	folders, err := folder.GetPath(bc.Db, user)
 
 	util.HttpJson(w, http.StatusOK, folders)
+}
+
+// GetFileSharedLinks returns all shared links for a file
+func (bc *BackendController) GetFileSharedLinks(w http.ResponseWriter, r *http.Request) {
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// fileID
+	vars := mux.Vars(r)
+	fileID := vars["fileID"]
+	if fileID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No FileID provided")
+		return
+	}
+	// get file
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// Check if file is actually a file
+	if file.EntryType != dbfs.IsFile {
+		util.HttpError(w, http.StatusBadRequest, "File is not a file")
+		return
+	}
+
+	// Get File Shared Links
+	sharedLinks, err := file.GetSharedLinks(bc.Db, user)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError,
+			fmt.Sprintf("Error getting shared links: %s", err.Error()))
+		return
+	}
+
+	// success
+	util.HttpJson(w, http.StatusOK, sharedLinks)
+}
+
+// CreateFileSharedLink creates a shared link for a file
+func (bc *BackendController) CreateFileSharedLink(w http.ResponseWriter, r *http.Request) {
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// fileID
+	vars := mux.Vars(r)
+	fileID := vars["fileID"]
+	link := vars["link"]
+
+	if fileID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No FileID provided")
+		return
+	}
+	// get file
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// Check if file is actually a file
+	if file.EntryType != dbfs.IsFile {
+		util.HttpError(w, http.StatusBadRequest, "File is not a file")
+		return
+	}
+
+	// Create Shared Link
+	sharedLink, err := file.CreateSharedLink(bc.Db, user, link)
+	if err != nil {
+		if errors.Is(err, dbfs.ErrLinkExists) {
+			util.HttpError(w, http.StatusConflict, err.Error())
+			return
+		}
+		util.HttpError(w, http.StatusInternalServerError,
+			fmt.Sprintf("Error creating shared link: %s", err.Error()))
+		return
+	}
+
+	// success
+	util.HttpJson(w, http.StatusOK, sharedLink)
+}
+
+// DeleteFileSharedLink deletes a shared link for a file
+func (bc *BackendController) DeleteFileSharedLink(w http.ResponseWriter, r *http.Request) {
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// fileID
+	vars := mux.Vars(r)
+	fileID := vars["fileID"]
+	link := vars["link"]
+	if fileID == "" || link == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID or link provided")
+		return
+	}
+	// get file
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// Check if file is actually a file
+	if file.EntryType != dbfs.IsFile {
+		util.HttpError(w, http.StatusBadRequest, "File is not a file")
+		return
+	}
+
+	// Delete Shared Link
+	err = file.DeleteSharedLink(bc.Db, user, link)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError,
+			fmt.Sprintf("Error deleting shared link: %s", err.Error()))
+		return
+	}
+
+	// success
+	util.HttpJson(w, http.StatusOK, true)
+}
+
+// PatchFileSharedLink updates a shared link for a file
+func (bc *BackendController) PatchFileSharedLink(w http.ResponseWriter, r *http.Request) {
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// Get link from headers
+	newLink := r.Header.Get("new_link")
+
+	// fileID
+	vars := mux.Vars(r)
+	fileID := vars["fileID"]
+	link := vars["link"]
+	if fileID == "" || link == "" || newLink == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID, link, new_link provided")
+		return
+	}
+
+	// get file
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// Check if file is actually a file
+	if file.EntryType != dbfs.IsFile {
+		util.HttpError(w, http.StatusBadRequest, "File is not a file")
+		return
+	}
+
+	// Update Shared Link
+	err = file.UpdateSharedLink(bc.Db, user, link, newLink)
+	if err != nil {
+		if errors.Is(err, dbfs.ErrLinkExists) {
+			util.HttpError(w, http.StatusConflict, err.Error())
+			return
+		}
+		util.HttpError(w, http.StatusInternalServerError,
+			fmt.Sprintf("Error updating shared link: %s", err.Error()))
+		return
+	}
+
+	// success
+	util.HttpJson(w, http.StatusOK, true)
+}
+
+// GetMetadataSharedLink returns the metadata for the requested file based on ID
+func (bc *BackendController) GetMetadataSharedLink(w http.ResponseWriter, r *http.Request) {
+
+	vars := mux.Vars(r)
+	shortenedLink := vars["shortenedLink"]
+
+	if shortenedLink == "" {
+		util.HttpError(w, http.StatusBadRequest, "No shortenedLink provided")
+		return
+	}
+
+	// get file
+	file, err := dbfs.GetFileFromShortenedLink(bc.Db, shortenedLink)
+	if err != nil {
+		if errors.Is(err, dbfs.ErrSharedLinkNotFound) {
+			util.HttpError(w, http.StatusNotFound, err.Error())
+			return
+		} else {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+	// json encode file
+	util.HttpJson(w, http.StatusOK, file)
+}
+
+//DownloadSharedLink downloads a file version
+func (bc *BackendController) DownloadSharedLink(w http.ResponseWriter, r *http.Request) {
+
+	vars := mux.Vars(r)
+	shortenedLink := vars["shortenedLink"]
+
+	queries := r.URL.Query()
+	inline := queries.Get("inline")
+
+	isDownload := true
+
+	// get password
+	password := r.Header.Get("password")
+
+	if shortenedLink == "" {
+		util.HttpError(w, http.StatusBadRequest, "No shortenedLink provided")
+		return
+	}
+
+	if inline == "true" {
+		isDownload = false
+	}
+
+	// get file
+	file, err := dbfs.GetFileFromShortenedLink(bc.Db, shortenedLink)
+	if err != nil {
+		if errors.Is(err, dbfs.ErrSharedLinkNotFound) {
+			util.HttpError(w, http.StatusNotFound, err.Error())
+			return
+		} else {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	// get file
+	shardsMeta, err := file.GetFileFragments(bc.Db, nil) // nil will check if the file is public
+	if err != nil {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	// Opening input files
+	var shards []io.ReadSeeker
+	for _, shardMeta := range shardsMeta {
+		shardReader, err := bc.Inc.NewShardReader(
+			r.Context(), shardMeta.ServerName, shardMeta.FileFragmentPath)
+		if err == nil {
+			shards = append(shards, shardReader)
+		}
+	}
+
+	hexKey, hexIv, err := file.GetDecryptionKey(bc.Db, nil, password)
+	if err != nil {
+		if errors.Is(err, dbfs.ErrIncorrectPassword) {
+			util.HttpError(w, http.StatusForbidden, err.Error())
+			return
+		}
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Getting key and iv
+	key, err := hex.DecodeString(hexKey)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	iv, err := hex.DecodeString(hexIv)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	encoder := stitch.NewEncoder(&stitch.EncoderOptions{
+		DataShards:   uint8(file.DataShards),
+		ParityShards: uint8(file.ParityShards),
+		KeyThreshold: uint8(file.KeyThreshold)},
+	)
+
+	// Decode file
+	reader, err := encoder.NewReadSeeker(shards, key, iv)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", file.MIMEType)
+	if isDownload {
+		w.Header().Set("Content-Disposition", "attachment; filename="+file.FileName)
+	} else {
+		w.Header().Set("Content-Disposition", "inline; filename="+file.FileName)
+	}
+
+	http.ServeContent(w, r, file.FileName, file.ModifiedTime, reader)
 }

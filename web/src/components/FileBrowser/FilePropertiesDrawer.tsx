@@ -31,22 +31,25 @@ const FilePropertiesDrawer = (props: FilePropertiesDrawerProps) => {
       padding="lg"
       position="right"
       size="xl"
+      styles={{
+        title: {
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        },
+      }}
     >
       <ScrollArea className="h-full">
-        <AspectRatio ratio={16 / 9}>
-          <FilePreview fileId={fileId} />
-        </AspectRatio>
+        {qFile.data?.entry_type === EntryType.File ? (
+          <AspectRatio ratio={16 / 9}>
+            <FilePreview fileId={fileId} />
+          </AspectRatio>
+        ) : null}
         <Accordion defaultValue="properties">
           <Accordion.Item value="properties">
             <Accordion.Control>Properties</Accordion.Control>
             <Accordion.Panel>
               <Table>
-                <thead>
-                  <tr>
-                    <th>Property</th>
-                    <th>Value</th>
-                  </tr>
-                </thead>
                 <tbody>
                   {Object.keys(qFile.data || {})
                     .map((key) => key as keyof typeof MetadataKeyMap)
@@ -63,8 +66,10 @@ const FilePropertiesDrawer = (props: FilePropertiesDrawerProps) => {
                     )
                     .map((key) => (
                       <tr key={key}>
-                        <td>{MetadataKeyMap[key]}</td>
-                        <td>{(qFile.data as any)[key]}</td>
+                        <td className="font-bold whitespace-nowrap">
+                          {MetadataKeyMap[key]}
+                        </td>
+                        <td>{qFile.data?.[key]}</td>
                       </tr>
                     ))}
                 </tbody>

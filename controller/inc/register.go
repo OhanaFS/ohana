@@ -81,13 +81,11 @@ func (i Inc) RegisterServer(initialRun bool) error {
 
 	// Register as Online
 
-	server.Status = dbfs.ServerOnline
-
 	if initialRun {
 		fmt.Println("Registering server as online...")
 	}
 
-	err = i.Db.Save(&server).Error
+	err = i.Db.Model(&server).Where("name = ?", i.ServerName).Update("status", dbfs.ServerOnline).Error
 	if err != nil {
 		return err
 	}

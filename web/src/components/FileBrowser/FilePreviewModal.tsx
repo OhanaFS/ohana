@@ -21,6 +21,13 @@ const FilePreviewModal = (props: FilePreviewModalProps) => {
       onClose={onClose}
       title={qFile.data?.file_name}
       size={smallScreen ? '100%' : '70%'}
+      styles={{
+        title: {
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        },
+      }}
     >
       <div className="flex">
         <FilePreview fileId={fileId} />
