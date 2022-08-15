@@ -2,6 +2,7 @@ package dbfs
 
 import (
 	"errors"
+	"github.com/OhanaFS/ohana/util/random_phrase_generator"
 	"mime"
 	"path/filepath"
 	"strings"
@@ -34,18 +35,20 @@ const (
 )
 
 var (
-	ErrFileNotFound      = errors.New("file or folder not found")
-	ErrFileFolderExists  = errors.New("file/folder already exists")
-	ErrFolderNotEmpty    = errors.New("folder contains files")
-	ErrNoPermission      = errors.New("no permission")
-	ErrNotFolder         = errors.New("not a folder")
-	ErrNotFile           = errors.New("not a file")
-	ErrInvalidAction     = errors.New("invalid action")
-	ErrInvalidFile       = errors.New("invalid file. please check the parameters and try again")
-	ErrVersionNotFound   = errors.New("version not found")
-	ErrPasswordRequired  = errors.New("password required")
-	ErrPasswordIncorrect = errors.New("password incorrect")
-	ErrNoPassword        = errors.New("no password")
+	ErrFileNotFound       = errors.New("file or folder not found")
+	ErrFileFolderExists   = errors.New("file/folder already exists")
+	ErrFolderNotEmpty     = errors.New("folder contains files")
+	ErrNoPermission       = errors.New("no permission")
+	ErrNotFolder          = errors.New("not a folder")
+	ErrNotFile            = errors.New("not a file")
+	ErrInvalidAction      = errors.New("invalid action")
+	ErrInvalidFile        = errors.New("invalid file. please check the parameters and try again")
+	ErrVersionNotFound    = errors.New("version not found")
+	ErrPasswordRequired   = errors.New("password required")
+	ErrPasswordIncorrect  = errors.New("password incorrect")
+	ErrNoPassword         = errors.New("no password")
+	ErrLinkExists         = errors.New("link already exists")
+	ErrSharedLinkNotFound = errors.New("shared link not found")
 )
 
 type File struct {
@@ -114,6 +117,10 @@ type FileInterface interface {
 	UpdatePermission(tx *gorm.DB, oldPermission *Permission, newPermission *Permission, user *User) error
 	UpdateFile(tx *gorm.DB, newSize int, newActualSize int, checksum string, handlingServer string, dataKey string, dataIv string, password string, user *User, newFileName string) error
 	UpdateFragment(tx *gorm.DB, fragmentId int, fileFragmentPath string, checksum string, serverId string) error
+	CreateSharedLink(tx *gorm.DB, link string, user *User) (*SharedLink, error)
+	GetSharedLinks(tx *gorm.DB, user *User) ([]SharedLink, error)
+	DeleteSharedLink(tx *gorm.DB, user *User, link string) error
+	UpdateSharedLink(tx *gorm.DB, user *User, link string, newLink string) error
 }
 
 var _ FileInterface = &File{}
@@ -1715,4 +1722,132 @@ func (f *File) GetPath(tx *gorm.DB, user *User) ([]File, error) {
 	}
 
 	return files, nil
+}
+
+// CreateSharedLink creates a shared link for a file
+// If link is not provided, it will generate a random one
+func (f *File) CreateSharedLink(tx *gorm.DB, link string, user *User) (*SharedLink, error) {
+
+	// Check if user has shared link permission
+	permission, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true, Share: true})
+	if err != nil {
+		return nil, err
+	}
+	if !permission {
+		return nil, ErrNoPermission
+	}
+
+	if link == "" {
+		// Generate a random link
+
+		uniqueLink := false
+
+		for !uniqueLink {
+			rpg := random_phrase_generator.New()
+			link = rpg.GenerateRandomPhrase()
+
+			// Check that the link is unique
+			var count int64
+			tx.Model(&SharedLink{}).Where("shortened_link = ?", link).Count(&count)
+			if count == 0 {
+				uniqueLink = true
+			}
+		}
+
+	} else {
+		// Check that the link is unique
+		var count int64
+		tx.Model(&SharedLink{}).Where("shortened_link = ?", link).Count(&count)
+		if count != 0 {
+			return nil, ErrLinkExists
+		}
+	}
+
+	// Create the shared link
+	sharedLink := SharedLink{
+		FileId:        f.FileId,
+		ShortenedLink: link,
+		CreatedTime:   time.Now(),
+	}
+	if tx.Create(&sharedLink).Error != nil {
+		return nil, err
+	}
+
+	return &sharedLink, nil
+}
+
+// GetSharedLinks returns all shared links for a file
+func (f *File) GetSharedLinks(tx *gorm.DB, user *User) ([]SharedLink, error) {
+	// Check if user has read permission
+	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
+	if err != nil {
+		return nil, err
+	}
+	if !hasPermissions {
+		return nil, ErrFileNotFound
+	}
+
+	// Get the shared links
+	var sharedLinks []SharedLink
+	err = tx.Model(&SharedLink{}).Where("file_id = ?", f.FileId).Find(&sharedLinks).Error
+
+	return sharedLinks, err
+}
+
+// DeleteSharedLink deletes a shared link for a file given it's link
+func (f *File) DeleteSharedLink(tx *gorm.DB, user *User, link string) error {
+	// Check if user has read permission
+	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
+	if err != nil {
+		return err
+	}
+	if !hasPermissions {
+		return ErrFileNotFound
+	}
+
+	// Check if user has shared link permission
+	permission, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true, Share: true})
+	if err != nil {
+		return err
+	}
+	if !permission {
+		return ErrNoPermission
+	}
+	// Delete the shared link
+	return tx.Where("file_id = ? AND shortened_link = ?", f.FileId, link).Delete(&SharedLink{}).Error
+}
+
+// UpdateSharedLink updates a shared link for a file with a new link
+func (f *File) UpdateSharedLink(tx *gorm.DB, user *User, link string, newLink string) error {
+	// Check if user has read permission
+	hasPermissions, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
+	if err != nil {
+		return err
+	}
+	if !hasPermissions {
+		return ErrFileNotFound
+	}
+
+	// Check if user has shared link permission
+	permission, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true, Share: true})
+	if err != nil {
+		return err
+	}
+	if !permission {
+		return ErrNoPermission
+	}
+
+	// Check that the new link is unique
+	var count int64
+	err = tx.Model(&SharedLink{}).Where("shortened_link = ?", newLink).Count(&count).Error
+	if err != nil {
+		return err
+	}
+	if count != 0 {
+		return ErrLinkExists
+	}
+
+	// Update the shared link
+	return tx.Model(&SharedLink{}).Where("file_id = ? AND shortened_link = ?", f.FileId, link).
+		Update("shortened_link", newLink).Error
 }
