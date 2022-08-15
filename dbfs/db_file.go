@@ -51,7 +51,7 @@ var (
 	ErrNoPassword         = errors.New("no password")
 	ErrLinkExists         = errors.New("link already exists")
 	ErrSharedLinkNotFound = errors.New("shared link not found")
-	ErrLinkConstraint     = errors.New("link must be alphanumerical and between 1-20 characters")
+	ErrLinkConstraint     = errors.New("link must be alphanumerical and between 1-40 characters")
 )
 
 type File struct {
