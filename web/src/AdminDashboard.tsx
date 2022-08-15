@@ -12,6 +12,7 @@ import {
   YAxis,
   ResponsiveContainer,
 } from 'recharts';
+import moment from 'moment';
 import AppBase from './components/AppBase';
 import '../src/assets/styles.css';
 import {
@@ -85,9 +86,7 @@ export function AdminDashboard() {
 
   // all the logs
   const [logsModal, setOpened] = useState(false);
-
   const qServerLogs = useQueryGetserverLogs(0, '', '', '');
-  console.log(qServerLogs.data);
 
   // data for logs
   const [logs, setlogs] = useState(qServerLogs.data);
@@ -178,7 +177,7 @@ export function AdminDashboard() {
             color: 'black',
           }}
         >
-          {items.TimeStamp}
+          {moment(new Date(items.TimeStamp).toISOString()).format('LLL')}
         </td>
         <td
           width="10%"
@@ -220,7 +219,7 @@ export function AdminDashboard() {
           color: 'black',
         }}
       >
-        {items.TimeStamp}
+        {moment(new Date(items.TimeStamp).toISOString()).format('LLL')}
       </td>
       <td
         width="10%"
