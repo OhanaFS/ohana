@@ -63,6 +63,11 @@ export function AdminDashboard() {
   qServerStatus?.data?.map((item) => (pieDiskFree += item.free_space));
   var pieDiskUsed = 0;
   qServerStatus?.data?.map((item) => (pieDiskUsed += item.used_space));
+  var serversOnline = 0;
+  var serversOffline = 0;
+  qServerStatus?.data?.map((item) =>
+    item.status === 1 ? (serversOnline += 1) : (serversOffline += 1)
+  );
 
   const renderCustomizedLabel = ({
     cx,
@@ -123,11 +128,11 @@ export function AdminDashboard() {
   const NodesStatus = [
     {
       name: 'Online',
-      value: 600,
+      value: serversOnline,
     },
     {
       name: 'Offline',
-      value: 400,
+      value: serversOffline,
     },
   ];
 
