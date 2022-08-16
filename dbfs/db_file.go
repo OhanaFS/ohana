@@ -1238,10 +1238,22 @@ func (f *File) Delete(tx *gorm.DB, user *User, server string) error {
 			return err
 		}
 		// Delete Favorites and Shares
-		tx.Where("file_id = ?", f.FileId).Delete(&FavoriteFileItems{})
-		tx.Where("file_id = ?", f.FileId).Delete(&SharedLink{})
-		tx.Where("file_id = ?", f.FileId).Delete(&SharedWithUser{})
-		tx.Where("file_id = ?", f.FileId).Delete(&SharedWithGroup{})
+		err2 = tx.Where("file_id = ?", f.FileId).Delete(&FavoriteFileItems{}).Error
+		if err2 != nil {
+			return err2
+		}
+		err2 = tx.Where("file_id = ?", f.FileId).Delete(&SharedLink{}).Error
+		if err2 != nil {
+			return err2
+		}
+		err2 = tx.Where("file_id = ?", f.FileId).Delete(&SharedWithUser{}).Error
+		if err2 != nil {
+			return err2
+		}
+		err2 = tx.Where("file_id = ?", f.FileId).Delete(&SharedWithGroup{}).Error
+		if err2 != nil {
+			return err2
+		}
 
 		err2 = tx.Delete(f).Error
 		return err2

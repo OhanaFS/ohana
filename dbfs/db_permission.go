@@ -319,12 +319,13 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *Permission
 			}
 
 			for _, user := range users {
-				if tx.Clauses(clause.OnConflict{DoNothing: true}).Save(&SharedWithUser{
+				err := tx.Clauses(clause.OnConflict{DoNothing: true}).Save(&SharedWithUser{
 					FileId:      file.FileId,
 					UserId:      user.UserId,
 					DateCreated: time.Now(),
-				}).Error != nil {
-					return nil
+				}).Error
+				if err != nil {
+					return err
 				}
 			}
 
