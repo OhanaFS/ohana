@@ -58,7 +58,7 @@ export function AdminDashboard() {
   );
   const qNumberOfHistoricalFiles = useQueryGetnumOfHistoricalFiles(1, '', '');
   const qServerStatus = useQueryGetserverStatuses();
-  console.log(qServerStatus.data);
+
   var pieDiskFree = 0;
   qServerStatus?.data?.map((item) => (pieDiskFree += item.free_space));
   var pieDiskUsed = 0;
@@ -98,9 +98,11 @@ export function AdminDashboard() {
   // all the logs
   const [logsModal, setOpened] = useState(false);
   const qServerLogs = useQueryGetserverLogs(0, '', '', '');
+  const serverLogs = qServerLogs.data ?? [];
 
   // data for logs
   const [logs, setlogs] = useState(qServerLogs.data);
+  setInterval(() => setlogs(qServerLogs.data), 30000);
 
   // data for clusterhealth
   const ClusterHealthChartData = [
@@ -370,11 +372,9 @@ export function AdminDashboard() {
                       />
                     </linearGradient>
                   </defs>
-                  //delete this if dont want mouseover
                   <Tooltip></Tooltip>
                   <XAxis dataKey="date" />
                   <YAxis dataKey="value" />
-                  //use this if want axis CartesianGrid strokeDasharray="1 1"
                   <Area
                     type="monotone"
                     dataKey="value"
@@ -439,11 +439,9 @@ export function AdminDashboard() {
                       />
                     </linearGradient>
                   </defs>
-                  //delete this if dont want mouseover
                   <Tooltip></Tooltip>
                   <XAxis dataKey="date" />
                   <YAxis dataKey="value" />
-                  //use this if want axis CartesianGrid strokeDasharray="1 1"
                   <Area
                     type="monotone"
                     dataKey="value"
@@ -520,11 +518,9 @@ export function AdminDashboard() {
                       />
                     </linearGradient>
                   </defs>
-                  //delete this if dont want mouseover
                   <Tooltip></Tooltip>
                   <XAxis dataKey="date" />
                   <YAxis dataKey="value" />
-                  //use this if want axis CartesianGrid strokeDasharray="1 1"
                   <Area
                     type="monotone"
                     dataKey="value"
@@ -601,14 +597,14 @@ export function AdminDashboard() {
                     Logs
                   </caption>
                   <thead>{ths}</thead>
-                  {(qServerLogs.data ?? []).length === 0 ? (
+                  {serverLogs.length === 0 ? (
                     <Text className=" ml-2 mt-2 mb-5">Nothing here!</Text>
                   ) : (
                     <tbody>{recentRows}</tbody>
                   )}
                 </Table>
               </ScrollArea>
-              {(qServerLogs.data ?? []).length > 4 ? (
+              {serverLogs.length > 4 ? (
                 <Button
                   variant="default"
                   color="dark"
