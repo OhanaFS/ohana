@@ -17,46 +17,45 @@ import '../src/assets/styles.css';
 import {
   useQueryGetnumOfFiles,
   useQueryGetnumOfHistoricalFiles,
-  useQueryGetstorageUsed,
-  useQueryGethistoricalStorageUsed,
   useQueryGetstorageUsedWithParity,
   useQueryGethistoricalStorageUsedWithParity,
-  useQueryGetAlerts,
-  useMutationClearAlerts,
-  useQueryGetAlertsID,
-  useMutationClearAlertsID,
   useQueryGetserverLogs,
-  useMutationClearserverLogs,
-  useQueryGetserverLogsID,
+  useQueryGethistoricalStorageUsed,
+  useQueryGetstorageUsed,
   useQueryGetserverStatuses,
-  useQueryGetserverStatusesID,
-  useMutationDeleteserverStatusesID,
 } from './api/cluster';
+import { formatDateTime, humanFileSize } from './shared/util';
 
 export function AdminDashboard() {
   // Pie chart
   const barColors = ['#1f77b4', '#ff0000'];
   const RADIAN = Math.PI / 180;
 
-  const getnumfiles = useQueryGetnumOfFiles();
-  //500const getnumofhistoricalfiles = getnumOfHistoricalFiles();
-  //500const getstorageused = getstorageUsed();
-  //500 - (backend_admin_cluster_routes.go:112 ERROR: column "file_versions.file_id" must appear in the GROUP BY clause or be used in an aggregate function )
-  //const gethistoricalstorageused = gethistoricalStorageUsed();
-  //const getstorageusedwithparity = getstorageUsedWithParity();
-  //431 - const gethistoricalstorageusedwithparity = gethistoricalStorageUsedWithParity();
-  //const getalerts = ();
-  //const getalertsid = useQueryGetAlertsID(1);
-  //const getserverlogs = useQueryGetserverLogs()
-  //const getserverlogsID = useQueryGetserverLogsID(1);
-  //const getserverstatuses = getserverStatuses();
-  //const getserverstatusesID = getserverStatusesID('alpaca');
-  //const deleteserverstatusesID = deleteserverStatusesID('alpaca');
-  //const clearalerts = clearAlerts();
-  //const clearserverlogs = clearserverLogs();
-  //const clearalertsID = clearAlertsID(1);
+  const qGetnumfiles = useQueryGetnumOfFiles();
+  const qGetStorageUsed = useQueryGetstorageUsedWithParity();
+  const qGetStorageUsedWOParity = useQueryGetstorageUsed();
+  const qHistoricalDataUsage = useQueryGethistoricalStorageUsedWithParity(
+    1,
+    '',
+    ''
+  );
+  const qHistoricalStorageUsedWOParity = useQueryGethistoricalStorageUsed(
+    1,
+    '',
+    ''
+  );
+  const qNumberOfHistoricalFiles = useQueryGetnumOfHistoricalFiles(1, '', '');
+  const qServerStatus = useQueryGetserverStatuses();
 
-  console.log('Test', getnumfiles.data);
+  var pieDiskFree = 0;
+  qServerStatus?.data?.map((item) => (pieDiskFree += item.free_space));
+  var pieDiskUsed = 0;
+  qServerStatus?.data?.map((item) => (pieDiskUsed += item.used_space));
+  var serversOnline = 0;
+  var serversOffline = 0;
+  qServerStatus?.data?.map((item) =>
+    item.status === 1 ? (serversOnline += 1) : (serversOffline += 1)
+  );
 
   const renderCustomizedLabel = ({
     cx,
@@ -86,72 +85,12 @@ export function AdminDashboard() {
 
   // all the logs
   const [logsModal, setOpened] = useState(false);
-
-  var logsDetails = [
-    {
-      'Date and time': '09/16/2019, 14:07',
-      Node: 'Peter',
-      Change: 'Added a node ip address 45.2.1.6',
-    },
-    {
-      'Date and time': '09/16/2019, 14:07',
-      Node: 'Peter',
-      Change: 'Added a node ip address 95.2.2.6',
-    },
-    {
-      'Date and time': '09/16/2019, 14:09',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.6',
-    },
-    {
-      'Date and time': '09/16/2019, 14:10',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.6',
-    },
-    {
-      'Date and time': '09/16/2019, 14:10',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.7',
-    },
-    {
-      'Date and time': '09/16/2019, 14:10',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.8',
-    },
-    {
-      'Date and time': '09/16/2019, 14:10',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.9',
-    },
-    {
-      'Date and time': '09/16/2019, 14:10',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.10',
-    },
-    {
-      'Date and time': '09/16/2019, 14:10',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.11',
-    },
-    {
-      'Date and time': '09/16/2019, 14:10',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.12',
-    },
-    {
-      'Date and time': '09/16/2019, 14:10',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.13',
-    },
-    {
-      'Date and time': '09/16/2019, 14:10',
-      Node: 'Peter',
-      Change: 'Added a node ip address 125.2.1.14',
-    },
-  ];
+  const qServerLogs = useQueryGetserverLogs(0, '', '', '');
+  const serverLogs = qServerLogs.data ?? [];
 
   // data for logs
-  const [logs, setlogs] = useState(logsDetails);
+  const [logs, setlogs] = useState(qServerLogs.data);
+  setInterval(() => setlogs(qServerLogs.data), 30000);
 
   // data for clusterhealth
   const ClusterHealthChartData = [
@@ -169,116 +108,21 @@ export function AdminDashboard() {
   const DiskUsageChartData = [
     {
       name: 'Empty',
-      value: 600,
+      value: pieDiskFree,
     },
     {
       name: 'Filled',
-      value: 400,
+      value: pieDiskUsed,
     },
   ];
   const NodesStatus = [
     {
       name: 'Online',
-      value: 600,
+      value: serversOnline,
     },
     {
       name: 'Offline',
-      value: 400,
-    },
-  ];
-  // data for new user
-  const NewUserChartData = [
-    {
-      Date: 'jan 20',
-      'Total Data Used': 4000,
-    },
-    {
-      Date: 'feb 20',
-      'Total Data Used': 3000,
-    },
-    {
-      Date: 'mar 20',
-      'Total Data Used': 2000,
-    },
-    {
-      Date: 'apr 20',
-      'Total Data Used': 2780,
-    },
-    {
-      Date: 'may 20',
-      'Total Data Used': 1890,
-    },
-    {
-      Date: 'jun 20',
-      'Total Data Used': 2390,
-    },
-    {
-      Date: 'july 20',
-      'Total Data Used': 3490,
-    },
-  ];
-
-  // data for new user
-  const SizeOfFiles = [
-    {
-      Date: 'jan 20',
-      'Total bytes': 4000,
-    },
-    {
-      Date: 'feb 20',
-      'Total bytes': 3000,
-    },
-    {
-      Date: 'mar 20',
-      'Total bytes': 2000,
-    },
-    {
-      Date: 'apr 20',
-      'Total bytes': 2780,
-    },
-    {
-      Date: 'may 20',
-      'Total bytes': 1890,
-    },
-    {
-      Date: 'jun 20',
-      'Total bytes': 2390,
-    },
-    {
-      Date: 'july 20',
-      'Total bytes': 3490,
-    },
-  ];
-
-  // data for new files
-  const NewFileChartData = [
-    {
-      Date: 'jan 20',
-      'Total New File Stored': 1000,
-    },
-    {
-      Date: 'feb 20',
-      'Total New File Stored': 2500,
-    },
-    {
-      Date: 'mar 20',
-      'Total New File Stored': 2000,
-    },
-    {
-      Date: 'apr 20',
-      'Total New File Stored': 2780,
-    },
-    {
-      Date: 'may 20',
-      'Total New File Stored': 1890,
-    },
-    {
-      Date: 'jun 20',
-      'Total New File Stored': 2390,
-    },
-    {
-      Date: 'july 20',
-      'Total New File Stored': 3490,
+      value: serversOffline,
     },
   ];
 
@@ -321,11 +165,10 @@ export function AdminDashboard() {
       </th>
     </tr>
   );
-
   // display the recent 4 row from log
-  const recentRows = logs.map((items, index) =>
+  const recentRows = qServerLogs?.data?.map((items, index) =>
     index < 4 ? (
-      <tr>
+      <tr key={index}>
         <td
           width="15%"
           style={{
@@ -335,7 +178,7 @@ export function AdminDashboard() {
             color: 'black',
           }}
         >
-          {items['Date and time']}
+          {formatDateTime(items.TimeStamp)}
         </td>
         <td
           width="10%"
@@ -346,7 +189,7 @@ export function AdminDashboard() {
             color: 'black',
           }}
         >
-          {items['Node']}
+          {items.ServerName}
         </td>
         <td
           width="30%"
@@ -357,7 +200,7 @@ export function AdminDashboard() {
             color: 'black',
           }}
         >
-          {items['Change']}
+          {items.Message}
         </td>
       </tr>
     ) : (
@@ -366,8 +209,8 @@ export function AdminDashboard() {
   );
 
   // display the all the row from log
-  const rows = logs.map((items, index) => (
-    <tr>
+  const rows = qServerLogs?.data?.map((items, index) => (
+    <tr key={index}>
       <td
         width="15%"
         style={{
@@ -377,7 +220,7 @@ export function AdminDashboard() {
           color: 'black',
         }}
       >
-        {items['Date and time']}
+        {formatDateTime(items.TimeStamp)}
       </td>
       <td
         width="10%"
@@ -388,7 +231,7 @@ export function AdminDashboard() {
           color: 'black',
         }}
       >
-        {items['Node']}
+        {items.ServerName}
       </td>
       <td
         width="30%"
@@ -399,7 +242,7 @@ export function AdminDashboard() {
           color: 'black',
         }}
       >
-        {items['Change']}
+        {items.Message}
       </td>
     </tr>
   ));
@@ -496,10 +339,15 @@ export function AdminDashboard() {
             }}
           >
             <Card className="dashboardCard" shadow="sm" p="xl">
-              <Text weight={700}>Total Data Used:</Text>
+              <Text weight={700}>
+                Total Data Used:{' '}
+                {qGetStorageUsed.data
+                  ? humanFileSize(qGetStorageUsed.data)
+                  : null}
+              </Text>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart
-                  data={NewUserChartData}
+                  data={qHistoricalDataUsage.data}
                   margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
                 >
                   <defs>
@@ -512,14 +360,12 @@ export function AdminDashboard() {
                       />
                     </linearGradient>
                   </defs>
-                  //delete this if dont want mouseover
                   <Tooltip></Tooltip>
-                  <XAxis dataKey="Date" />
-                  <YAxis dataKey="Total Data Used" />
-                  //use this if want axis CartesianGrid strokeDasharray="1 1"
+                  <XAxis dataKey="date" />
+                  <YAxis dataKey="value" />
                   <Area
                     type="monotone"
-                    dataKey="Total Data Used"
+                    dataKey="value"
                     stroke="#8884d8"
                     fillOpacity={1}
                     fill="url(#color)"
@@ -565,10 +411,10 @@ export function AdminDashboard() {
             }}
           >
             <Card className="dashboardCard" shadow="sm" p="xl">
-              <Text weight={700}>Total File Stored:</Text>
+              <Text weight={700}>Total File Stored: {qGetnumfiles.data}</Text>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart
-                  data={NewFileChartData}
+                  data={qNumberOfHistoricalFiles.data}
                   margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
                 >
                   <defs>
@@ -581,14 +427,12 @@ export function AdminDashboard() {
                       />
                     </linearGradient>
                   </defs>
-                  //delete this if dont want mouseover
                   <Tooltip></Tooltip>
-                  <XAxis dataKey="Date" />
-                  <YAxis dataKey="Total New File Stored" />
-                  //use this if want axis CartesianGrid strokeDasharray="1 1"
+                  <XAxis dataKey="date" />
+                  <YAxis dataKey="value" />
                   <Area
                     type="monotone"
-                    dataKey="Total New File Stored"
+                    dataKey="value"
                     stroke="#8884d8"
                     fillOpacity={1}
                     fill="url(#color)"
@@ -642,11 +486,14 @@ export function AdminDashboard() {
           >
             <Card className="dashboardCard" p="xl">
               <Text weight={700}>
-                Total files size stored (not incl. replicas):
+                Total data used (not incl. replicas):{' '}
+                {qGetStorageUsedWOParity.data
+                  ? humanFileSize(qGetStorageUsedWOParity.data)
+                  : null}
               </Text>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart
-                  data={SizeOfFiles}
+                  data={qHistoricalStorageUsedWOParity.data}
                   margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
                 >
                   <defs>
@@ -659,14 +506,12 @@ export function AdminDashboard() {
                       />
                     </linearGradient>
                   </defs>
-                  //delete this if dont want mouseover
                   <Tooltip></Tooltip>
-                  <XAxis dataKey="Date" />
-                  <YAxis dataKey="Total bytes" />
-                  //use this if want axis CartesianGrid strokeDasharray="1 1"
+                  <XAxis dataKey="date" />
+                  <YAxis dataKey="value" />
                   <Area
                     type="monotone"
-                    dataKey="Total bytes"
+                    dataKey="value"
                     stroke="#8884d8"
                     fillOpacity={1}
                     fill="url(#color)"
@@ -740,18 +585,24 @@ export function AdminDashboard() {
                     Logs
                   </caption>
                   <thead>{ths}</thead>
-                  <tbody>{recentRows}</tbody>
+                  {serverLogs.length === 0 ? (
+                    <Text className=" ml-2 mt-2 mb-5">Nothing here!</Text>
+                  ) : (
+                    <tbody>{recentRows}</tbody>
+                  )}
                 </Table>
               </ScrollArea>
-              <Button
-                variant="default"
-                color="dark"
-                size="md"
-                style={{ textAlign: 'right' }}
-                onClick={() => setOpened(true)}
-              >
-                View All Logs
-              </Button>
+              {serverLogs.length > 4 ? (
+                <Button
+                  variant="default"
+                  color="dark"
+                  size="md"
+                  style={{ textAlign: 'right' }}
+                  onClick={() => setOpened(true)}
+                >
+                  View All Logs
+                </Button>
+              ) : null}
             </Card>
           </div>
         </div>
