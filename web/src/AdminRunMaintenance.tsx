@@ -9,8 +9,8 @@ import {
 } from '@mantine/core';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { Settings } from 'tabler-icons-react';
 import AppBase from './components/AppBase';
+import { IconSettings } from '@tabler/icons';
 
 export function AdminRunMaintenance() {
   const theme = useMantineTheme();
@@ -156,7 +156,7 @@ export function AdminRunMaintenance() {
     setOpened(false);
   }
 
-  var [totalTimeNeeded,setTotalTimeNeed] = useState(0);
+  var [totalTimeNeeded, setTotalTimeNeed] = useState(0);
   var [timeTimeNeedInStr, setTimeTimeNeedInStr] = useState('');
   function calculateAmountOfTime() {
     if (firstCheck == true) {
@@ -291,9 +291,11 @@ export function AdminRunMaintenance() {
                 variant="default"
                 color="dark"
                 size="md"
-                onClick={()=>navigate('/performmaintenance',{state:{time:totalTimeNeeded}})}
-                  
-                
+                onClick={() =>
+                  navigate('/performmaintenance', {
+                    state: { time: totalTimeNeeded },
+                  })
+                }
               >
                 Confirm
               </Button>
@@ -483,7 +485,7 @@ export function AdminRunMaintenance() {
                     }}
                   >
                     <ActionIcon onClick={() => setOpened(true)}>
-                      <Settings></Settings>
+                      <IconSettings />
                     </ActionIcon>
                   </span>
                 </div>

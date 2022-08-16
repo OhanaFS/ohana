@@ -48,11 +48,11 @@ export const useQueryGetnumOfHistoricalFiles = (
   endDate: string
 ) =>
   useQuery(['numOfHistoricalFiles', range, startDate, endDate], () =>
-    APIClient.get<UsedRes>(`/api/v1/cluster/stats/num_of_files_historical`, {
+    APIClient.get<UsedRes[]>(`/api/v1/cluster/stats/num_of_files_historical`, {
       headers: {
-        rangeType: range,
-        startDate: new Date(startDate).toISOString(),
-        endDate: new Date(endDate).toISOString(),
+        range_type: range,
+        start_date: startDate,
+        end_date: endDate,
       },
     })
       .then((res) => res.data)
@@ -74,14 +74,16 @@ export const useQueryGethistoricalStorageUsed = (
   endDate: string
 ) =>
   useQuery(['nonReplicaUsedHistorical', range, startDate, endDate], () =>
-    APIClient.get<number>(`/api/v1/cluster/stats/non_replica_used_historical`, {
-      headers: {
-        rangeType: range,
-        // iso format using toisostring
-        startDate: new Date(startDate).toISOString(),
-        endDate: new Date(endDate).toISOString(),
-      },
-    })
+    APIClient.get<UsedRes[]>(
+      `/api/v1/cluster/stats/non_replica_used_historical`,
+      {
+        headers: {
+          range_type: range,
+          start_date: startDate,
+          end_date: endDate,
+        },
+      }
+    )
       .then((res) => res.data)
       .catch(typedError)
   );
@@ -101,11 +103,11 @@ export const useQueryGethistoricalStorageUsedWithParity = (
   endDate: string
 ) =>
   useQuery(['replicaHistorical', range, startDate, endDate], () =>
-    APIClient.get<UsedRes>(`/api/v1/cluster/stats/replica_used_historical`, {
+    APIClient.get<UsedRes[]>(`/api/v1/cluster/stats/replica_used_historical`, {
       headers: {
-        rangeType: range,
-        startDate: new Date(startDate).toISOString(),
-        endDate: new Date(endDate).toISOString(),
+        range_type: range,
+        start_date: startDate,
+        end_date: endDate,
       },
     })
       .then((res) => res.data)
@@ -120,11 +122,11 @@ export type Alerts = {
 };
 
 export type LogEntry = {
-  id: number;
-  log_type: number;
-  server_name: string;
-  message: string;
-  timestamp: string;
+  LogId: number;
+  LogType: number;
+  ServerName: string;
+  Message: string;
+  TimeStamp: string;
 };
 
 // Get all alerts related to the cluster
@@ -171,11 +173,11 @@ export const useQueryGetserverLogs = (
   filter: string
 ) =>
   useQuery(['serverLogs', start, startDate, endDate, filter], () =>
-    APIClient.get<LogEntry>(`/api/v1/cluster/stats/logs`, {
+    APIClient.get<LogEntry[]>(`/api/v1/cluster/stats/logs`, {
       headers: {
         startNum: start,
-        startDate: new Date(startDate).toISOString(),
-        endDate: new Date(endDate).toISOString(),
+        startDate: startDate,
+        endDate: endDate,
         filter: filter,
       },
     })
@@ -215,7 +217,7 @@ export const useQueryGetserverLogsID = (
 // Return server statuses
 export const useQueryGetserverStatuses = () =>
   useQuery(['serverStatuses'], () =>
-    APIClient.get<Server>(`/api/v1/cluster/stats/servers`)
+    APIClient.get<Server[]>(`/api/v1/cluster/stats/servers`)
       .then((res) => res.data)
       .catch(typedError)
   );

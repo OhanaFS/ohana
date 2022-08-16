@@ -17,6 +17,7 @@ import { AdminSettings } from './AdminSettings';
 import { AdminSsoGroups } from './AdminSsoGroups';
 import { AdminSsoGroupsInside } from './AdminSsoGroupsInside';
 import AdminMaintenanceLogs from './AdminMaintenanceLogs';
+import SharingPage from './components/Sharing/SharingPage';
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ export default function Demo() {
           />
           <Route path="/home" element={<VFSBrowser />} />
           <Route path="/home/:id" element={<VFSBrowser />} />
+          <Route path="/share/:id" element={<SharingPage />} />
           <Route path="/" element={<LoginPage />} />
           <Route path="/insidessogroup" element={<AdminSsoGroupsInside />} />
           <Route path="/manage_keys" element={<AdminKeyManagement />} />
