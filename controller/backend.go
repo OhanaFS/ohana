@@ -94,9 +94,11 @@ func NewBackend(
 	r.HandleFunc("/api/v1/file/{folderID}/copy", bc.CopyFile).Methods("POST")
 	r.HandleFunc("/api/v1/folder/{folderID}/details", bc.GetMetadataFile).Methods("GET")
 
-	// Shared Routes :
-	r.HandleFunc("/api/v1/shared/{shortenedLink}/metadata", bc.GetMetadataSharedLink).Methods("GET")
-	r.HandleFunc("/api/v1/shared/{shortenedLink}", bc.DownloadSharedLink).Methods("GET")
+	// Shared Routes
+	// Use a fresh subrouter to skip auth
+	rPub := router.NewRoute().Subrouter()
+	rPub.HandleFunc("/api/v1/shared/{shortenedLink}/metadata", bc.GetMetadataSharedLink).Methods("GET")
+	rPub.HandleFunc("/api/v1/shared/{shortenedLink}", bc.DownloadSharedLink).Methods("GET")
 
 	// Cluster Routes
 	r.HandleFunc("/api/v1/cluster/stats/num_of_files", bc.GetNumOfFiles).Methods("GET")
@@ -311,18 +313,18 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 	err = bc.Db.Transaction(func(tx *gorm.DB) error {
 		if err := dbfs.CreateInitialFile(tx, &dbfsFile,
 			fileKey, fileIv, dataKey, dataIv, user); err != nil {
-			return err
+			return fmt.Errorf("failed to create initial file: %w", err)
 		}
 
 		if err := tx.Create(&passwordProtect).Error; err != nil {
-			return err
+			return fmt.Errorf("failed to create PasswordProtect row: %w", err)
 		}
 
 		if err := dbfs.CreatePermissions(tx, &dbfsFile); err != nil {
 			// By right, there should be no error possible? If any error happens, it's
 			// likely a system error. However, in the case there is an error, we will
 			// revert the transaction (thus deleting the file entry).
-			return err
+			return fmt.Errorf("failed to create permissions: %w", err)
 		}
 		return nil
 	})

@@ -4,6 +4,7 @@ import {
   Table,
   Accordion,
   ScrollArea,
+  Loader,
 } from '@mantine/core';
 import {
   EntryType,
@@ -13,6 +14,8 @@ import {
 import FilePreview from './FilePreview';
 import FileVersions from './Properties/FileVersions';
 import PasswordForm from './Properties/PasswordForm';
+import PropertiesTable from './Properties/PropertiesTable';
+import SharingProperties from './Properties/Sharing';
 
 export type FilePropertiesDrawerProps = {
   fileId: string;
@@ -49,31 +52,11 @@ const FilePropertiesDrawer = (props: FilePropertiesDrawerProps) => {
           <Accordion.Item value="properties">
             <Accordion.Control>Properties</Accordion.Control>
             <Accordion.Panel>
-              <Table>
-                <tbody>
-                  {Object.keys(qFile.data || {})
-                    .map((key) => key as keyof typeof MetadataKeyMap)
-                    .filter((key) =>
-                      (
-                        [
-                          'file_name',
-                          'size',
-                          'created_time',
-                          'modified_time',
-                          'version_no',
-                        ] as Array<keyof typeof MetadataKeyMap>
-                      ).includes(key)
-                    )
-                    .map((key) => (
-                      <tr key={key}>
-                        <td className="font-bold whitespace-nowrap">
-                          {MetadataKeyMap[key]}
-                        </td>
-                        <td>{qFile.data?.[key]}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </Table>
+              {qFile.data ? (
+                <PropertiesTable metadata={qFile.data} />
+              ) : (
+                <Loader />
+              )}
             </Accordion.Panel>
           </Accordion.Item>
           {qFile.data?.entry_type === EntryType.File ? (
@@ -81,7 +64,13 @@ const FilePropertiesDrawer = (props: FilePropertiesDrawerProps) => {
               <Accordion.Item value="password">
                 <Accordion.Control>Password</Accordion.Control>
                 <Accordion.Panel>
-                  <PasswordForm fileID={fileId} />
+                  <PasswordForm fileId={fileId} />
+                </Accordion.Panel>
+              </Accordion.Item>
+              <Accordion.Item value="sharing">
+                <Accordion.Control>Sharing</Accordion.Control>
+                <Accordion.Panel>
+                  <SharingProperties fileId={fileId} />
                 </Accordion.Panel>
               </Accordion.Item>
               <Accordion.Item value="versioning">
@@ -91,7 +80,7 @@ const FilePropertiesDrawer = (props: FilePropertiesDrawerProps) => {
                 </Accordion.Panel>
               </Accordion.Item>
             </>
-          ) : null}{' '}
+          ) : null}
         </Accordion>
       </ScrollArea>
     </Drawer>
