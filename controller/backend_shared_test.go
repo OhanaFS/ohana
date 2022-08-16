@@ -306,4 +306,152 @@ func TestBackendController_SharedLinks(t *testing.T) {
 		Assert.NotEqual(sharedLinks[0].ShortenedLink, "hello456")
 
 	})
+
+	t.Run("Favorites test", func(t *testing.T) {
+
+		// Trying to get favorites (should be 0)
+		req := httptest.NewRequest("GET", "/api/v1/favorites", nil).
+			WithContext(ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		w := httptest.NewRecorder()
+		bc.GetFavorites(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+		var favorites []dbfs.File
+		err = json.Unmarshal(w.Body.Bytes(), &favorites)
+		Assert.NoError(err)
+		Assert.Equal(0, len(favorites))
+
+		// Adding a favorite
+		req = httptest.NewRequest("PUT", "/api/v1/favorites/{fileID}", nil).
+			WithContext(ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req = mux.SetURLVars(req, map[string]string{"fileID": file.FileId})
+		w = httptest.NewRecorder()
+		bc.AddFavorite(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		// Trying to get favorites (should be 1)
+		req = httptest.NewRequest("GET", "/api/v1/favorites", nil).
+			WithContext(ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		w = httptest.NewRecorder()
+		bc.GetFavorites(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+		err = json.Unmarshal(w.Body.Bytes(), &favorites)
+		Assert.NoError(err)
+		Assert.Equal(1, len(favorites))
+
+		// Removing said favorite
+
+		req = httptest.NewRequest("DELETE", "/api/v1/favorites/{fileID}", nil).
+			WithContext(ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req = mux.SetURLVars(req, map[string]string{"fileID": file.FileId})
+		w = httptest.NewRecorder()
+		bc.RemoveFavorite(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		// Trying to get favorites (should be 0)
+		req = httptest.NewRequest("GET", "/api/v1/favorites", nil).
+			WithContext(ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		w = httptest.NewRecorder()
+		bc.GetFavorites(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+		err = json.Unmarshal(w.Body.Bytes(), &favorites)
+		Assert.NoError(err)
+		Assert.Equal(0, len(favorites))
+
+	})
+
+	t.Run("Shared To User", func(t *testing.T) {
+
+		Assert := assert.New(t)
+
+		// create a fake user
+		user1, err := dbfs.CreateNewUser(db, "permissionCheckUser", "user1Name", 1,
+			"permissionCheckUser", "refreshToken", "accessToken", "idToken", "testServer")
+		Assert.NoError(err)
+
+		// Checking files shared to user should be 0
+		req := httptest.NewRequest("GET", "/api/v1/file/sharedWith", nil).
+			WithContext(ctxutil.WithUser(context.Background(), user1))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		w := httptest.NewRecorder()
+		bc.GetSharedWithUser(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+		var sharedFiles []dbfs.File
+		err = json.Unmarshal(w.Body.Bytes(), &sharedFiles)
+		Assert.NoError(err)
+		Assert.Equal(0, len(sharedFiles))
+
+		// adding user 1 file
+
+		req = httptest.NewRequest("POST", "/api/v1/file/"+file.FileId+"/permissions/", nil).WithContext(
+			ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+
+		req = mux.SetURLVars(req, map[string]string{
+			"fileID": file.FileId,
+		})
+		w = httptest.NewRecorder()
+		req.Header.Add("can_read", "true")
+		req.Header.Add("can_write", "true")
+		req.Header.Add("can_execute", "true")
+		req.Header.Add("can_share", "true")
+		req.Header.Add("users", "[\""+user1.UserId+"\"]")
+
+		bc.AddPermissionsFile(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		// Checking files shared to user should be 1
+		req = httptest.NewRequest("GET", "/api/v1/file/sharedWith", nil).
+			WithContext(ctxutil.WithUser(context.Background(), user1))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		w = httptest.NewRecorder()
+		bc.GetSharedWithUser(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+		err = json.Unmarshal(w.Body.Bytes(), &sharedFiles)
+		Assert.NoError(err)
+		Assert.Equal(1, len(sharedFiles))
+
+		// Deleting the file
+		req = httptest.NewRequest("DELETE", "/api/v1/file/"+file.FileId, nil).WithContext(
+			ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req = mux.SetURLVars(req, map[string]string{
+			"fileID": file.FileId,
+		})
+		w = httptest.NewRecorder()
+		bc.DeleteFile(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+
+		// Checking files shared to user should be 0
+		req = httptest.NewRequest("GET", "/api/v1/file/sharedWith", nil).
+			WithContext(ctxutil.WithUser(context.Background(), user1))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		w = httptest.NewRecorder()
+		bc.GetSharedWithUser(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+		err = json.Unmarshal(w.Body.Bytes(), &sharedFiles)
+		Assert.NoError(err)
+		Assert.Equal(0, len(sharedFiles))
+
+	})
+
+	t.Run("Favorites should be 0", func(t *testing.T) {
+
+		// Trying to get favorites (should be 0)
+		req := httptest.NewRequest("GET", "/api/v1/favorites", nil).
+			WithContext(ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		w := httptest.NewRecorder()
+		bc.GetFavorites(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+		var favorites []dbfs.File
+		err = json.Unmarshal(w.Body.Bytes(), &favorites)
+		Assert.NoError(err)
+		Assert.Equal(0, len(favorites))
+
+	})
 }

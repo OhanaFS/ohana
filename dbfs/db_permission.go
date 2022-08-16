@@ -2,6 +2,7 @@ package dbfs
 
 import (
 	"errors"
+	"gorm.io/gorm/clause"
 	"time"
 
 	"github.com/google/uuid"
@@ -316,6 +317,18 @@ func upsertUsersPermission(tx *gorm.DB, file *File, permissionNeeded *Permission
 					return err
 				}
 			}
+
+			for _, user := range users {
+				err := tx.Clauses(clause.OnConflict{DoNothing: true}).Save(&SharedWithUser{
+					FileId:      file.FileId,
+					UserId:      user.UserId,
+					DateCreated: time.Now(),
+				}).Error
+				if err != nil {
+					return err
+				}
+			}
+
 			return nil
 		})
 		if err != nil {
@@ -510,6 +523,17 @@ func upsertGroupsPermission(tx *gorm.DB, file *File, permissionNeeded *Permissio
 					return err
 				}
 			}
+
+			for _, group := range groups {
+				if tx2.Clauses(clause.OnConflict{DoNothing: true}).Save(&SharedWithGroup{
+					FileId:      file.FileId,
+					GroupId:     group.GroupId,
+					DateCreated: time.Now(),
+				}).Error != nil {
+					return nil
+				}
+			}
+
 			return nil
 		})
 		if err != nil {
@@ -583,6 +607,14 @@ func revokeUsersPermission(tx *gorm.DB, file *File, users []User, invoker *User)
 				return err
 			}
 
+			// Removing from SharedWithUser
+			err = tx.Where("file_id = ? AND user_id = ?",
+				file.FileId, user.UserId).
+				Delete(&SharedWithUser{}).Error
+			if err != nil {
+				return err
+			}
+
 		}
 
 		return updatePermissionsVersions(tx, file, invoker)
@@ -618,6 +650,13 @@ func revokeGroupsPermission(tx *gorm.DB, file *File, groups []Group) error {
 			// Check if group has permission in the file and if so delete it.
 
 			err = tx.Where("file_id = ? AND group_id = ?", file.FileId, group.GroupId).Delete(&Permission{}).Error
+			if err != nil {
+				return err
+			}
+
+			err = tx.Where("file_id = ? AND group_id = ?",
+				file.FileId, group.GroupId).
+				Delete(&SharedWithGroup{}).Error
 			if err != nil {
 				return err
 			}

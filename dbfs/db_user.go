@@ -2,6 +2,7 @@ package dbfs
 
 import (
 	"errors"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -40,6 +41,26 @@ type User struct {
 	//Roles        []*Role        `gorm:"many2many:user_roles;" json:"-"`
 }
 
+type SharedWithUser struct {
+	UserId      string    `gorm:"primaryKey; not null; foreignKey:user_id" json:"user_id"`
+	FileId      string    `gorm:"primaryKey; not null; foreignKey:file_id" json:"file_id"`
+	DateCreated time.Time `json:"date_created"`
+	File        File      `gorm:"foreignKey:file_id"`
+}
+
+type SharedWithGroup struct {
+	GroupId     string    `gorm:"primaryKey; not null; foreignKey:group_id" json:"group_id"`
+	FileId      string    `gorm:"primaryKey; not null; foreignKey:file_id" json:"file_id"`
+	DateCreated time.Time `json:"date_created"`
+	File        File      `gorm:"foreignKey:file_id" `
+}
+
+type FavoriteFileItems struct {
+	UserId string `gorm:"primaryKey; not null; foreignKey:user_id" json:"user_id"`
+	FileId string `gorm:"primaryKey; not null; foreignKey:file_id" json:"file_id"`
+	File   File   `gorm:"foreignKey:file_id" `
+}
+
 //	Groups      []Group        `gorm:"many2many:user_groups"`
 
 type UserInterface interface {
@@ -54,6 +75,8 @@ type UserInterface interface {
 	HasPermission(tx *gorm.DB, file *File, needed *PermissionNeeded) (bool, error)
 	AddToGroup(tx *gorm.DB, group *Group) error
 	SetGroups(tx *gorm.DB, groups []Group) error
+	GetFavoriteFiles(tx *gorm.DB, start uint) ([]File, error)
+	GetSharedWithUser(tx *gorm.DB) ([]File, error)
 }
 
 // Compile time assertion to ensure that User follows UserInterface interface.
@@ -307,4 +330,90 @@ func (user *User) SetGroups(tx *gorm.DB, groups []Group) error {
 		return err
 	}
 	return tx.Save(&user).Error
+}
+
+func (user *User) GetFavoriteFiles(tx *gorm.DB, start uint) ([]File, error) {
+
+	var FavoriteFileItems []FavoriteFileItems
+	if err := tx.Preload(clause.Associations).
+		Find(&FavoriteFileItems, "user_id = ?", user.UserId).
+		Offset(int(start)).Limit(50).Error; err != nil {
+		return nil, err
+	}
+	files := make([]File, len(FavoriteFileItems))
+	for i, item := range FavoriteFileItems {
+		files[i] = item.File
+	}
+	return files, nil
+}
+
+func (user *User) GetSharedWithUser(tx *gorm.DB) ([]File, error) {
+
+	// First, we will grab all the files that are shared with the user
+	// We will store it in a hashmap, with fileId as the key and the date as value
+	// This way, we can return the files in order of the date shared
+	var SharedWithUsers []SharedWithUser
+
+	if err := tx.Where("user_id = ?", user.UserId).Find(&SharedWithUsers).Error; err != nil {
+		return nil, err
+	}
+
+	hasAccess := make(map[string]*time.Time)
+	for _, item := range SharedWithUsers {
+		hasAccess[item.FileId] = &item.DateCreated
+	}
+
+	// Now, we will grab all the files that the user has access to via groups
+	groups, err := user.GetGroupsWithUser(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	groupsArray := make([]string, len(groups))
+	for i, group := range groups {
+		groupsArray[i] = group.GroupId
+	}
+
+	var SharedWithGroups []SharedWithGroup
+
+	if err := tx.Where("group_id IN (?)", groupsArray).Find(&SharedWithGroups).Error; err != nil {
+		return nil, err
+	}
+
+	for _, item := range SharedWithGroups {
+		value, ok := hasAccess[item.FileId]
+		if ok {
+			// update if newer date
+			if item.DateCreated.After(*value) {
+				hasAccess[item.FileId] = &item.DateCreated
+			}
+		} else {
+			hasAccess[item.FileId] = &item.DateCreated
+		}
+	}
+
+	// Now, we'll sort hasAccess by the value (date)
+	keys := make([]string, 0, len(hasAccess))
+
+	for key := range hasAccess {
+		keys = append(keys, key)
+	}
+
+	sort.SliceStable(keys, func(i, j int) bool {
+		return hasAccess[keys[i]].Unix() < hasAccess[keys[j]].Unix()
+	})
+
+	// keys is now sorted
+
+	files := make([]File, len(keys))
+	for i, key := range keys {
+		var tempFile File
+		if err := tx.Where("file_id = ?", key).First(&tempFile).Error; err != nil {
+			return nil, err
+		}
+		files[i] = tempFile
+	}
+
+	return files, nil
+
 }

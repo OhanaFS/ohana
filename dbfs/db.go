@@ -11,7 +11,7 @@ import (
 func InitDB(db *gorm.DB) error {
 	err := db.AutoMigrate(&User{}, &Group{}, &File{}, &FileVersion{}, &Fragment{}, &Permission{}, &PermissionHistory{},
 		&PasswordProtect{}, &Server{}, KeyValueDBPair{}, DataCopies{}, SharedLink{},
-		&Log{}, &Role{}, &Alert{},
+		&Log{}, &Role{}, &Alert{}, &SharedWithUser{}, &SharedWithGroup{}, &FavoriteFileItems{},
 		// Cron Jobs
 		&ResultsCFSHC{}, &JobProgressCFSHC{}, &ResultsAFSHC{}, &JobProgressAFSHC{},
 		&ResultsMissingShard{}, &JobProgressMissingShard{}, &ResultsOrphanedShard{}, &JobProgressOrphanedShard{},
@@ -190,7 +190,7 @@ type PermissionNeeded struct {
 }
 
 // UpdatePermissionsHave updates current record with incoming superseding permissions
-func (current PermissionNeeded) UpdatePermissionsHave(newPermissions Permission) {
+func (current *PermissionNeeded) UpdatePermissionsHave(newPermissions Permission) {
 	if newPermissions.CanRead {
 		current.Read = true
 	}
