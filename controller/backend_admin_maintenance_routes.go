@@ -919,6 +919,9 @@ func (bc *BackendController) RebuildShard(dataId, password string) error {
 	)
 
 	reader, err := decoder.NewReadSeeker(shards, key, iv)
+	if err != nil {
+		return err
+	}
 
 	// read to the disk first, then upload (because weird bug)
 

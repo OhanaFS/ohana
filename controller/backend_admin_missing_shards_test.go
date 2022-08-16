@@ -114,7 +114,7 @@ func TestFixMissingShardResult(t *testing.T) {
 			VersioningMode: dbfs.VersioningOnVersions,
 		}, user))
 
-		// Get the shards for the file to corrupt it later pepelaugh
+		// Get the shards for the file
 		shards, err := testFile.GetFileFragments(bc.Db, user)
 		Assert.NoError(err)
 		Assert.True(len(shards) > 2, shards) // This is a sanity check to make sure we have at least 3 shards
