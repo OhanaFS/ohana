@@ -731,7 +731,7 @@ func TestBackendController(t *testing.T) {
 		})
 		w = httptest.NewRecorder()
 		bc.LsFolderID(w, req)
-		assert.Equal(http.StatusNotFound, w.Code)
+		assert.Equal(http.StatusOK, w.Code)
 
 		// Get Permissions Folder / File
 		req = httptest.NewRequest("GET", "/api/v1/folder/"+newFolderID+"/permissions/", nil).WithContext(

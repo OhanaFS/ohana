@@ -124,6 +124,8 @@ type FileInterface interface {
 	GetSharedLinks(tx *gorm.DB, user *User) ([]SharedLink, error)
 	DeleteSharedLink(tx *gorm.DB, user *User, link string) error
 	UpdateSharedLink(tx *gorm.DB, user *User, link string, newLink string) error
+	AddToFavorites(tx *gorm.DB, user *User) error
+	RemoveFromFavorites(tx *gorm.DB, user *User) error
 }
 
 var _ FileInterface = &File{}
@@ -1235,6 +1237,12 @@ func (f *File) Delete(tx *gorm.DB, user *User, server string) error {
 		if err != nil {
 			return err
 		}
+		// Delete Favorites and Shares
+		tx.Where("file_id = ?", f.FileId).Delete(&FavoriteFileItems{})
+		tx.Where("file_id = ?", f.FileId).Delete(&SharedLink{})
+		tx.Where("file_id = ?", f.FileId).Delete(&SharedWithUser{})
+		tx.Where("file_id = ?", f.FileId).Delete(&SharedWithGroup{})
+
 		err2 = tx.Delete(f).Error
 		return err2
 
@@ -1886,4 +1894,39 @@ func (f *File) UpdateSharedLink(tx *gorm.DB, user *User, link string, newLink st
 	// Update the shared link
 	return tx.Model(&SharedLink{}).Where("file_id = ? AND shortened_link = ?", f.FileId, link).
 		Update("shortened_link", newLink).Error
+}
+
+// AddToFavorites will add the file to a user's favorites
+func (f *File) AddToFavorites(tx *gorm.DB, user *User) error {
+
+	// Check if the user has permisisons to read the file
+
+	perm, err := user.HasPermission(tx, f, &PermissionNeeded{Read: true})
+	if err != nil {
+		return err
+	} else if !perm {
+		return ErrFileNotFound
+	}
+
+	return tx.Clauses(clause.OnConflict{DoNothing: true}).
+		Save(&FavoriteFileItems{
+			FileId: f.FileId,
+			UserId: user.UserId,
+		}).Error
+}
+
+// RemoveFromFavorites will remove the file from a user's favorites
+func (f *File) RemoveFromFavorites(tx *gorm.DB, user *User) error {
+
+	if err := tx.Model(&FavoriteFileItems{}).
+		Where("file_id = ? AND user_id = ?", f.FileId, user.UserId).
+		Delete(FavoriteFileItems{}).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil
+		}
+		return err
+	}
+
+	return nil
+
 }

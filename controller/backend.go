@@ -94,6 +94,12 @@ func NewBackend(
 	r.HandleFunc("/api/v1/file/{folderID}/copy", bc.CopyFile).Methods("POST")
 	r.HandleFunc("/api/v1/folder/{folderID}/details", bc.GetMetadataFile).Methods("GET")
 
+	// Get Favorites, Get Shared
+	r.HandleFunc("/api/v1/favorites", bc.GetFavorites).Methods("GET")
+	r.HandleFunc("/api/v1/favorites/{fileID}", bc.AddFavorite).Methods("PUT")
+	r.HandleFunc("/api/v1/favorites/{fileID}", bc.RemoveFavorite).Methods("DELETE")
+	r.HandleFunc("/api/v1/sharedWith", bc.GetSharedWithUser).Methods("GET")
+
 	// Shared Routes :
 	r.HandleFunc("/api/v1/shared/{shortenedLink}/metadata", bc.GetMetadataSharedLink).Methods("GET")
 	r.HandleFunc("/api/v1/shared/{shortenedLink}", bc.DownloadSharedLink).Methods("GET")
@@ -827,7 +833,11 @@ func (bc *BackendController) DeleteFile(w http.ResponseWriter, r *http.Request) 
 
 	// fileID
 	vars := mux.Vars(r)
-	fileID := vars["fileID"]
+	fileID, ok := vars["fileID"]
+	if !ok || fileID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
+		return
+	}
 
 	file, err := dbfs.GetFileById(bc.Db, fileID, user)
 	if errors.Is(err, dbfs.ErrFileNotFound) {
@@ -864,9 +874,8 @@ func (bc *BackendController) GetPermissionsFile(w http.ResponseWriter, r *http.R
 
 	// fileID
 	vars := mux.Vars(r)
-	fileID := vars["fileID"]
-
-	if fileID == "" {
+	fileID, ok := vars["fileID"]
+	if !ok || fileID == "" {
 		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
 		return
 	}
@@ -903,7 +912,11 @@ func (bc *BackendController) ModifyPermissionsFile(w http.ResponseWriter, r *htt
 
 	// fileID
 	vars := mux.Vars(r)
-	fileID := vars["fileID"]
+	fileID, ok := vars["fileID"]
+	if !ok || fileID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
+		return
+	}
 
 	// get other headers
 	permissionID := r.Header.Get("permission_id")
@@ -1013,7 +1026,11 @@ func (bc *BackendController) AddPermissionsFile(w http.ResponseWriter, r *http.R
 
 	// fileID
 	vars := mux.Vars(r)
-	fileID := vars["fileID"]
+	fileID, ok := vars["fileID"]
+	if !ok || fileID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
+		return
+	}
 
 	// get other headers
 	canRead := r.Header.Get("can_read")
@@ -1123,8 +1140,12 @@ func (bc *BackendController) GetFileVersionMetadata(w http.ResponseWriter, r *ht
 
 	// fileID and versionID
 	vars := mux.Vars(r)
-	fileID := vars["fileID"]
+	fileID, ok := vars["fileID"]
 	versionID := vars["versionID"]
+	if !ok || fileID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
+		return
+	}
 
 	// convert versionID into int
 	versionIDInt, err := strconv.Atoi(versionID)
@@ -1170,7 +1191,11 @@ func (bc *BackendController) GetFileVersionHistory(w http.ResponseWriter, r *htt
 
 	// fileID and versionID
 	vars := mux.Vars(r)
-	fileID := vars["fileID"]
+	fileID, ok := vars["fileID"]
+	if !ok || fileID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
+		return
+	}
 
 	if fileID == "" {
 		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
@@ -1209,7 +1234,11 @@ func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.
 
 	// fileID and versionID
 	vars := mux.Vars(r)
-	fileID := vars["fileID"]
+	fileID, ok := vars["fileID"]
+	if !ok || fileID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
+		return
+	}
 	versionID := vars["versionID"]
 
 	queries := r.URL.Query()
@@ -1335,7 +1364,11 @@ func (bc *BackendController) DeleteFileVersion(w http.ResponseWriter, r *http.Re
 
 	// fileID and versionID
 	vars := mux.Vars(r)
-	fileID := vars["fileID"]
+	fileID, ok := vars["fileID"]
+	if !ok || fileID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
+		return
+	}
 	versionID := vars["versionID"]
 
 	// convert versionID into int
@@ -1385,7 +1418,11 @@ func (bc *BackendController) LsFolderID(w http.ResponseWriter, r *http.Request) 
 
 	// folderID
 	vars := mux.Vars(r)
-	folderID := vars["folderID"]
+	folderID, ok := vars["folderID"]
+	if !ok || folderID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No folderID provided")
+		return
+	}
 
 	if folderID == "" {
 		util.HttpError(w, http.StatusBadRequest, "No folderID provided")
