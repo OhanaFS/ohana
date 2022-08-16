@@ -999,6 +999,7 @@ func TestFixMissingShardResult(t *testing.T) {
 
 		Assert := assert.New(t)
 
+		time.Sleep(time.Second * 2)
 		rootFolder, err := dbfs.GetRootFolder(db)
 		Assert.NoError(err)
 
