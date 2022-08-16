@@ -12,7 +12,6 @@ import {
   YAxis,
   ResponsiveContainer,
 } from 'recharts';
-import moment from 'moment';
 import AppBase from './components/AppBase';
 import '../src/assets/styles.css';
 import {
@@ -25,18 +24,7 @@ import {
   useQueryGetstorageUsed,
   useQueryGetserverStatuses,
 } from './api/cluster';
-
-function formatBytes(bytes: number, decimals = 2) {
-  if (bytes === 0) return '0 Bytes';
-
-  const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-}
+import { formatDateTime, humanFileSize } from './shared/util';
 
 export function AdminDashboard() {
   // Pie chart
@@ -190,7 +178,7 @@ export function AdminDashboard() {
             color: 'black',
           }}
         >
-          {moment(new Date(items.TimeStamp).toISOString()).format('LLL')}
+          {formatDateTime(items.TimeStamp)}
         </td>
         <td
           width="10%"
@@ -232,7 +220,7 @@ export function AdminDashboard() {
           color: 'black',
         }}
       >
-        {moment(new Date(items.TimeStamp).toISOString()).format('LLL')}
+        {formatDateTime(items.TimeStamp)}
       </td>
       <td
         width="10%"
@@ -354,7 +342,7 @@ export function AdminDashboard() {
               <Text weight={700}>
                 Total Data Used:{' '}
                 {qGetStorageUsed.data
-                  ? formatBytes(qGetStorageUsed.data)
+                  ? humanFileSize(qGetStorageUsed.data)
                   : null}
               </Text>
               <ResponsiveContainer width="100%" height={220}>
@@ -500,7 +488,7 @@ export function AdminDashboard() {
               <Text weight={700}>
                 Total data used (not incl. replicas):{' '}
                 {qGetStorageUsedWOParity.data
-                  ? formatBytes(qGetStorageUsedWOParity.data)
+                  ? humanFileSize(qGetStorageUsedWOParity.data)
                   : null}
               </Text>
               <ResponsiveContainer width="100%" height={220}>
