@@ -184,6 +184,18 @@ func GetUser(tx *gorm.DB, username string) (*User, error) {
 	return user, nil
 }
 
+// GetUsers returns all the users in the DB
+func GetUsers(tx *gorm.DB) ([]User, error) {
+	users := []User{}
+
+	if err := tx.Preload(clause.Associations).
+		Find(&users).Error; err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
 // GetUserById returns the User struct based on the given userId
 func GetUserById(tx *gorm.DB, userId string) (*User, error) {
 	user := &User{}
