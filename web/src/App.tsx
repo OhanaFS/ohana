@@ -12,7 +12,6 @@ import { AdminConfiguration } from './AdminConfiguration';
 import { AdminNodes } from './AdminNodes';
 import { AdminPerformMaintenance } from './AdminPerformMaintenance';
 import { AdminRunMaintenance } from './AdminRunMaintenance';
-import { AdminSettings } from './AdminSettings';
 import { AdminSsoGroups } from './AdminSsoGroups';
 import { AdminSsoGroupsInside } from './AdminSsoGroupsInside';
 import AdminMaintenanceLogs from './AdminMaintenanceLogs';
@@ -50,8 +49,7 @@ export default function Demo() {
           <Route path="/sso" element={<AdminSsoGroups />} />
           <Route path="/nodes" element={<AdminNodes />} />
           <Route path="/maintenance" element={<AdminMaintenanceLogs />} />
-          <Route path="/settings" element={<AdminSettings />} />
-          <Route path="/rotate_key" element={<AdminConfiguration />} />
+          <Route path="/settings" element={<AdminConfiguration />} />
         </Routes>
       </Router>
     </QueryClientProvider>
