@@ -87,8 +87,6 @@ func TestFixFullShardResult(t *testing.T) {
 		StartTime:                    time.Now(),
 		EndTime:                      time.Now(),
 		TotalTimeTaken:               0,
-		TotalShardsScanned:           0,
-		TotalFilesScanned:            0,
 		MissingShardsCheck:           true,
 		MissingShardsProgress:        nil,
 		OrphanedShardsCheck:          false,
