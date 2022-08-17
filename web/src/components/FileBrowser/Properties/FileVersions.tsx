@@ -1,9 +1,8 @@
+import { useState } from 'react';
 import { ActionIcon, Button, Table } from '@mantine/core';
 import { IconDownload, IconTrash } from '@tabler/icons';
-import { useState } from 'react';
 import {
   useMutateDeleteFileVersion,
-  useMutateUpdateFile,
   useQueryFileVersionHistory,
 } from '../../../api/file';
 import UploadFileModal from '../UploadFileModal';
@@ -13,7 +12,6 @@ type FileVersionsProps = {
 };
 const FileVersions = (props: FileVersionsProps) => {
   const qFileVersionHistory = useQueryFileVersionHistory(props.fileId);
-  const mUpdateFile = useMutateUpdateFile();
   const mDeleteFileVersion = useMutateDeleteFileVersion();
 
   const [isUploadOpen, setUploadOpen] = useState(false);

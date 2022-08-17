@@ -57,7 +57,7 @@ const PasteFiles = defineFileAction({
 const FileProperties = defineFileAction({
   id: 'file_properties',
   button: {
-    name: 'More',
+    name: 'Properties',
     toolbar: true,
     contextMenu: true,
     group: 'Actions',
@@ -170,11 +170,16 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   const fileActions = useMemo(
     () => [
       ChonkyActions.CreateFolder,
-      ChonkyActions.DeleteFiles,
       ChonkyActions.UploadFiles,
+      ChonkyActions.EnableGridView,
+      ChonkyActions.EnableListView,
+      ChonkyActions.DeleteFiles,
       ChonkyActions.DownloadFiles,
       ChonkyActions.MoveFiles,
       ChonkyActions.CopyFiles,
+      ChonkyActions.SortFilesByDate,
+      ChonkyActions.SortFilesByName,
+      ChonkyActions.SortFilesBySize,
       RenameFiles,
       PasteFiles,
       FileProperties,
@@ -222,6 +227,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
       <div style={{ height: '100%' }}>
         <FullFileBrowser
           files={ohanaFiles}
+          disableDefaultFileActions
           folderChain={folderChain}
           fileActions={fileActions}
           onFileAction={handleFileAction}
