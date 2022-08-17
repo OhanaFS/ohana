@@ -141,6 +141,9 @@ func NewBackend(
 	r.HandleFunc("/api/v1/maintenance/job/{id}/orphaned_files", bc.GetOrphanedFilesResult).Methods("GET")
 	r.HandleFunc("/api/v1/maintenance/job/{id}/orphaned_files", bc.FixOrphanedFilesResult).Methods("POST")
 
+	// Set stitch params
+	r.HandleFunc("/api/v1/maintenance/stitch", bc.SetStitchParameters).Methods("POST")
+
 	r.Use(mw.UserAuth)
 
 	return nil

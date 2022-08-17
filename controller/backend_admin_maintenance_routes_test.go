@@ -17,6 +17,7 @@ import (
 	"github.com/OhanaFS/stitch"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -1220,5 +1221,127 @@ func TestOrphanedShardsResult(t *testing.T) {
 	})
 
 	Inc.HttpServer.Close()
+
+}
+
+func TestBackendController_SetStitchParameters(t *testing.T) {
+
+	tempDir = t.TempDir()
+	shardDir := filepath.Join(tempDir, "shards")
+	certPaths, err := selfsigntestutils.GenCertsTest(tempDir)
+	assert.NoError(t, err)
+
+	//Set up mock Db and session store
+	stitchConfig := config.StitchConfig{
+		ShardsLocation: shardDir,
+	}
+	incConfig := config.IncConfig{
+		ServerName: "localServer",
+		HostName:   "localhost",
+		BindIp:     "127.0.0.1",
+		Port:       "5556",
+		CaCert:     certPaths.CaCertPath,
+		PublicCert: certPaths.PublicCertPath,
+		PrivateKey: certPaths.PrivateKeyPath,
+	}
+
+	configFile := &config.Config{Stitch: stitchConfig, Inc: incConfig}
+	logger := config.NewLogger(configFile)
+	db := testutil.NewMockDB(t)
+
+	session := testutil.NewMockSession(t)
+	sessionId, err := session.Create(nil, "superuser", time.Hour)
+	Inc := inc.NewInc(configFile, db, logger)
+	inc.RegisterIncServices(Inc)
+
+	// Wait for inc to start
+	time.Sleep(time.Second * 3)
+
+	// Setting up controller
+	bc := &controller.BackendController{
+		Db:         db,
+		Logger:     logger,
+		Path:       configFile.Stitch.ShardsLocation,
+		ServerName: configFile.Inc.ServerName,
+		Inc:        Inc,
+	}
+
+	bc.InitialiseShardsFolder()
+
+	// Getting Superuser to use with testing
+	user, err := dbfs.GetUser(db, "superuser")
+	assert.NoError(t, err)
+
+	//fake zapper
+	fakeLogger, err := zap.NewDevelopment()
+
+	t.Run("Checking inital params", func(t *testing.T) {
+
+		Assert := assert.New(t)
+
+		params, err := dbfs.GetStitchParams(bc.Db, fakeLogger)
+		Assert.NoError(err)
+
+		Assert.Equal(params.DataShards, 2)
+		Assert.Equal(params.ParityShards, 1)
+		Assert.Equal(params.KeyThreshold, 2)
+
+	})
+
+	t.Run("Setting params", func(t *testing.T) {
+
+		// Run inital tests, should be all good
+		Assert := assert.New(t)
+
+		// Starting a job with a quick shards check
+		req := httptest.NewRequest("POST", "/api/v1/maintenance/stitch", nil).WithContext(
+			ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req.Header.Add("data_shards", "4")
+		req.Header.Add("key_threshold", "5")
+		req.Header.Add("parity_shards", "6")
+		w := httptest.NewRecorder()
+		bc.SetStitchParameters(w, req)
+
+		Assert.Equal(http.StatusOK, w.Code)
+
+		time.Sleep(time.Second)
+
+		params, err := dbfs.GetStitchParams(bc.Db, fakeLogger)
+		Assert.NoError(err)
+
+		Assert.Equal(params.DataShards, 4)
+		Assert.Equal(params.ParityShards, 5)
+		Assert.Equal(params.KeyThreshold, 6)
+
+	})
+
+	t.Run("Invalid params", func(t *testing.T) {
+
+		// Run inital tests, should be all good
+		Assert := assert.New(t)
+
+		// Starting a job with a quick shards check
+		req := httptest.NewRequest("POST", "/api/v1/maintenance/stitch", nil).WithContext(
+			ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req.Header.Add("data_shards", "11")
+		req.Header.Add("key_threshold", "11")
+		req.Header.Add("parity_shards", "11")
+		w := httptest.NewRecorder()
+		bc.SetStitchParameters(w, req)
+
+		Assert.Equal(http.StatusBadRequest, w.Code)
+
+		time.Sleep(time.Second)
+
+		params, err := dbfs.GetStitchParams(bc.Db, fakeLogger)
+		Assert.NoError(err)
+
+		Assert.Equal(params.DataShards, 2)
+		Assert.Equal(params.ParityShards, 1)
+		Assert.Equal(params.KeyThreshold, 2)
+
+	})
 
 }

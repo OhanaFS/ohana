@@ -1186,7 +1186,39 @@ func (bc *BackendController) SetStitchParameters(w http.ResponseWriter, r *http.
 		return
 	}
 
-	r.Header.Get()
+	dataShardsString := strings.TrimSpace(r.Header.Get("data_shards"))
+	keyThresholdString := strings.TrimSpace(r.Header.Get("key_threshold"))
+	parityShardsString := strings.TrimSpace(r.Header.Get("parity_shards"))
+	if dataShardsString == "" || keyThresholdString == "" || parityShardsString == "" {
+		util.HttpError(w, http.StatusBadRequest, "Missing parameters")
+		return
+	}
+
+	dataShards, err := strconv.Atoi(dataShardsString)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "Invalid data_shards")
+		return
+	}
+	keyThreshold, err := strconv.Atoi(keyThresholdString)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "Invalid key_threshold")
+		return
+	}
+	parityShards, err := strconv.Atoi(parityShardsString)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "Invalid parity_shards")
+		return
+	}
+
+	err = dbfs.SetStitchParams(bc.Db, dataShards, keyThreshold, parityShards)
+	if err != nil {
+		if strings.Contains(err.Error(), "not valid") {
+			util.HttpError(w, http.StatusBadRequest, err.Error())
+		} else {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
 
 	util.HttpJson(w, http.StatusOK, true)
 }
