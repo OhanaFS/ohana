@@ -495,7 +495,7 @@ func FinishFile(tx *gorm.DB, file *File, user *User, size, actualSize int, check
 	}
 
 	// Updating the FileVersion
-	return finaliseFileVersionFromFile(tx, file)
+	return finaliseFileVersionFromFile(tx, file, size, actualSize)
 
 }
 
@@ -1536,6 +1536,8 @@ func (f *File) FinishUpdateFile(tx *gorm.DB, checksum string) error {
 		tx.First(&fileVersion)
 
 		fileVersion.Status = FileStatusGood
+		fileVersion.Size = f.Size
+		fileVersion.ActualSize = f.ActualSize
 		fileVersion.LastChecked = f.LastChecked
 
 		return tx.Save(&fileVersion).Error

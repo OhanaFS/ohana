@@ -131,9 +131,13 @@ func CreateFileVersionFromFile(tx *gorm.DB, file *File, user *User) error {
 }
 
 // finaliseFileVersionFromFile finalises the status to be done (FileStatusGood)
-func finaliseFileVersionFromFile(tx *gorm.DB, file *File) error {
+func finaliseFileVersionFromFile(tx *gorm.DB, file *File, size, actualSize int) error {
 	return tx.Model(&FileVersion{}).Where("file_id = ? AND version_no = ?", file.FileId, file.VersionNo).
-		Update("status", FileStatusGood).Error
+		Updates(map[string]interface{}{
+			"status":      FileStatusGood,
+			"size":        size,
+			"actual_size": actualSize,
+		}).Error
 }
 
 // getFileVersionFromFile returns the version requested of a file/

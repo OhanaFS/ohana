@@ -323,7 +323,7 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 		FileName:           fileName,
 		MIMEType:           file.ContentType,
 		ParentFolderFileId: &folderId,
-		Size:               1024, // placeholder size
+		Size:               512, // placeholder size
 		VersioningMode:     dbfs.VersioningOff,
 		TotalShards:        totalShards,
 		DataShards:         dataShards,
@@ -463,6 +463,7 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 	checksum := hex.EncodeToString(result.FileHash)
 
 	dbfsFile.Size = int(result.FileSize)
+	dbfsFile.ActualSize = int(fileSizeActual)
 	err = dbfs.FinishFile(bc.Db, &dbfsFile, user, int(result.FileSize), int(fileSizeActual), checksum)
 	if err != nil {
 		err2 := dbfsFile.Delete(bc.Db, user, bc.ServerName)
