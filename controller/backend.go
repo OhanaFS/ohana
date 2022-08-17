@@ -452,19 +452,19 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 	})
 	if err != nil {
 		if err := dbfsFile.Delete(bc.Db, user, bc.ServerName); err != nil {
-			util.HttpError(w, http.StatusInternalServerError, err.Error())
+			util.HttpError(w, http.StatusInternalServerError, "failed to delete file"+err.Error())
 			return
 		}
-		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		util.HttpError(w, http.StatusInternalServerError, "failed to create fragments"+err.Error())
 		return
 	}
 
 	// checksum
 	checksum := hex.EncodeToString(result.FileHash)
 
-	dbfsFile.Size = int(result.FileSize)
-	dbfsFile.ActualSize = int(fileSizeActual)
-	err = dbfs.FinishFile(bc.Db, &dbfsFile, user, int(result.FileSize), int(fileSizeActual), checksum)
+	dbfsFile.Size = int64(result.FileSize)
+	dbfsFile.ActualSize = fileSizeActual
+	err = dbfs.FinishFile(bc.Db, &dbfsFile, user, int64(result.FileSize), fileSizeActual, checksum)
 	if err != nil {
 		err2 := dbfsFile.Delete(bc.Db, user, bc.ServerName)
 		errorText := "Error finishing file: " + err.Error()
@@ -653,8 +653,8 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 	// checksum
 	checksum := hex.EncodeToString(result.FileHash)
 
-	dbfsFile.Size = int(result.FileSize)
-	dbfsFile.ActualSize = int(fileSizeActual)
+	dbfsFile.Size = int64(result.FileSize)
+	dbfsFile.ActualSize = fileSizeActual
 	err = dbfsFile.FinishUpdateFile(bc.Db, checksum)
 	if err != nil {
 		errString := err.Error()

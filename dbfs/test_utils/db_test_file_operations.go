@@ -26,13 +26,13 @@ type ExampleFile struct {
 	Server         string
 	FragmentPath   string
 	FileData       string
-	Size           int
-	ActualSize     int
+	Size           int64
+	ActualSize     int64
 }
 
 type ExampleUpdate struct {
-	NewSize       int
-	NewActualSize int
+	NewSize       int64
+	NewActualSize int64
 	FragmentPath  string
 	FileData      string
 	Server        string

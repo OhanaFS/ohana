@@ -18,8 +18,8 @@ type FileVersion struct {
 	ParentFolderVersionNo *int         `json:"-"`
 	DataId                string       `json:"-"`
 	DataIdVersion         int          `json:"data_version_no"`
-	Size                  int          `gorm:"not null" json:"size"`
-	ActualSize            int          `gorm:"not null" json:"actual_size"`
+	Size                  int64        `gorm:"not null" json:"size"`
+	ActualSize            int64        `gorm:"not null" json:"actual_size"`
 	CreatedTime           time.Time    `gorm:"not null" json:"created_time"`
 	ModifiedUser          User         `gorm:"foreignKey:ModifiedUserUserId" json:"-"`
 	ModifiedUserUserId    *string      `json:"modified_user_user_id"`
@@ -131,7 +131,7 @@ func CreateFileVersionFromFile(tx *gorm.DB, file *File, user *User) error {
 }
 
 // finaliseFileVersionFromFile finalises the status to be done (FileStatusGood)
-func finaliseFileVersionFromFile(tx *gorm.DB, file *File, size, actualSize int) error {
+func finaliseFileVersionFromFile(tx *gorm.DB, file *File, size, actualSize int64) error {
 	return tx.Model(&FileVersion{}).Where("file_id = ? AND version_no = ?", file.FileId, file.VersionNo).
 		Updates(map[string]interface{}{
 			"status":      FileStatusGood,

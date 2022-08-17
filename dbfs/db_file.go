@@ -64,8 +64,8 @@ type File struct {
 	VersionNo          int       `gorm:"not null" json:"version_no"`
 	DataId             string    `json:"-"` //TODO: Convert this to a pointer to a string and make it unique or nullable
 	DataIdVersion      int       `json:"data_version_no"`
-	Size               int       `gorm:"not null" json:"size"`
-	ActualSize         int       `gorm:"not null" json:"actual_size"`
+	Size               int64     `gorm:"not null" json:"size"`
+	ActualSize         int64     `gorm:"not null" json:"actual_size"`
 	CreatedTime        time.Time `gorm:"not null"  json:"created_time"`
 	ModifiedUser       *User     `gorm:"foreignKey:ModifiedUserUserId" json:"-"`
 	ModifiedUserUserId *string   `json:"modified_user_user_id"`
@@ -118,7 +118,7 @@ type FileInterface interface {
 	AddPermissionGroups(tx *gorm.DB, permission *PermissionNeeded, requestUser *User, groups ...Group) error
 	RemovePermission(tx *gorm.DB, permission *Permission, user *User) error
 	UpdatePermission(tx *gorm.DB, oldPermission *Permission, newPermission *Permission, user *User) error
-	UpdateFile(tx *gorm.DB, newSize int, newActualSize int, checksum string, handlingServer string, dataKey string, dataIv string, password string, user *User, newFileName string) error
+	UpdateFile(tx *gorm.DB, newSize int64, newActualSize int64, checksum string, handlingServer string, dataKey string, dataIv string, password string, user *User, newFileName string) error
 	UpdateFragment(tx *gorm.DB, fragmentId int, fileFragmentPath string, checksum string, serverId string) error
 	CreateSharedLink(tx *gorm.DB, user *User, link string) (*SharedLink, error)
 	GetSharedLinks(tx *gorm.DB, user *User) ([]SharedLink, error)
@@ -472,7 +472,7 @@ func CreateFragment(tx *gorm.DB, fileId string, dataId string, versionNo int, fr
 }
 
 // FinishFile is called whenever a file has been all written (all fragments written)
-func FinishFile(tx *gorm.DB, file *File, user *User, size, actualSize int, checksum string) error {
+func FinishFile(tx *gorm.DB, file *File, user *User, size, actualSize int64, checksum string) error {
 
 	// Some checks
 	if file.Status != FileStatusWriting {
@@ -1411,7 +1411,7 @@ func (f *File) GetPermissionById(tx *gorm.DB, permissionId string, user *User) (
 // UpdateFile
 // At this stage, the server should have the
 // updated file (already processed) , uncompressed file size, compressed data size, and key
-func (f *File) UpdateFile(tx *gorm.DB, newSize int, newActualSize int, checksum string, handlingServer string, dataKey string, dataIv string, password string, user *User, newFileName string) error {
+func (f *File) UpdateFile(tx *gorm.DB, newSize int64, newActualSize int64, checksum string, handlingServer string, dataKey string, dataIv string, password string, user *User, newFileName string) error {
 
 	// Check if user has read permission (if not 404)
 

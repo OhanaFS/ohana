@@ -119,7 +119,7 @@ func TestFragmentHandler(t *testing.T) {
 				FileName:           filename,
 				MIMEType:           "",
 				ParentFolderFileId: &rootFolder.FileId, // root folder for now
-				Size:               int(5),
+				Size:               5,
 				VersioningMode:     dbfs.VersioningOff,
 				TotalShards:        totalShards,
 				DataShards:         dataShards,
