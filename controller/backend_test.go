@@ -690,6 +690,7 @@ func TestBackendController(t *testing.T) {
 		w = httptest.NewRecorder()
 		bc.LsFolderID(w, req)
 		assert.Equal(http.StatusOK, w.Code)
+
 	})
 
 	// Create Group and add to it
@@ -831,9 +832,9 @@ func TestBackendController(t *testing.T) {
 			ctxutil.WithUser(context.Background(), user))
 		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
 		req = mux.SetURLVars(req, map[string]string{
-			"fileID": newFileID,
+			"fileID":       newFileID,
+			"permissionID": permissionID,
 		})
-		req.Header.Add("permission_id", permissionID)
 		req.Header.Add("can_read", "true")
 		req.Header.Add("can_write", "true")
 		req.Header.Add("can_execute", "false")
@@ -859,6 +860,45 @@ func TestBackendController(t *testing.T) {
 		err = json.Unmarshal(w.Body.Bytes(), &incomingPermissions)
 		assert.NoError(err)
 		assert.Equal(3, len(incomingPermissions))
+
+		for _, permission := range incomingPermissions {
+			if permission.UserId != nil {
+				if *permission.UserId == user1.UserId {
+					assert.Equal(false, permission.CanShare)
+				}
+			}
+			fmt.Println(permission)
+		}
+
+		// Remove permission
+
+		req = httptest.NewRequest("PUT", "/api/v1/file/"+newFileID+"/permissions/"+permissionID, nil).WithContext(
+			ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req = mux.SetURLVars(req, map[string]string{
+			"fileID":       newFileID,
+			"permissionID": permissionID,
+		})
+
+		w = httptest.NewRecorder()
+		bc.DeletePermissionFile(w, req)
+		assert.Equal(http.StatusOK, w.Code)
+
+		// Getting Permissions File again
+
+		req = httptest.NewRequest("GET", "/api/v1/file/"+newFileID+"/permissions/", nil).WithContext(
+			ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req = mux.SetURLVars(req, map[string]string{
+			"fileID": newFileID,
+		})
+		w = httptest.NewRecorder()
+		bc.GetPermissionsFile(w, req)
+		assert.Equal(http.StatusOK, w.Code)
+
+		err = json.Unmarshal(w.Body.Bytes(), &incomingPermissions)
+		assert.NoError(err)
+		assert.Equal(2, len(incomingPermissions))
 
 		for _, permission := range incomingPermissions {
 			if permission.UserId != nil {

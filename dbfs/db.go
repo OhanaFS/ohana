@@ -184,11 +184,11 @@ func InitDB(db *gorm.DB) error {
 }
 
 type PermissionNeeded struct {
-	Read    bool
-	Write   bool
-	Execute bool
-	Share   bool
-	Audit   bool
+	Read    bool `json:"read"`
+	Write   bool `json:"write"`
+	Execute bool `json:"execute"`
+	Share   bool `json:"share"`
+	Audit   bool `json:"audit"`
 }
 
 // UpdatePermissionsHave updates current record with incoming superseding permissions
