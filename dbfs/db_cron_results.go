@@ -26,162 +26,160 @@ var (
 )
 
 type Job struct {
-	JobId              uint `gorm:"primaryKey; not null"`
-	StartTime          time.Time
-	EndTime            time.Time
-	TotalTimeTaken     time.Duration
-	TotalShardsScanned int
-	TotalFilesScanned  int
+	JobId          uint          `gorm:"primaryKey; not null" json:"id"`
+	StartTime      time.Time     `json:"start_time"`
+	EndTime        time.Time     `json:"end_time"`
+	TotalTimeTaken time.Duration `json:"total_time_taken"`
 	// MissingShardsCheck has a weightage of 10 in the progress calculation
-	MissingShardsCheck    bool
-	MissingShardsProgress []JobProgressMissingShard `gorm:"foreignkey:JobId"`
+	MissingShardsCheck    bool                      `json:"missing_shards_check"`
+	MissingShardsProgress []JobProgressMissingShard `gorm:"foreignkey:JobId" json:"missing_shards_progress"`
 	// OrphanedShardsCheck Check has a weightage of 10 in the progress calculation
-	OrphanedShardsCheck    bool
-	OrphanedShardsProgress []JobProgressOrphanedShard `gorm:"foreignkey:JobId"`
+	OrphanedShardsCheck    bool                       `json:"orphaned_shards_check"`
+	OrphanedShardsProgress []JobProgressOrphanedShard `gorm:"foreignkey:JobId" json:"orphaned_shards_progress"`
 	// QuickShardsCheck Check has a weightage of 50 in the progress calculation
-	QuickShardsHealthCheck    bool
-	QuickShardsHealthProgress []JobProgressCFSHC `gorm:"foreignkey:JobId"`
+	QuickShardsHealthCheck    bool               `json:"quick_shards_health_check"`
+	QuickShardsHealthProgress []JobProgressCFSHC `gorm:"foreignkey:JobId" json:"quick_shards_health_progress"`
 	// AllFilesShardsHealthCheck Check has a weightage of 100 in the progress calculation
-	AllFilesShardsHealthCheck    bool
-	AllFilesShardsHealthProgress []JobProgressAFSHC `gorm:"foreignkey:JobId"`
+	AllFilesShardsHealthCheck    bool               `json:"all_files_shards_health_check"`
+	AllFilesShardsHealthProgress []JobProgressAFSHC `gorm:"foreignkey:JobId" json:"all_files_shards_health_progress"`
 	// PermissionCheck Check has a weightage of 20 in the progress calculation
-	PermissionCheck   bool
-	PermissionResults *JobProgressPermissionCheck `gorm:"foreignkey:JobId"`
+	PermissionCheck   bool                        `json:"permission_check"`
+	PermissionResults *JobProgressPermissionCheck `gorm:"foreignkey:JobId" json:"permission_results"`
 	// DeleteFragments Check has a weightage of 10 in the progress calculation
-	DeleteFragments        bool
-	DeleteFragmentsResults []JobProgressDeleteFragments `gorm:"foreignkey:JobId"`
+	DeleteFragments        bool                         `json:"delete_fragments"`
+	DeleteFragmentsResults []JobProgressDeleteFragments `gorm:"foreignkey:JobId" json:"delete_fragments_results"`
 	// OrphanedFilesCheck has a weightage of 20 in the progress calculation
-	OrphanedFilesCheck   bool
-	OrphanedFilesResults []JobProgressOrphanedFile `gorm:"foreignkey:JobId"`
+	OrphanedFilesCheck   bool                      `json:"orphaned_files_check"`
+	OrphanedFilesResults []JobProgressOrphanedFile `gorm:"foreignkey:JobId" json:"orphaned_files_results"`
 	// Progress is the percentage of the job that is complete.
-	Progress  int
-	StatusMsg string
-	Status    int
+	Progress  int    `json:"progress"`
+	StatusMsg string `json:"status_msg"`
+	Status    int    `json:"status"`
 	// Status is computed on the fly based on the progress of the job.
 }
 
 // ResultsCFSHC Current files shards health check result
 type ResultsCFSHC struct {
-	JobId     uint
-	FileName  string
-	FileId    string
-	DataId    string
-	FragPath  string
-	ServerId  string
-	Error     string
-	ErrorType int
+	JobId     uint   `json:"id"`
+	FileName  string `json:"file_name"`
+	FileId    string `json:"file_id"`
+	DataId    string `json:"data_id"`
+	FragPath  string `json:"frag_path"`
+	ServerId  string `json:"server_name"`
+	Error     string `json:"error"`
+	ErrorType int    `json:"error_type"`
 }
 
 // JobProgressCFSHC Current files shards health check job progress
 type JobProgressCFSHC struct {
-	JobId      uint `gorm:"primary_key"`
-	StartTime  time.Time
-	EndTime    time.Time
-	ServerId   string
-	InProgress bool
-	Msg        string
+	JobId      uint      `gorm:"primary_key" json:"id"`
+	StartTime  time.Time `json:"start_time"`
+	EndTime    time.Time `json:"end_time"`
+	ServerId   string    `json:"server_name"`
+	InProgress bool      `json:"in_progress"`
+	Msg        string    `json:"msg"`
 }
 
 // ResultsAFSHC All file shards health check result
 type ResultsAFSHC struct {
-	JobId     uint
-	FileName  string
-	FileId    string
-	DataId    string
-	FragPath  string
-	ServerId  string
-	Error     string
-	ErrorType int
+	JobId     uint   `json:"id"`
+	FileName  string `json:"file_name"`
+	FileId    string `json:"file_id"`
+	DataId    string `json:"data_id"`
+	FragPath  string `json:"frag_path"`
+	ServerId  string `json:"server_name"`
+	Error     string `json:"error"`
+	ErrorType int    `json:"error_type"`
 }
 
 type ShardActions struct {
-	DataId   string
-	Fix      bool
-	Delete   bool
-	Password string
+	DataId   string `json:"data_id"`
+	Fix      bool   `json:"fix"`
+	Delete   bool   `json:"delete"`
+	Password string `json:"password"`
 }
 
 type OrphanedShardActions struct {
-	ServerId string
-	FileName string
-	Delete   bool
+	ServerId string `json:"server_name"`
+	FileName string `json:"file_name"`
+	Delete   bool   `json:"delete"`
 }
 
 type OrphanedFilesActions struct {
-	ParentFolderId string
-	Delete         bool
-	Move           bool
+	ParentFolderId string `json:"parent_folder_id"`
+	Delete         bool   `json:"delete"`
+	Move           bool   `json:"move"`
 }
 
 // JobProgressAFSHC All files fragment health check job progress
 type JobProgressAFSHC struct {
-	JobId      uint `gorm:"primary_key"`
-	StartTime  time.Time
-	EndTime    time.Time
-	ServerId   string
-	InProgress bool
-	Msg        string
+	JobId      uint      `gorm:"primary_key" json:"id"`
+	StartTime  time.Time `json:"start_time"`
+	EndTime    time.Time `json:"end_time"`
+	ServerId   string    `json:"server_name"`
+	InProgress bool      `json:"in_progress"`
+	Msg        string    `json:"msg"`
 }
 
 // ResultsMissingShard All Fragments health check result
 type ResultsMissingShard struct {
-	JobId     uint
-	FileName  string
-	FileId    string
-	DataId    string
-	FragPath  string
-	ServerId  string
-	Error     string
-	ErrorType int
+	JobId     uint   `json:"id"`
+	FileName  string `json:"file_name"`
+	FileId    string `json:"file_id"`
+	DataId    string `json:"data_id"`
+	FragPath  string `json:"frag_path"`
+	ServerId  string `json:"server_name"`
+	Error     string `json:"error"`
+	ErrorType int    `json:"error_type"`
 }
 
 // JobProgressMissingShard Missing shards job progress
 type JobProgressMissingShard struct {
-	JobId      uint `gorm:"primary_key"`
-	StartTime  time.Time
-	EndTime    time.Time
-	ServerId   string
-	InProgress bool
-	Msg        string
+	JobId      uint      `gorm:"primary_key" json:"id"`
+	StartTime  time.Time `json:"start_time"`
+	EndTime    time.Time `json:"end_time"`
+	ServerId   string    `json:"server_name"`
+	InProgress bool      `json:"in_progress"`
+	Msg        string    `json:"msg"`
 }
 
 // ResultsOrphanedShard Orphaned shards result
 type ResultsOrphanedShard struct {
-	JobId     uint
-	ServerId  string
-	FileName  string
-	Error     string
-	ErrorType int
+	JobId     uint   `json:"id"`
+	ServerId  string `json:"server_name"`
+	FileName  string `json:"file_name"`
+	Error     string `json:"error"`
+	ErrorType int    `json:"error_type"`
 }
 
 // JobProgressOrphanedShard Orphaned shards job progress
 type JobProgressOrphanedShard struct {
-	JobId      uint `gorm:"primary_key"`
-	StartTime  time.Time
-	EndTime    time.Time
-	ServerId   string
-	InProgress bool
-	Msg        string
+	JobId      uint      `gorm:"primary_key" json:"id"`
+	StartTime  time.Time `json:"start_time"`
+	EndTime    time.Time `json:"end_time"`
+	ServerId   string    `json:"server_name"`
+	InProgress bool      `json:"in_progress"`
+	Msg        string    `json:"msg"`
 }
 
 // JobProgressPermissionCheck reports the progress of the permission check
 type JobProgressPermissionCheck struct {
-	JobId      uint `gorm:"primary_key"`
-	StartTime  time.Time
-	EndTime    time.Time
-	ServerId   string
-	InProgress bool
-	Msg        string
+	JobId      uint      `gorm:"primary_key" json:"id"`
+	StartTime  time.Time `json:"start_time"`
+	EndTime    time.Time `json:"end_time"`
+	ServerId   string    `json:"server_name"`
+	InProgress bool      `json:"in_progress"`
+	Msg        string    `json:"msg"`
 }
 
 // JobProgressDeleteFragments reports the progress of deleting fragments
 type JobProgressDeleteFragments struct {
-	JobId      uint `gorm:"primary_key"`
-	StartTime  time.Time
-	EndTime    time.Time
-	ServerId   string
-	InProgress bool
-	Msg        string
+	JobId      uint      `gorm:"primary_key" json:"id"`
+	StartTime  time.Time `json:"start_time"`
+	EndTime    time.Time `json:"end_time"`
+	ServerId   string    `json:"server_name"`
+	InProgress bool      `json:"in_progress"`
+	Msg        string    `json:"msg"`
 }
 
 type JobParameters struct {
@@ -196,24 +194,24 @@ type JobParameters struct {
 
 // ResultsOrphanedFile Orphaned File result
 type ResultsOrphanedFile struct {
-	JobId          uint   `gorm:"primary_key"`
-	ParentFolderId string `gorm:"primary_key"`
-	Contents       string
-	Error          string
+	JobId          uint   `gorm:"primary_key" json:"id"`
+	ParentFolderId string `gorm:"primary_key" json:"parent_folder_id"`
+	Contents       string `json:"contents"`
+	Error          string `json:"error"`
 	// Error will store the path route it took to get to the error
-	ErrorType int
+	ErrorType int `json:"error_type"`
 	// ErrorType will store what happened with the file (orphaned, moved, deleted)
 }
 
 // JobProgressOrphanedFile Orphaned File job progress
 type JobProgressOrphanedFile struct {
-	JobId      uint `gorm:"primary_key"`
-	StartTime  time.Time
-	EndTime    time.Time
-	Processed  int64
-	Total      int64
-	InProgress bool
-	Msg        string
+	JobId      uint      `gorm:"primary_key" json:"id"`
+	StartTime  time.Time `json:"start_time"`
+	EndTime    time.Time `json:"end_time"`
+	Processed  int64     `json:"processed"`
+	Total      int64     `json:"total"`
+	InProgress bool      `json:"in_progress"`
+	Msg        string    `json:"msg"`
 }
 
 // GetAllJobs Returns all jobs in the database based on the paramters passed in
@@ -374,6 +372,10 @@ func GetJob(tx *gorm.DB, jobId int) (*Job, error) {
 	if job.Progress == 100 {
 		// update job via gorm to set status to complete
 		tx.Model(&job).Where("job_id = ?", job.JobId).Update("progress", 100)
+		if job.Status == JobStatusRunning {
+			tx.Model(&job).Where("job_id = ?", job.JobId).Update("status", JobNoErrors)
+
+		}
 	}
 
 	return &job, nil
@@ -462,6 +464,7 @@ func InitializeJob(tx *gorm.DB, parameters JobParameters) (*Job, error) {
 		PermissionCheck:           parameters.PermissionCheck,
 		DeleteFragments:           parameters.DeleteFragments,
 		OrphanedFilesCheck:        parameters.OrphanedFilesCheck,
+		Status:                    JobStatusRunning,
 	}
 	err := tx.Create(&job).Error
 	if err != nil {
