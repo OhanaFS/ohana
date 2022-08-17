@@ -1,4 +1,13 @@
-import { Button, Textarea, Checkbox, Text } from '@mantine/core';
+import {
+  Button,
+  Textarea,
+  Checkbox,
+  Text,
+  Divider,
+  NumberInput,
+  Group,
+} from '@mantine/core';
+import { useForm } from '@mantine/form';
 import { useState } from 'react';
 import AppBase from './components/AppBase';
 
@@ -34,6 +43,14 @@ export function AdminConfiguration() {
       setButton(false);
     }
   }
+  const form = useForm({
+    initialValues: {
+      dataShards: 2,
+      parityShards: 1,
+      keyThreshold: 2,
+    },
+  });
+
   return (
     <AppBase userType="admin">
       <div
@@ -50,7 +67,7 @@ export function AdminConfiguration() {
             border: '1px solid #ccc',
             flexDirection: 'column',
             justifyContent: 'center',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             width: '90%',
             backgroundColor: 'white',
             borderRadius: '10px',
@@ -68,40 +85,88 @@ export function AdminConfiguration() {
               alignSelf: 'center',
             }}
           >
-            Rotate Key
+            Settings
           </caption>
-          <Textarea
-            label="Specify the file/directory location and the system will
+          <div className="flex flex-col">
+            <Divider
+              my="xs"
+              label="Rotate Key"
+              variant="dotted"
+              labelPosition="center"
+            />
+            <Textarea
+              label="Specify the file/directory location and the system will
             auto rotate the key"
-            radius="md"
-            size="lg"
-            error={errorMessage}
-            onChange={(event) => {
-              addLocation(event.target.value),
-                (location = event.target.value),
-                validate();
-            }}
-          />
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              margin: '20px 0',
-            }}
-          >
-            <Text>Master Key :</Text>
-            <Checkbox style={{ marginLeft: '10px' }}> </Checkbox>
+              radius="md"
+              size="lg"
+              error={errorMessage}
+              onChange={(event) => {
+                addLocation(event.target.value),
+                  (location = event.target.value),
+                  validate();
+              }}
+            />
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                margin: '20px 0',
+              }}
+            >
+              <Text>Master Key :</Text>
+              <Checkbox style={{ marginLeft: '10px' }}> </Checkbox>
+            </div>
+            <Button
+              variant="default"
+              color="dark"
+              size="md"
+              disabled={rotateButton}
+              style={{ alignSelf: 'flex-end' }}
+              onClick={() => rotateKey()}
+            >
+              Rotate Key
+            </Button>
           </div>
-          <Button
-            variant="default"
-            color="dark"
-            size="md"
-            disabled={rotateButton}
-            style={{ alignSelf: 'flex-end' }}
-            onClick={() => rotateKey()}
-          >
-            Rotate Key
-          </Button>
+
+          <div className="flex flex-col w-full mt-5">
+            <Divider
+              my="xs"
+              label="Set Redundancy Level"
+              variant="dotted"
+              labelPosition="center"
+            />
+            <form
+              className="mt-3"
+              onSubmit={form.onSubmit((values) => console.log(values))}
+            >
+              <NumberInput
+                label="Number of Data Shards"
+                description="From 1 to 10"
+                max={10}
+                min={1}
+                {...form.getInputProps('dataShards')}
+              />
+              <NumberInput
+                className="mt-2"
+                label="Number of Parity Shards"
+                description="From 1 to 10"
+                max={10}
+                min={1}
+                {...form.getInputProps('parityShards')}
+              />
+              <NumberInput
+                className="mt-2"
+                label="Key Threshold Value"
+                description="From 1 to 10"
+                max={10}
+                min={1}
+                {...form.getInputProps('keyThreshold')}
+              />
+              <Group position="right" mt="lg">
+                <Button type="submit">Submit</Button>
+              </Group>
+            </form>
+          </div>
         </div>
       </div>
     </AppBase>
