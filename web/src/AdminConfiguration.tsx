@@ -1,4 +1,13 @@
-import { Button, Textarea, Checkbox, Text, Divider } from '@mantine/core';
+import {
+  Button,
+  Textarea,
+  Checkbox,
+  Text,
+  Divider,
+  NumberInput,
+  Group,
+} from '@mantine/core';
+import { useForm } from '@mantine/form';
 import { useState } from 'react';
 import AppBase from './components/AppBase';
 
@@ -34,6 +43,14 @@ export function AdminConfiguration() {
       setButton(false);
     }
   }
+  const form = useForm({
+    initialValues: {
+      dataShards: 2,
+      parityShards: 1,
+      keyThreshold: 2,
+    },
+  });
+
   return (
     <AppBase userType="admin">
       <div
@@ -118,7 +135,37 @@ export function AdminConfiguration() {
               variant="dotted"
               labelPosition="center"
             />
-            <Text>test</Text>
+            <form
+              className="mt-3"
+              onSubmit={form.onSubmit((values) => console.log(values))}
+            >
+              <NumberInput
+                label="Number of Data Shards"
+                description="From 1 to 10"
+                max={10}
+                min={1}
+                {...form.getInputProps('dataShards')}
+              />
+              <NumberInput
+                className="mt-2"
+                label="Number of Parity Shards"
+                description="From 1 to 10"
+                max={10}
+                min={1}
+                {...form.getInputProps('parityShards')}
+              />
+              <NumberInput
+                className="mt-2"
+                label="Key Threshold Value"
+                description="From 1 to 10"
+                max={10}
+                min={1}
+                {...form.getInputProps('keyThreshold')}
+              />
+              <Group position="right" mt="lg">
+                <Button type="submit">Submit</Button>
+              </Group>
+            </form>
           </div>
         </div>
       </div>
