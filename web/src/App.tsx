@@ -9,7 +9,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AdminDashboard } from './AdminDashboard';
 import { LoginPage } from './LoginPage';
 import { AdminConfiguration } from './AdminConfiguration';
-import { AdminKeyManagement } from './AdminKeyManagement';
 import { AdminNodes } from './AdminNodes';
 import { AdminPerformMaintenance } from './AdminPerformMaintenance';
 import { AdminRunMaintenance } from './AdminRunMaintenance';
@@ -42,7 +41,6 @@ export default function Demo() {
           <Route path="/share/:id" element={<SharingPage />} />
           <Route path="/" element={<LoginPage />} />
           <Route path="/insidessogroup" element={<AdminSsoGroupsInside />} />
-          <Route path="/manage_keys" element={<AdminKeyManagement />} />
           <Route
             path="/performmaintenance"
             element={<AdminPerformMaintenance />}
