@@ -75,7 +75,8 @@ func NewBackend(
 	r.HandleFunc("/api/v1/file/{fileID}", bc.DeleteFile).Methods("DELETE")
 	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.GetFolderPermissions).Methods("GET")
 	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.AddPermissionsFolder).Methods("POST")
-	r.HandleFunc("/api/v1/file/{fileID}/permissions", bc.UpdateFolderMetadata).Methods("PATCH")
+	r.HandleFunc("/api/v1/file/{fileID}/permissions/{permissionID}", bc.ModifyPermissionsFile).Methods("PATCH")
+	r.HandleFunc("/api/v1/file/{fileID}/permissions/{permissionID}", bc.DeletePermissionFile).Methods("DELETE")
 	r.HandleFunc("/api/v1/file/{fileID}/share", bc.GetFileSharedLinks).Methods("GET")
 	r.HandleFunc("/api/v1/file/{fileID}/share", bc.CreateFileSharedLink).Methods("POST")
 	r.HandleFunc("/api/v1/file/{fileID}/share/{link}", bc.PatchFileSharedLink).Methods("PATCH")
@@ -94,7 +95,8 @@ func NewBackend(
 	r.HandleFunc("/api/v1/folder", bc.GetFolderIDFromPath).Methods("GET")
 	r.HandleFunc("/api/v1/folder", bc.CreateFolder).Methods("POST")
 	r.HandleFunc("/api/v1/folder/{folderID}/permissions", bc.GetPermissionsFile).Methods("GET")
-	r.HandleFunc("/api/v1/folder/{folderID}/permissions", bc.UpdateMetadataFile).Methods("PATCH")
+	r.HandleFunc("/api/v1/folder/{folderID}/permissions/{permissionID}", bc.ModifyPermissionsFolder).Methods("PATCH")
+	r.HandleFunc("/api/v1/folder/{folderID}/permissions/{permissionID}", bc.DeletePermissionFolder).Methods("DELETE")
 	r.HandleFunc("/api/v1/folder/{folderID}/permissions", bc.AddPermissionsFolder).Methods("POST")
 	r.HandleFunc("/api/v1/folder/{folderID}/move", bc.MoveFolder).Methods("POST")
 	r.HandleFunc("/api/v1/file/{folderID}/copy", bc.CopyFile).Methods("POST")
@@ -943,9 +945,13 @@ func (bc *BackendController) ModifyPermissionsFile(w http.ResponseWriter, r *htt
 		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
 		return
 	}
+	permissionID, ok := vars["permissionID"]
+	if !ok || permissionID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No permissionID provided")
+		return
+	}
 
 	// get other headers
-	permissionID := r.Header.Get("permission_id")
 	canRead := r.Header.Get("can_read")
 	canWrite := r.Header.Get("can_write")
 	canExecute := r.Header.Get("can_execute")
@@ -1031,6 +1037,64 @@ func (bc *BackendController) ModifyPermissionsFile(w http.ResponseWriter, r *htt
 		util.HttpError(w, http.StatusForbidden, err.Error())
 		return
 	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Success
+	util.HttpJson(w, http.StatusOK, nil)
+
+}
+
+// DeletePermissionFile deletes the permissions of a file based on the id obtained from GetPermissionsFile
+func (bc *BackendController) DeletePermissionFile(w http.ResponseWriter, r *http.Request) {
+
+	// somehow get user idk
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// fileID
+	vars := mux.Vars(r)
+	fileID, ok := vars["fileID"]
+	if !ok || fileID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
+		return
+	}
+	permissionID, ok := vars["permissionID"]
+	if !ok || permissionID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No permissionID provided")
+		return
+	}
+
+	// get file
+	file, err := dbfs.GetFileById(bc.Db, fileID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Check if file is actually a file
+	if file.EntryType != dbfs.IsFile {
+		util.HttpError(w, http.StatusBadRequest, "File is not a folder")
+		return
+	}
+
+	// get old permission struct entry
+	oldPermission, err := file.GetPermissionById(bc.Db, permissionID, user)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// call delete
+	err = file.RemovePermission(bc.Db, oldPermission, user)
+	if err != nil {
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -1502,7 +1566,7 @@ func (bc *BackendController) LsFolderID(w http.ResponseWriter, r *http.Request) 
 
 // UpdateFolderMetadata updates the filename or the versioningMode of a folder
 func (bc *BackendController) UpdateFolderMetadata(w http.ResponseWriter, r *http.Request) {
-	// somehow get user idk
+
 	user, err := ctxutil.GetUser(r.Context())
 	if err != nil {
 		util.HttpError(w, http.StatusUnauthorized, err.Error())
@@ -1562,6 +1626,40 @@ func (bc *BackendController) UpdateFolderMetadata(w http.ResponseWriter, r *http
 
 	// return contents
 	util.HttpJson(w, http.StatusOK, nil)
+}
+
+// UpdateFolderPermissions updates the permissions of a folder based on the ID given
+func (bc *BackendController) UpdateFolderPermissions(w http.ResponseWriter, r *http.Request) {
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// folderID
+	vars := mux.Vars(r)
+	folderID, ok := vars["folderID"]
+	if !ok || folderID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No folderID provided")
+		return
+	}
+
+	// get folder
+	folder, err := dbfs.GetFileById(bc.Db, folderID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Check if folder is actually a folder
+	if folder.EntryType != dbfs.IsFolder {
+		util.HttpError(w, http.StatusBadRequest, "File is not a folder")
+		return
+	}
+
 }
 
 // DeleteFolder deletes a folder
@@ -1761,12 +1859,20 @@ func (bc *BackendController) ModifyPermissionsFolder(w http.ResponseWriter, r *h
 		return
 	}
 
-	// fileID
+	// folderID
 	vars := mux.Vars(r)
-	folderID := vars["folderID"]
+	folderID, ok := vars["folderID"]
+	if !ok || folderID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No folderID provided")
+		return
+	}
+	permissionID, ok := vars["permissionID"]
+	if !ok || permissionID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No permissionID provided")
+		return
+	}
 
 	// get other headers
-	permissionID := r.Header.Get("permission_id")
 	canRead := r.Header.Get("can_read")
 	canWrite := r.Header.Get("can_write")
 	canExecute := r.Header.Get("can_execute")
@@ -1801,7 +1907,7 @@ func (bc *BackendController) ModifyPermissionsFolder(w http.ResponseWriter, r *h
 		canAuditBool = false
 	}
 
-	// get file
+	// get folder
 	folder, err := dbfs.GetFileById(bc.Db, folderID, user)
 	if errors.Is(err, dbfs.ErrFileNotFound) {
 		util.HttpError(w, http.StatusNotFound, err.Error())
@@ -1858,6 +1964,59 @@ func (bc *BackendController) ModifyPermissionsFolder(w http.ResponseWriter, r *h
 
 	// Success
 	util.HttpJson(w, http.StatusOK, nil)
+}
+
+// DeletePermissionFolder deletes a permission from a folder
+func (bc *BackendController) DeletePermissionFolder(w http.ResponseWriter, r *http.Request) {
+
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// folderID
+	vars := mux.Vars(r)
+	folderID, ok := vars["folderID"]
+	if !ok || folderID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No folderID provided")
+		return
+	}
+	permissionID, ok := vars["permissionID"]
+	if !ok || permissionID == "" {
+		util.HttpError(w, http.StatusBadRequest, "No permissionID provided")
+		return
+	}
+
+	// Get folder
+	folder, err := dbfs.GetFileById(bc.Db, folderID, user)
+	if errors.Is(err, dbfs.ErrFileNotFound) {
+		util.HttpError(w, http.StatusNotFound, err.Error())
+		return
+	} else if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Check if folder is actually a folder
+	if folder.EntryType != dbfs.IsFolder {
+		util.HttpError(w, http.StatusBadRequest, "File is not a folder")
+		return
+	}
+
+	// Get Permission
+	permission, err := folder.GetPermissionById(bc.Db, permissionID, user)
+
+	// delete permission
+	err = folder.RemovePermission(bc.Db, permission, user)
+
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// Success
+	util.HttpJson(w, http.StatusOK, nil)
+
 }
 
 // AddPermissionsFolder ads permission to a folder
