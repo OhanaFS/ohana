@@ -188,6 +188,7 @@ const LocalAccess = ({ fileId }: { fileId: string }) => {
       can_write: false,
       can_execute: false,
       can_share: false,
+      can_audit: false,
     });
     console.log('got new stuff!', { item });
   };
