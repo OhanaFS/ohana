@@ -86,7 +86,6 @@ export default function AppBase(props: AppBaseProps) {
   ];
   const data_admin = [
     { icon: <IconHome2 size={16} />, color: 'blue', label: 'Dashboard' },
-    { icon: <IconUserPlus size={16} />, color: 'blue', label: 'SSO' },
     { icon: <IconServer2 size={16} />, color: 'blue', label: 'Nodes' },
     { icon: <IconTool size={16} />, color: 'blue', label: 'Maintenance' },
     { icon: <IconSettings size={16} />, color: 'blue', label: 'Settings' },

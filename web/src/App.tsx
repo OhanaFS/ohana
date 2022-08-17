@@ -12,8 +12,6 @@ import { AdminConfiguration } from './AdminConfiguration';
 import { AdminNodes } from './AdminNodes';
 import { AdminPerformMaintenance } from './AdminPerformMaintenance';
 import { AdminRunMaintenance } from './AdminRunMaintenance';
-import { AdminSsoGroups } from './AdminSsoGroups';
-import { AdminSsoGroupsInside } from './AdminSsoGroupsInside';
 import AdminMaintenanceLogs from './AdminMaintenanceLogs';
 import SharingPage from './components/Sharing/SharingPage';
 
@@ -39,14 +37,12 @@ export default function Demo() {
           <Route path="/home/:id" element={<VFSBrowser />} />
           <Route path="/share/:id" element={<SharingPage />} />
           <Route path="/" element={<LoginPage />} />
-          <Route path="/insidessogroup" element={<AdminSsoGroupsInside />} />
           <Route
             path="/performmaintenance"
             element={<AdminPerformMaintenance />}
           />
           <Route path="/runmaintenance" element={<AdminRunMaintenance />} />
           <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="/sso" element={<AdminSsoGroups />} />
           <Route path="/nodes" element={<AdminNodes />} />
           <Route path="/maintenance" element={<AdminMaintenanceLogs />} />
           <Route path="/settings" element={<AdminConfiguration />} />
