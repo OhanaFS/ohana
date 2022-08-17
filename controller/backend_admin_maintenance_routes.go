@@ -1170,3 +1170,55 @@ func (bc *BackendController) FixOrphanedFilesResult(w http.ResponseWriter, r *ht
 
 	util.HttpJson(w, http.StatusOK, true)
 }
+
+// SetStitchParameters sets the stitch parameters
+func (bc *BackendController) SetStitchParameters(w http.ResponseWriter, r *http.Request) {
+
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// Check if user is admin
+	if user.AccountType != dbfs.AccountTypeAdmin {
+		util.HttpError(w, http.StatusForbidden, "You are not an admin")
+		return
+	}
+
+	dataShardsString := strings.TrimSpace(r.Header.Get("data_shards"))
+	keyThresholdString := strings.TrimSpace(r.Header.Get("key_threshold"))
+	parityShardsString := strings.TrimSpace(r.Header.Get("parity_shards"))
+	if dataShardsString == "" || keyThresholdString == "" || parityShardsString == "" {
+		util.HttpError(w, http.StatusBadRequest, "Missing parameters")
+		return
+	}
+
+	dataShards, err := strconv.Atoi(dataShardsString)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "Invalid data_shards")
+		return
+	}
+	keyThreshold, err := strconv.Atoi(keyThresholdString)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "Invalid key_threshold")
+		return
+	}
+	parityShards, err := strconv.Atoi(parityShardsString)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "Invalid parity_shards")
+		return
+	}
+
+	err = dbfs.SetStitchParams(bc.Db, dataShards, keyThreshold, parityShards)
+	if err != nil {
+		if strings.Contains(err.Error(), "not valid") {
+			util.HttpError(w, http.StatusBadRequest, err.Error())
+		} else {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+
+	util.HttpJson(w, http.StatusOK, true)
+}
