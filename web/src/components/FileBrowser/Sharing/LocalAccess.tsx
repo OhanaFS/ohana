@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import React from 'react';
 import {
   Autocomplete,
   Text,
@@ -9,6 +9,11 @@ import {
   SelectItemProps,
 } from '@mantine/core';
 import { useQueryUser, useQueryUsers, WhoamiResponse } from '../../../api/auth';
+import {
+  useMutateAddFilePermissions,
+  useQueryFileMetadata,
+  useQueryFilePermissions,
+} from '../../../api/file';
 
 const useStyles = createStyles((theme) => ({
   userButton: {
@@ -28,7 +33,7 @@ type UserButtonProps = {
   withStyles?: boolean;
 };
 
-const UserLayout = forwardRef<HTMLDivElement, UserButtonProps>(
+const UserLayout = React.forwardRef<HTMLDivElement, UserButtonProps>(
   ({ name, email, isYou, withStyles, ...rest }: UserButtonProps, ref) => {
     const { classes } = useStyles();
     return (
@@ -69,7 +74,7 @@ interface ItemProps extends SelectItemProps {
   user_id: string;
 }
 
-const AutocompleteItem = forwardRef<HTMLDivElement, ItemProps>(
+const AutocompleteItem = React.forwardRef<HTMLDivElement, ItemProps>(
   ({ name, email, user_id, ...rest }: ItemProps, ref) => (
     <UserLayout ref={ref} name={name} email={email} {...rest} />
   )
@@ -77,7 +82,11 @@ const AutocompleteItem = forwardRef<HTMLDivElement, ItemProps>(
 
 const LocalAccess = ({ fileId }: { fileId: string }) => {
   const qUser = useQueryUser();
+  const qFile = useQueryFileMetadata(fileId);
   const qUsers = useQueryUsers();
+  const qPerms = useQueryFilePermissions(fileId);
+
+  const mCreatePerms = useMutateAddFilePermissions();
 
   const autocompleteData = (qUsers.data ?? []).map((user) => ({
     ...user,
@@ -85,8 +94,22 @@ const LocalAccess = ({ fileId }: { fileId: string }) => {
   }));
 
   const handleShare = (item: WhoamiResponse) => {
+    mCreatePerms.mutate({
+      file_id: fileId,
+      users: [item.user_id],
+      groups: [],
+
+      can_read: true,
+      can_write: false,
+      can_execute: false,
+      can_share: false,
+    });
     console.log('got new stuff!', { item });
   };
+
+  const currentPerms = (qPerms.data ?? []).filter(
+    (perm) => perm.version_no === qFile.data?.version_no
+  );
 
   return (
     <>
@@ -107,16 +130,20 @@ const LocalAccess = ({ fileId }: { fileId: string }) => {
           );
         }}
         onItemSubmit={(item) => handleShare(item as unknown as WhoamiResponse)}
+        disabled={mCreatePerms.isLoading}
       />
 
       <Text weight="bold" pt="sm">
         People with access
       </Text>
-      <UserButton
-        name={qUser.data?.name || ''}
-        email={qUser.data?.email || ''}
-        isYou
-      />
+      {currentPerms.map((perm) => (
+        <UserButton
+          key={perm.permission_id}
+          name={perm.User.name}
+          email={perm.User.email}
+          isYou={perm.user_id === qUser.data?.user_id}
+        />
+      ))}
     </>
   );
 };
