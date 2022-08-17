@@ -2,12 +2,13 @@ package dbfs
 
 import (
 	"errors"
-	"github.com/OhanaFS/ohana/util/random_phrase_generator"
 	"mime"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/OhanaFS/ohana/util/random_phrase_generator"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -47,7 +48,6 @@ var (
 	ErrInvalidFile        = errors.New("invalid file. please check the parameters and try again")
 	ErrVersionNotFound    = errors.New("version not found")
 	ErrPasswordRequired   = errors.New("password required")
-	ErrPasswordIncorrect  = errors.New("password incorrect")
 	ErrNoPassword         = errors.New("no password")
 	ErrLinkExists         = errors.New("link already exists")
 	ErrSharedLinkNotFound = errors.New("shared link not found")
@@ -821,7 +821,7 @@ func (f *File) UpdateMetaData(tx *gorm.DB, modificationsRequested FileMetadataMo
 
 		if modificationsRequested.NewPassword == "" && pp.PasswordActive {
 			if f.PasswordUnprotect(tx, modificationsRequested.OldPassword, user) != nil {
-				return ErrPasswordIncorrect
+				return ErrIncorrectPassword
 			}
 		} else if modificationsRequested.NewPassword == "" && !pp.PasswordActive {
 			// No password change requested

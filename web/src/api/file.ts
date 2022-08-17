@@ -359,12 +359,27 @@ export type DeleteFileVersionRequest = {
 /**
  * Delete a file version by its ID.
  */
-export const useMutateDeleteFileVersion = () =>
-  useMutation(({ file_id, version_id }: DeleteFileVersionRequest) =>
-    APIClient.delete<boolean>(`/api/v1/file/${file_id}/version/${version_id}`)
-      .then((res) => res.data)
-      .catch(typedError)
+export const useMutateDeleteFileVersion = () => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ file_id, version_id }: DeleteFileVersionRequest) =>
+      APIClient.delete<boolean>(
+        `/api/v1/file/${file_id}/versions/${version_id}`
+      )
+        .then((res) => res.data)
+        .catch(typedError),
+    {
+      onSuccess: (_, params) => {
+        queryClient.invalidateQueries([
+          'file',
+          'version',
+          'history',
+          params.file_id,
+        ]);
+      },
+    }
   );
+};
 
 /**
  * Get a file path by its ID.
@@ -392,4 +407,38 @@ export const useQueryFolderPathById = (folderId: string) =>
         )
           .then((res) => res.data)
           .catch(typedError)
+  );
+
+/**
+ * Add a file to favorites
+ */
+export const useMutateFavoriteFile = () => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (params: { fileId: string; action: 'put' | 'delete' }) =>
+      APIClient[params.action]<boolean>(`/api/v1/favorites/${params.fileId}`)
+        .then((res) => res.data)
+        .catch(typedError),
+    {
+      onSuccess: (_, params) => {
+        queryClient.invalidateQueries(['is-favorite', params.fileId]);
+        queryClient.invalidateQueries(['favorites']);
+      },
+    }
+  );
+};
+
+/**
+ * Check if a file is favorited
+ */
+export const useQueryIsFavoriteFile = (fileId: string) =>
+  useQuery(
+    ['is-favorite', fileId],
+    () =>
+      !fileId
+        ? Promise.reject()
+        : APIClient.get<FileMetadata>(`/api/v1/favorites/${fileId}`)
+            .then((res) => res.data)
+            .catch(typedError),
+    { retry: false }
   );

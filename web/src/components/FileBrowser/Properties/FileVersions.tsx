@@ -1,9 +1,8 @@
+import { useState } from 'react';
 import { ActionIcon, Button, Table } from '@mantine/core';
 import { IconDownload, IconTrash } from '@tabler/icons';
-import { useState } from 'react';
 import {
   useMutateDeleteFileVersion,
-  useMutateUpdateFile,
   useQueryFileVersionHistory,
 } from '../../../api/file';
 import UploadFileModal from '../UploadFileModal';
@@ -13,7 +12,6 @@ type FileVersionsProps = {
 };
 const FileVersions = (props: FileVersionsProps) => {
   const qFileVersionHistory = useQueryFileVersionHistory(props.fileId);
-  const mUpdateFile = useMutateUpdateFile();
   const mDeleteFileVersion = useMutateDeleteFileVersion();
 
   const [isUploadOpen, setUploadOpen] = useState(false);
@@ -23,7 +21,7 @@ const FileVersions = (props: FileVersionsProps) => {
       <UploadFileModal
         opened={isUploadOpen}
         onClose={() => setUploadOpen(false)}
-        update={true}
+        update
         updateFileId={props.fileId}
       />
       <Table>
@@ -43,7 +41,14 @@ const FileVersions = (props: FileVersionsProps) => {
                 <td>{version.version_no}</td>
                 <td>{version.modified_time}</td>
                 <td>
-                  <ActionIcon>
+                  <ActionIcon
+                    onClick={() =>
+                      mDeleteFileVersion.mutate({
+                        file_id: props.fileId,
+                        version_id: version.version_no,
+                      })
+                    }
+                  >
                     <IconTrash className="text-red-500" />
                   </ActionIcon>
                 </td>

@@ -81,7 +81,7 @@ export default function AppBase(props: AppBaseProps) {
   const [opened, setOpened] = useState(false);
   const data_user = [
     { icon: <IconHome2 size={16} />, color: 'blue', label: 'Home' },
-    { icon: <IconStar size={16} />, color: 'teal', label: 'Favourites' },
+    { icon: <IconStar size={16} />, color: 'teal', label: 'Favorites' },
     { icon: <IconShare size={16} />, color: 'violet', label: 'Shared' },
   ];
   const data_admin = [

@@ -14,6 +14,7 @@ import { AdminPerformMaintenance } from './AdminPerformMaintenance';
 import { AdminRunMaintenance } from './AdminRunMaintenance';
 import AdminMaintenanceLogs from './AdminMaintenanceLogs';
 import SharingPage from './components/Sharing/SharingPage';
+import SharedFavoritesList from './components/FileBrowser/SharedFavoritesList';
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,14 @@ export default function Demo() {
           <Route path="/home" element={<VFSBrowser />} />
           <Route path="/home/:id" element={<VFSBrowser />} />
           <Route path="/share/:id" element={<SharingPage />} />
+          <Route
+            path="/favorites"
+            element={<SharedFavoritesList list="favorites" />}
+          />
+          <Route
+            path="/shared"
+            element={<SharedFavoritesList list="shared" />}
+          />
           <Route path="/" element={<LoginPage />} />
           <Route
             path="/performmaintenance"
