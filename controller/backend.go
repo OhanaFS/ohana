@@ -57,6 +57,9 @@ func NewBackend(
 	// Register routes
 	r := router.NewRoute().Subrouter()
 
+	// Users
+	r.HandleFunc("/api/v1/users", bc.GetUsers).Methods("GET")
+
 	// File
 	r.HandleFunc("/api/v1/file", bc.UploadFile).Methods("POST")
 	r.HandleFunc("/api/v1/file/{fileID}/update", bc.UpdateFile).Methods("POST")
@@ -2386,4 +2389,23 @@ func (bc *BackendController) DownloadSharedLink(w http.ResponseWriter, r *http.R
 	}
 
 	http.ServeContent(w, r, file.FileName, file.ModifiedTime, reader)
+}
+
+// GetUsers returns all the users in the DB
+func (bc *BackendController) GetUsers(w http.ResponseWriter, r *http.Request) {
+
+	_, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	users, err := dbfs.GetUsers(bc.Db)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	util.HttpJson(w, http.StatusOK, users)
+
 }

@@ -631,6 +631,23 @@ func TestBackendController(t *testing.T) {
 		"testuser1", "testuser1", "testuser1", "testuser1", "server")
 	assert.NoError(err)
 
+	t.Run("Get Users", func(t *testing.T) {
+
+		// Checking GetUsers Route
+		req = httptest.NewRequest("GET", "/api/v1/users", nil).WithContext(
+			ctxutil.WithUser(context.Background(), user1))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		w = httptest.NewRecorder()
+		bc.GetUsers(w, req)
+
+		var users []dbfs.User
+		err = json.Unmarshal([]byte(w.Body.String()), &users)
+		assert.NoError(err)
+		assert.Equal(http.StatusOK, w.Code)
+		assert.Equal(3, len(users))
+
+	})
+
 	t.Run("Permissions Check", func(t *testing.T) {
 
 		// Testing if user 1 has permission to newFolderID
