@@ -255,6 +255,7 @@ export type Permission = {
   can_write: boolean;
   can_execute: boolean;
   can_share: boolean;
+  can_audit: boolean;
 };
 
 export type FilePermission = Permission & {
@@ -288,7 +289,7 @@ export const useQueryFilePermissions = (fileId: string) =>
 
 export type UpdateFilePermissionsRequest = Permission & {
   file_id: string;
-  permission_id: number;
+  permission_id: string;
 };
 
 /**
@@ -297,10 +298,12 @@ export type UpdateFilePermissionsRequest = Permission & {
 export const useMutateUpdateFilePermissions = () => {
   const queryClient = useQueryClient();
   return useMutation(
-    ({ file_id, ...perms }: UpdateFilePermissionsRequest) =>
-      APIClient.patch<boolean>(`/api/v1/file/${file_id}/permissions`, null, {
-        headers: { ...perms },
-      })
+    ({ file_id, permission_id, ...perms }: UpdateFilePermissionsRequest) =>
+      APIClient.patch<boolean>(
+        `/api/v1/file/${file_id}/permissions/${permission_id}`,
+        null,
+        { headers: { ...perms } }
+      )
         .then((res) => res.data)
         .catch(typedError),
     {
@@ -332,6 +335,27 @@ export const useMutateAddFilePermissions = () => {
           groups: JSON.stringify(groups),
         },
       })
+        .then((res) => res.data)
+        .catch(typedError),
+    {
+      onSuccess: (_, params) => {
+        queryClient.invalidateQueries(['file', 'permissions', params.file_id]);
+        queryClient.invalidateQueries(['file', 'metadata', params.file_id]);
+      },
+    }
+  );
+};
+
+/**
+ * Remove a permission from a file
+ */
+export const useMutateDeleteFilePermissions = () => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (params: { file_id: string; permission_id: string }) =>
+      APIClient.delete(
+        `/api/v1/file/${params.file_id}/permissions/${params.permission_id}`
+      )
         .then((res) => res.data)
         .catch(typedError),
     {

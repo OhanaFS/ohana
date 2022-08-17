@@ -18,6 +18,7 @@ import {
   FilePermission,
   Permission,
   useMutateAddFilePermissions,
+  useMutateDeleteFilePermissions,
   useMutateUpdateFilePermissions,
   useQueryFileMetadata,
   useQueryFilePermissions,
@@ -59,14 +60,23 @@ const UserButton = ({ perm }: { perm: FilePermission }) => {
   const qUser = useQueryUser();
   const isYou = perm.User.user_id === qUser.data?.user_id;
   const [switches, setSwitches] = React.useState<Permission>({
-    can_read: false,
-    can_write: false,
-    can_execute: false,
-    can_share: false,
+    can_read: perm.can_read,
+    can_write: perm.can_write,
+    can_execute: perm.can_execute,
+    can_share: perm.can_share,
+    can_audit: perm.can_audit,
   });
 
   const mUpdate = useMutateUpdateFilePermissions();
-  React.useEffect(() => {}, [mUpdate.data]);
+  const mDelete = useMutateDeleteFilePermissions();
+
+  React.useEffect(() => {
+    mUpdate.mutate({
+      ...switches,
+      file_id: perm.file_id,
+      permission_id: perm.permission_id,
+    });
+  }, [switches]);
 
   return (
     <Accordion.Item value={perm.permission_id}>
@@ -81,7 +91,7 @@ const UserButton = ({ perm }: { perm: FilePermission }) => {
         <Group position="apart">
           <Group>
             <Switch
-              disabled={isYou}
+              disabled={isYou || mUpdate.isLoading}
               label="Can view"
               checked={switches.can_read}
               onChange={(e) =>
@@ -92,7 +102,7 @@ const UserButton = ({ perm }: { perm: FilePermission }) => {
               }
             />
             <Switch
-              disabled={isYou}
+              disabled={isYou || mUpdate.isLoading}
               label="Can edit"
               checked={switches.can_write}
               onChange={(e) =>
@@ -103,7 +113,7 @@ const UserButton = ({ perm }: { perm: FilePermission }) => {
               }
             />
             <Switch
-              disabled={isYou}
+              disabled={isYou || mUpdate.isLoading}
               label="Can share"
               checked={switches.can_share}
               onChange={(e) =>
@@ -114,7 +124,18 @@ const UserButton = ({ perm }: { perm: FilePermission }) => {
               }
             />
           </Group>
-          <Button compact color="red" variant="subtle" disabled={isYou}>
+          <Button
+            compact
+            color="red"
+            variant="subtle"
+            disabled={isYou}
+            onClick={() =>
+              mDelete.mutate({
+                file_id: perm.file_id,
+                permission_id: perm.permission_id,
+              })
+            }
+          >
             Revoke access
           </Button>
         </Group>
