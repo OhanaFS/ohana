@@ -119,6 +119,20 @@ func NewBackend(
 	r.HandleFunc("/api/v1/cluster/stats/servers/{serverName}", bc.GetSpecificServerStatus).Methods("GET")
 	r.HandleFunc("/api/v1/cluster/stats/servers/{serverName}", bc.DeleteServer).Methods("DELETE")
 
+	// Maintenance Routes:
+	r.HandleFunc("/api/v1/maintenance/all", bc.GetAllJobs).Methods("GET")
+	r.HandleFunc("/api/v1/maintenance/start", bc.StartJob).Methods("POST")
+	r.HandleFunc("/api/v1/maintenance/job/{id}", bc.GetJob).Methods("GET")
+	r.HandleFunc("/api/v1/maintenance/job/{id}", bc.DeleteJob).Methods("DELETE")
+	r.HandleFunc("/api/v1/maintenance/job/{id}/full_shards", bc.GetFullShardsResult).Methods("GET")
+	r.HandleFunc("/api/v1/maintenance/job/{id}/full_shards", bc.FixFullShardsResult).Methods("POST")
+	r.HandleFunc("/api/v1/maintenance/job/{id}/quick_shards", bc.GetQuickShardsResult).Methods("GET")
+	r.HandleFunc("/api/v1/maintenance/job/{id}/quick_shards", bc.FixQuickShardsResult).Methods("POST")
+	r.HandleFunc("/api/v1/maintenance/job/{id}/orphaned_shards", bc.GetOrphanedShardsResult).Methods("GET")
+	r.HandleFunc("/api/v1/maintenance/job/{id}/orphaned_shards", bc.FixOrphanedShardsResult).Methods("POST")
+	r.HandleFunc("/api/v1/maintenance/job/{id}/orphaned_files", bc.GetOrphanedFilesResult).Methods("GET")
+	r.HandleFunc("/api/v1/maintenance/job/{id}/orphaned_files", bc.FixOrphanedFilesResult).Methods("POST")
+
 	r.Use(mw.UserAuth)
 
 	return nil

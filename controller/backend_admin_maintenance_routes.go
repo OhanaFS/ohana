@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/OhanaFS/ohana/controller/inc"
 	"github.com/OhanaFS/ohana/dbfs"
 	"github.com/OhanaFS/ohana/util"
 	"github.com/OhanaFS/ohana/util/ctxutil"
@@ -17,7 +16,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -652,171 +650,187 @@ func (bc *BackendController) FixMissingShardsResult(w http.ResponseWriter, r *ht
 }
 
 // GetOrphanedShardsResult returns the result of the full shards check for the given jobId
+// TODO: To be fixed.
 func (bc *BackendController) GetOrphanedShardsResult(w http.ResponseWriter, r *http.Request) {
 
-	user, err := ctxutil.GetUser(r.Context())
-	if err != nil {
-		util.HttpError(w, http.StatusUnauthorized, err.Error())
-		return
-	}
+	// TODO:
+	util.HttpError(w, http.StatusNotImplemented, "Not implemented")
+	return
 
-	// Check if user is admin
-	if user.AccountType != dbfs.AccountTypeAdmin {
-		util.HttpError(w, http.StatusForbidden, "You are not an admin")
-		return
-	}
-
-	vars := mux.Vars(r)
-	jobIdString := vars["id"]
-	jobId, err := strconv.Atoi(jobIdString)
-	if err != nil {
-		util.HttpError(w, http.StatusBadRequest, "Invalid jobId")
-		return
-	}
-	result, err := dbfs.GetResultsOrphanedShard(bc.Db, jobId)
-	if err != nil {
-		if errors.Is(err, dbfs.ErrorCronJobDoesNotExist) {
-			util.HttpError(w, http.StatusNotFound, err.Error())
-		} else {
-			util.HttpError(w, http.StatusInternalServerError, err.Error())
+	/*
+		user, err := ctxutil.GetUser(r.Context())
+		if err != nil {
+			util.HttpError(w, http.StatusUnauthorized, err.Error())
+			return
 		}
-		return
-	}
-	util.HttpJson(w, http.StatusOK, result)
+
+		// Check if user is admin
+		if user.AccountType != dbfs.AccountTypeAdmin {
+			util.HttpError(w, http.StatusForbidden, "You are not an admin")
+			return
+		}
+
+		vars := mux.Vars(r)
+		jobIdString := vars["id"]
+		jobId, err := strconv.Atoi(jobIdString)
+		if err != nil {
+			util.HttpError(w, http.StatusBadRequest, "Invalid jobId")
+			return
+		}
+		result, err := dbfs.GetResultsOrphanedShard(bc.Db, jobId)
+		if err != nil {
+			if errors.Is(err, dbfs.ErrorCronJobDoesNotExist) {
+				util.HttpError(w, http.StatusNotFound, err.Error())
+			} else {
+				util.HttpError(w, http.StatusInternalServerError, err.Error())
+			}
+			return
+		}
+		util.HttpJson(w, http.StatusOK, result)
+
+	*/
 }
 
 // FixOrphanedShardsResult takes the request body,
 // decodes the results, and fixes based on the user input
 // (delete or leave alone)
+// TODO: To be fixed.
 func (bc *BackendController) FixOrphanedShardsResult(w http.ResponseWriter, r *http.Request) {
 
-	user, err := ctxutil.GetUser(r.Context())
-	if err != nil {
-		util.HttpError(w, http.StatusUnauthorized, err.Error())
-		return
-	}
+	// TODO:
+	util.HttpError(w, http.StatusNotImplemented, "Not implemented")
+	return
+	/*
 
-	// Check if user is admin
-	if user.AccountType != dbfs.AccountTypeAdmin {
-		util.HttpError(w, http.StatusForbidden, "You are not an admin")
-		return
-	}
-
-	vars := mux.Vars(r)
-	jobIdString := vars["id"]
-	jobId, err := strconv.Atoi(jobIdString)
-	if err != nil {
-		util.HttpError(w, http.StatusBadRequest, "Invalid jobId")
-		return
-	}
-
-	// Check that jobId exists
-	originalResults, err := dbfs.GetResultsOrphanedShard(bc.Db, jobId)
-	if err != nil {
-		if errors.Is(err, dbfs.ErrorCronJobDoesNotExist) {
-			util.HttpError(w, http.StatusNotFound, err.Error())
-		} else {
-			util.HttpError(w, http.StatusInternalServerError, err.Error())
-		}
-		return
-	}
-
-	// Decoding the request body
-	var results []dbfs.OrphanedShardActions
-	err = json.NewDecoder(r.Body).Decode(&results)
-	if err != nil {
-		util.HttpError(w, http.StatusBadRequest, "Invalid request body")
-		return
-	}
-
-	// Check that all results are valid
-	type ServerPathKey struct {
-		ServerId string
-		Path     string
-	}
-
-	serverPaths := make(map[ServerPathKey]bool)
-
-	for _, result := range originalResults {
-		serverPaths[ServerPathKey{result.ServerId, result.FileName}] = true
-	}
-
-	for _, result := range results {
-
-		if !serverPaths[ServerPathKey{result.ServerId, result.FileName}] {
-			continue
+		user, err := ctxutil.GetUser(r.Context())
+		if err != nil {
+			util.HttpError(w, http.StatusUnauthorized, err.Error())
+			return
 		}
 
-		if result.Delete {
+		// Check if user is admin
+		if user.AccountType != dbfs.AccountTypeAdmin {
+			util.HttpError(w, http.StatusForbidden, "You are not an admin")
+			return
+		}
 
-			if result.ServerId == bc.ServerName {
-				delPath := path.Join(bc.Inc.ShardsLocation, result.FileName)
-				err = os.Remove(delPath)
-				if err != nil {
-					bc.Db.Model(&dbfs.ResultsOrphanedShard{}).
-						Where("job_id = ? AND server_id = ? AND file_name = ?",
-							jobId, result.ServerId, result.FileName).Updates(map[string]interface{}{
-						"error_type": dbfs.CronErrorTypeInternalError,
-						"error":      err.Error(),
-					})
-					continue
-				}
+		vars := mux.Vars(r)
+		jobIdString := vars["id"]
+		jobId, err := strconv.Atoi(jobIdString)
+		if err != nil {
+			util.HttpError(w, http.StatusBadRequest, "Invalid jobId")
+			return
+		}
+
+		// Check that jobId exists
+		originalResults, err := dbfs.GetResultsOrphanedShard(bc.Db, jobId)
+		if err != nil {
+			if errors.Is(err, dbfs.ErrorCronJobDoesNotExist) {
+				util.HttpError(w, http.StatusNotFound, err.Error())
 			} else {
-				// Build a POST
-				url := fmt.Sprintf("https://%s%s", result.ServerId,
-					strings.Replace(inc.FragmentPath, "{shardPath}", result.FileName, 1))
-				req, err := http.NewRequest("DELETE", url, nil)
-				if err != nil {
-					bc.Db.Model(&dbfs.ResultsOrphanedShard{}).
-						Where("job_id = ? AND server_id = ? AND file_name = ?",
-							jobId, result.ServerId, result.FileName).Updates(map[string]interface{}{
-						"error_type": dbfs.CronErrorTypeInternalError,
-						"error":      err.Error(),
-					})
-					continue
-				}
-				resp, err := bc.Inc.HttpClient.Do(req)
-				if err != nil {
-					bc.Db.Model(&dbfs.ResultsOrphanedShard{}).
-						Where("job_id = ? AND server_id = ? AND file_name = ?",
-							jobId, result.ServerId, result.FileName).Updates(map[string]interface{}{
-						"error_type": dbfs.CronErrorTypeInternalError,
-						"error":      err.Error(),
-					})
-					continue
-				}
-				if resp.StatusCode != http.StatusOK {
-					bc.Db.Model(&dbfs.ResultsOrphanedShard{}).
-						Where("job_id = ? AND server_id = ? AND file_name = ?",
-							jobId, result.ServerId, result.FileName).Updates(map[string]interface{}{
-						"error_type": dbfs.CronErrorTypeInternalError,
-						"error":      resp.Body,
-					})
-					continue
-				}
-				defer resp.Body.Close()
+				util.HttpError(w, http.StatusInternalServerError, err.Error())
+			}
+			return
+		}
 
+		// Decoding the request body
+		var results []dbfs.OrphanedShardActions
+		err = json.NewDecoder(r.Body).Decode(&results)
+		if err != nil {
+			util.HttpError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+
+		// Check that all results are valid
+		type ServerPathKey struct {
+			ServerId string
+			Path     string
+		}
+
+		serverPaths := make(map[ServerPathKey]bool)
+
+		for _, result := range originalResults {
+			serverPaths[ServerPathKey{result.ServerId, result.FileName}] = true
+		}
+
+		for _, result := range results {
+
+			if !serverPaths[ServerPathKey{result.ServerId, result.FileName}] {
+				continue
 			}
 
-			bc.Db.Model(&dbfs.ResultsOrphanedShard{}).
-				Where("job_id = ? AND server_id = ? AND file_name = ?",
-					jobId, result.ServerId, result.FileName).Updates(map[string]interface{}{
-				"error_type": dbfs.CronErrorTypeSolved,
-				"error":      "Deleted",
-			})
+			if result.Delete {
 
-		} else {
-			bc.Db.Model(&dbfs.ResultsOrphanedShard{}).
-				Where("job_id = ? AND server_id = ? AND file_name = ?",
-					jobId, result.ServerId, result.FileName).Updates(map[string]interface{}{
-				"error_type": dbfs.CronErrorTypeSolved,
-				"error":      "Deferred/Ignored",
-			})
+				if result.ServerId == bc.ServerName {
+					delPath := path.Join(bc.Inc.ShardsLocation, result.FileName)
+					err = os.Remove(delPath)
+					if err != nil {
+						bc.Db.Model(&dbfs.ResultsOrphanedShard{}).
+							Where("job_id = ? AND server_id = ? AND file_name = ?",
+								jobId, result.ServerId, result.FileName).Updates(map[string]interface{}{
+							"error_type": dbfs.CronErrorTypeInternalError,
+							"error":      err.Error(),
+						})
+						continue
+					}
+				} else {
+					// Build a POST
+					url := fmt.Sprintf("https://%s%s", result.ServerId,
+						strings.Replace(inc.FragmentPath, "{shardPath}", result.FileName, 1))
+					req, err := http.NewRequest("DELETE", url, nil)
+					if err != nil {
+						bc.Db.Model(&dbfs.ResultsOrphanedShard{}).
+							Where("job_id = ? AND server_id = ? AND file_name = ?",
+								jobId, result.ServerId, result.FileName).Updates(map[string]interface{}{
+							"error_type": dbfs.CronErrorTypeInternalError,
+							"error":      err.Error(),
+						})
+						continue
+					}
+					resp, err := bc.Inc.HttpClient.Do(req)
+					if err != nil {
+						bc.Db.Model(&dbfs.ResultsOrphanedShard{}).
+							Where("job_id = ? AND server_id = ? AND file_name = ?",
+								jobId, result.ServerId, result.FileName).Updates(map[string]interface{}{
+							"error_type": dbfs.CronErrorTypeInternalError,
+							"error":      err.Error(),
+						})
+						continue
+					}
+					if resp.StatusCode != http.StatusOK {
+						bc.Db.Model(&dbfs.ResultsOrphanedShard{}).
+							Where("job_id = ? AND server_id = ? AND file_name = ?",
+								jobId, result.ServerId, result.FileName).Updates(map[string]interface{}{
+							"error_type": dbfs.CronErrorTypeInternalError,
+							"error":      resp.Body,
+						})
+						continue
+					}
+					defer resp.Body.Close()
+
+				}
+
+				bc.Db.Model(&dbfs.ResultsOrphanedShard{}).
+					Where("job_id = ? AND server_id = ? AND file_name = ?",
+						jobId, result.ServerId, result.FileName).Updates(map[string]interface{}{
+					"error_type": dbfs.CronErrorTypeSolved,
+					"error":      "Deleted",
+				})
+
+			} else {
+				bc.Db.Model(&dbfs.ResultsOrphanedShard{}).
+					Where("job_id = ? AND server_id = ? AND file_name = ?",
+						jobId, result.ServerId, result.FileName).Updates(map[string]interface{}{
+					"error_type": dbfs.CronErrorTypeSolved,
+					"error":      "Deferred/Ignored",
+				})
+			}
+
 		}
 
-	}
+		util.HttpJson(w, http.StatusOK, true)
 
-	util.HttpJson(w, http.StatusOK, true)
+	*/
 }
 
 // RebuildShard If a shard is broken from a file, the system will attempt to rebuild

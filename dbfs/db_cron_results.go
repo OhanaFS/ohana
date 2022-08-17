@@ -51,9 +51,8 @@ type Job struct {
 	DeleteFragments        bool
 	DeleteFragmentsResults []JobProgressDeleteFragments `gorm:"foreignkey:JobId"`
 	// OrphanedFilesCheck has a weightage of 20 in the progress calculation
-	OrphanedFilesCheck bool
-	// TODO: OrphanedFilesResults
-	// OrphanedFilesResults []JobProgressOrphanedFiles `gorm:"foreignkey:JobId"`
+	OrphanedFilesCheck   bool
+	OrphanedFilesResults []JobProgressOrphanedFile `gorm:"foreignkey:JobId"`
 	// Progress is the percentage of the job that is complete.
 	Progress  int
 	StatusMsg string
@@ -341,7 +340,11 @@ func calculateProgress(job Job, numOfServers int) int {
 		}
 	}
 	if job.OrphanedFilesCheck {
-		// TODO: to be implemented
+		for _, progress := range job.OrphanedFilesResults {
+			if !progress.InProgress {
+				currentProgress += float64(progressMap["OrphanedFilesCheck"]) / float64(numOfServers)
+			}
+		}
 	}
 
 	return int(math.Ceil(currentProgress / float64(totalProgress) * float64(100)))

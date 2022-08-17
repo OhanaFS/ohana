@@ -99,6 +99,14 @@ func NewInc(config *config.Config, db *gorm.DB, logger *zap.Logger) *Inc {
 	router.HandleFunc("/api/v1/node/details", newInc.ReturnServerDetails)
 	router.HandleFunc("/api/v1/node/shard/{shardId}", newInc.handleShardStream)
 	router.HandleFunc("/api/v1/node/replace_shard", newInc.ReplaceShardRoute).Methods("POST")
+	router.HandleFunc(FragmentHealthCheckPath, newInc.ShardHealthCheckRoute).Methods("GET")
+	router.HandleFunc(FragmentPath, newInc.DeleteShardRoute).Methods("DELETE")
+	router.HandleFunc(FragmentOrphanedPath, newInc.OrphanedShardsRoute).Methods("POST")
+	router.HandleFunc(FragmentMissingPath, newInc.MissingShardsRoute).Methods("POST")
+	router.HandleFunc(CurrentFilesHealthPath, newInc.CurrentFilesFragmentsHealthCheckRoute).Methods("POST")
+	router.HandleFunc(AllFilesHealthPath, newInc.AllFilesFragmentsHealthCheckRoute).Methods("POST")
+	router.HandleFunc(ReplaceShardPath, newInc.AllFilesFragmentsHealthCheckRoute).Methods("POST")
+
 	// start server
 	go func() {
 		err := incServer.ListenAndServeTLS(config.Inc.PublicCert, config.Inc.PrivateKey)
