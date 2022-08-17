@@ -332,6 +332,7 @@ func (user *User) SetGroups(tx *gorm.DB, groups []Group) error {
 	return tx.Save(&user).Error
 }
 
+// GetFavoriteFiles Gets a list of the user's favorite file
 func (user *User) GetFavoriteFiles(tx *gorm.DB, start uint) ([]File, error) {
 
 	var FavoriteFileItems []FavoriteFileItems
@@ -345,6 +346,22 @@ func (user *User) GetFavoriteFiles(tx *gorm.DB, start uint) ([]File, error) {
 		files[i] = item.File
 	}
 	return files, nil
+}
+
+// GetFavoriteFileByFileId Returns the favorite file with the given fileId if it exists
+func (user *User) GetFavoriteFileByFileId(tx *gorm.DB, fileId string) (*File, error) {
+
+	var favItem FavoriteFileItems
+	if err := tx.Preload(clause.Associations).
+		Where("user_id = ? AND file_id = ?", user.UserId, fileId).
+		First(&favItem).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, ErrFileNotFound
+		}
+		return nil, err
+	}
+	return &favItem.File, nil
+
 }
 
 func (user *User) GetSharedWithUser(tx *gorm.DB) ([]File, error) {
