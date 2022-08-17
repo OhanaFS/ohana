@@ -20,7 +20,7 @@ import FilePreview from './FilePreview';
 import FileVersions from './Properties/FileVersions';
 import PasswordForm from './Properties/PasswordForm';
 import PropertiesTable from './Properties/PropertiesTable';
-import SharingModal from './SharingModal';
+import SharingModal from './Sharing/SharingModal';
 
 export type FilePropertiesDrawerProps = {
   fileId: string;
