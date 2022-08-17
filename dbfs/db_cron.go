@@ -1,9 +1,12 @@
 package dbfs
 
 import (
+	"database/sql"
+	"encoding/json"
 	"errors"
 	"github.com/OhanaFS/ohana/util"
 	"gorm.io/gorm"
+	"math/rand"
 	"strconv"
 	"time"
 )
@@ -33,6 +36,7 @@ const (
 var (
 	ErrCronJobPropertyNotSet  = errors.New("cron job property not set")
 	ErrInvalidCronJobProperty = errors.New("invalid cron job property")
+	ErrOrphanedFile           = errors.New("orphaned file")
 )
 
 func GetToBeDeletedFragments(tx *gorm.DB) ([]Fragment, error) {
@@ -157,7 +161,8 @@ func ClearFileStatusDeletedEntries(tx *gorm.DB) error {
 		time.Now()).Delete(&FileVersion{}).Error
 }
 
-// createCronJobKeyValues creates the parameters for the cron job.
+// createCronJobKeyValues creates the parameters for the cron
+//job.
 func createCronJobKeyValues(tx *gorm.DB) error {
 	keyValueCronJobs := []string{CronJobDeleteFragmentsInProgress,
 		CronJobDeleteFragmentsHandledServer,
@@ -256,4 +261,253 @@ func SetHowLongToKeepFileVersions(tx *gorm.DB, days int) error {
 
 	return tx.Model(&KeyValueDBPair{}).Where("key = ?", CronJobDeleteKeepVersionsFor).
 		Update("value_int", days).Error
+}
+
+// CheckOrphanedFiles checks if there are any orphaned files.
+// i.e. files that have an invalid parent folder.
+// This only checks the files table.
+func CheckOrphanedFiles(tx *gorm.DB, jobId int, storeResults bool) ([]ResultsOrphanedFile, error) { // TODO: Change all to uint
+
+	if jobId < 0 {
+		return nil, ErrInvalidCronJobProperty // TODO change all to uint in the first place
+	}
+
+	// Get count of all files needed to process
+	var count int64
+	err := tx.Model(&File{}).Where("entry_type = ?", IsFile).Count(&count).Error
+	if err != nil {
+		return nil, err
+	}
+
+	if storeResults {
+		// Store the results of the scan in the database
+		err := tx.Create(&JobProgressOrphanedFile{
+			JobId:      uint(jobId),
+			StartTime:  time.Now(),
+			Processed:  0,
+			Total:      count,
+			InProgress: true,
+		}).Error
+		if err != nil {
+			return nil, err
+		}
+	}
+	// These are all the Parent Folder IDs.
+	// A folder or file is orphaned if it's parent folder does not exist.
+
+	var parentFolderIdsToCheck []sql.NullString
+	err = tx.Model(&File{}).Distinct("parent_folder_file_id").
+		Select("parent_folder_file_id").
+		Find(&parentFolderIdsToCheck).Error
+	if err != nil {
+		return nil, err
+	}
+
+	missingParentIds := make([]string, 0)
+
+	batchSize := 100
+	for i, parentFolderId := range parentFolderIdsToCheck {
+		var count int64
+		tx.Model(&File{}).Where("file_id = ? AND entry_type =?", parentFolderId, IsFolder).
+			Count(&count)
+		if count == 0 {
+			if parentFolderId.Valid {
+				missingParentIds = append(missingParentIds, parentFolderId.String)
+			}
+		}
+
+		// Updating status every 100 files
+		if storeResults && i%batchSize == 0 {
+			err = tx.Model(&JobProgressOrphanedFile{}).Where("job_id = ?", uint(jobId)).
+				Update("processed", batchSize*i).Error
+		}
+	}
+
+	// Now we'll scan through the missingParentIDs and ls them to see what missing files are in them
+
+	resultOrphanedFile := make([]ResultsOrphanedFile, len(missingParentIds))
+
+	for i, missingParentId := range missingParentIds {
+		var orphanedFiles []File
+		err = tx.Model(&File{}).Where("parent_folder_file_id = ?", missingParentId).
+			Find(&orphanedFiles).Error
+		if err != nil {
+			resultOrphanedFile[i] = ResultsOrphanedFile{
+				JobId:          uint(jobId),
+				ParentFolderId: missingParentId,
+				Contents:       "",
+				Error:          "couldn't ls into missing parent:  " + err.Error(),
+				ErrorType:      CronErrorTypeInternalError,
+			}
+			continue
+		}
+
+		fileNameArray := make([]string, len(orphanedFiles))
+		for j, file := range orphanedFiles {
+			fileNameArray[j] = file.FileName
+		}
+
+		fileNamesBytes, err := json.Marshal(fileNameArray)
+		if err != nil {
+			resultOrphanedFile[i] = ResultsOrphanedFile{
+				JobId:          uint(jobId),
+				ParentFolderId: missingParentId,
+				Contents:       "",
+				Error:          "failed to marshal:  " + err.Error(),
+				ErrorType:      CronErrorTypeInternalError,
+			}
+			continue
+		}
+
+		resultOrphanedFile[i] = ResultsOrphanedFile{
+			JobId:          uint(jobId),
+			ParentFolderId: missingParentId,
+			Contents:       string(fileNamesBytes),
+			Error:          "Missing Parents",
+			ErrorType:      CronErrorTypeMissingFile,
+		}
+	}
+
+	if storeResults {
+		err = tx.Model(&JobProgressOrphanedFile{}).Where("job_id = ?", uint(jobId)).
+			Updates(map[string]interface{}{
+				"in_progress": false,
+				"end_time":    time.Now(),
+				"processed":   count,
+			}).Error
+		if err != nil {
+			return nil, err
+		}
+		if tx.Save(resultOrphanedFile).Error != nil {
+			return nil, err
+		}
+	}
+
+	return resultOrphanedFile, nil
+}
+
+func FixOrphanedFiles(tx *gorm.DB, jobId int, actions []OrphanedFilesActions) error {
+
+	// Get the job id first to see if it's valid
+
+	var resultsOrphanedFile []ResultsOrphanedFile
+
+	err := tx.Model(&ResultsOrphanedFile{}).Where("job_id = ?", uint(jobId)).Find(&resultsOrphanedFile).Error
+	if err != nil {
+		return err
+	}
+
+	if len(resultsOrphanedFile) == 0 {
+		return ErrInvalidCronJobProperty
+	}
+
+	// Creating a map of all missing parent folder ids to their orphaned files
+	// So that we can ensure we are only doing things to the correct folders.
+
+	parentFolderSet := util.NewSet[string]()
+
+	for _, resultOrphanedFile := range resultsOrphanedFile {
+		parentFolderSet.Add(resultOrphanedFile.ParentFolderId)
+	}
+
+	// Ensure we have a folder appropriate for each action
+
+	// Getting superuser. Needed.
+	var superuser User
+	err = tx.Model(&User{}).Where("email = ?", "superuser").Find(&superuser).Error
+	if err != nil {
+		return err
+	}
+
+	// get root folder
+	rootFolder, err := GetRootFolder(tx)
+	if err != nil {
+		return err
+	}
+
+	// Check if there's a folder called "Orphaned Files"
+	var orphanedFilesFolder *File
+	if err := tx.Model(&File{}).Where("file_name = ? AND parent_folder_file_id = ?",
+		"Orphaned Files", rootFolder.FileId).
+		First(orphanedFilesFolder).Error; err != nil {
+		// Create the folder if it doesn't exist
+		orphanedFilesFolder, err = rootFolder.CreateSubFolder(tx, "Orphaned Files",
+			&superuser, "DBFSCLEANUP")
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, action := range actions {
+		if parentFolderSet.Has(action.ParentFolderId) {
+
+			tempFolderName := time.Now().Format(time.RFC3339Nano) + strconv.Itoa(rand.Intn(1000))
+
+			if action.Move || action.Delete {
+				// Create a new folder under the orphaned files folder
+				tempNewFolder, err := orphanedFilesFolder.CreateSubFolder(tx,
+					tempFolderName,
+					&superuser, "DBFSCLEANUP")
+
+				if err != nil {
+					return err
+				}
+
+				// Move the files to the new folder
+
+				err = tx.Model(&File{}).Where("parent_folder_file_id = ?", action.ParentFolderId).
+					Update("parent_folder_file_id", tempNewFolder.FileId).Error
+
+				if err != nil {
+					return nil
+				}
+
+				// Both move and delete require a valid parent folder so this is the easiest way to ensure all
+				// child files are deleted as well.
+				if action.Delete {
+					err := tempNewFolder.Delete(tx, &superuser, "DBFSCLEANUP")
+					if err != nil {
+						return err
+					}
+				}
+
+			}
+
+			// Update db of the action
+
+			var errorString string
+			if action.Move {
+				errorString = "Moved to /Orphaned Files/" + tempFolderName
+			} else if action.Delete {
+				errorString = "Deleted"
+			} else {
+				errorString = "No action"
+			}
+
+			err = tx.Model(&ResultsOrphanedFile{}).
+				Where("job_id = ? AND parent_folder_id = ?",
+					uint(jobId), action.ParentFolderId).
+				Updates(map[string]interface{}{
+					"error":      errorString,
+					"error_type": CronErrorTypeSolved,
+				}).Error
+
+			if err != nil {
+				return err
+			}
+
+		}
+	}
+	return nil
+}
+
+// CheckWrongPermissions checks if there are any permissions that are invalid.
+// This only checks the files table.
+func CheckWrongPermissions(tx *gorm.DB) (int64, error) {
+	// TODO: To be implemented
+
+	// Goes from root to all folders and checks if the permissions are valid.
+	// If not, it updates the permissions to be valid.
+
+	return int64(0), nil
 }

@@ -1,7 +1,6 @@
 package inc_test
 
 import (
-	"context"
 	"fmt"
 	"github.com/OhanaFS/ohana/config"
 	"github.com/OhanaFS/ohana/controller/inc"
@@ -9,6 +8,7 @@ import (
 	selfsigntestutils "github.com/OhanaFS/ohana/selfsign/test_utils"
 	"github.com/OhanaFS/ohana/util/testutil"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"testing"
 )
 
@@ -50,7 +50,8 @@ func TestRegisterServer(t *testing.T) {
 
 		Assert := assert.New(t)
 
-		incServer = inc.NewInc(configFile, db)
+		fakeLogger, _ := zap.NewDevelopment()
+		incServer = inc.NewInc(configFile, db, fakeLogger)
 		inc.RegisterIncServices(incServer)
 
 		err := incServer.RegisterServer(true)
@@ -85,6 +86,6 @@ func TestRegisterServer(t *testing.T) {
 
 	})
 
-	defer incServer.HttpServer.Shutdown(context.Background())
+	incServer.HttpServer.Close()
 
 }

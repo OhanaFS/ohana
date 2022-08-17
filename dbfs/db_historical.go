@@ -160,8 +160,7 @@ func GetHistoricalData(db *gorm.DB, timePeriod, startDate, endDate string, resul
 		{
 			// If there is no time period specified, return the last 10 days
 			if startDate == "" {
-				startDateTime = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(),
-					0, 0, 0, 0, time.UTC)
+				startDateTime = time.Now()
 				startDateTime = startDateTime.AddDate(0, 0, -9)
 			} else {
 				// truncate to just get date part
@@ -177,6 +176,14 @@ func GetHistoricalData(db *gorm.DB, timePeriod, startDate, endDate string, resul
 			for startDateTime.Before(endDateTime) || startDateTime.Equal(endDateTime) {
 				// manually loop
 				var tempFile HistoricalStats
+
+				test := startDateTime.Day()
+				fmt.Println(test)
+				test = int(startDateTime.Month())
+				fmt.Println(test)
+				test = startDateTime.Year()
+				fmt.Println(test)
+
 				err := db.Model(&HistoricalStats{}).Where("day = ? AND month = ? and year = ?",
 					startDateTime.Day(), int(startDateTime.Month()), startDateTime.Year()).Find(&tempFile).Error
 

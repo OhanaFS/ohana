@@ -1,7 +1,6 @@
 package inc_test
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/OhanaFS/ohana/config"
@@ -91,7 +90,7 @@ func TestFragmentHandler(t *testing.T) {
 	dataShards, parityShards, keyThreshold := stitchParams.DataShards, stitchParams.ParityShards, stitchParams.KeyThreshold
 	totalShards := dataShards + parityShards
 
-	Inc := inc.NewInc(configFile, db)
+	Inc := inc.NewInc(configFile, db, logger)
 	inc.RegisterIncServices(Inc)
 
 	t.Run("Creating random files", func(t *testing.T) {
@@ -338,21 +337,29 @@ func TestFragmentHandler(t *testing.T) {
 
 		Assert := assert.New(t)
 
+		var jobsFromJobProgressOrphanedShard []dbfs.JobProgressOrphanedShard
+		err = db.Find(&jobsFromJobProgressOrphanedShard).Error
+
 		results, err := Inc.LocalOrphanedShardsCheck(-1, false)
 		Assert.NoError(err)
 		Assert.Len(results, 0)
+
+		err = db.Find(&jobsFromJobProgressOrphanedShard).Error
 
 		// Test via routes
 
 		req := httptest.NewRequest(http.MethodGet,
 			inc.FragmentOrphanedPath, nil)
 		w := httptest.NewRecorder()
-		req.Header.Add("job_id", "0") // TODO: Create a value incrementer
+		req.Header.Add("job_id", "1") // TODO: Create a value incrementer
 		Inc.OrphanedShardsRoute(w, req)
 		Assert.Equal(http.StatusOK, w.Code)
 
-		time.Sleep(time.Second / 2)
-		results2, err := dbfs.GetResultsOrphanedShard(db, 0)
+		time.Sleep(time.Second * 5)
+
+		err = db.Find(&jobsFromJobProgressOrphanedShard).Error
+
+		results2, err := dbfs.GetResultsOrphanedShard(db, 1)
 		Assert.Nil(err)
 		Assert.Equal(0, len(results2), results2)
 
@@ -375,15 +382,16 @@ func TestFragmentHandler(t *testing.T) {
 
 		// Test via routes
 
+		time.Sleep(time.Second / 2)
 		req = httptest.NewRequest(http.MethodGet,
 			inc.FragmentOrphanedPath, nil)
 		w = httptest.NewRecorder()
-		req.Header.Add("job_id", "1") // TODO: Create a value incrementer
+		req.Header.Add("job_id", "30")
 		Inc.OrphanedShardsRoute(w, req)
 		Assert.Equal(http.StatusOK, w.Code)
 
 		time.Sleep(time.Second / 2)
-		results2, err = dbfs.GetResultsOrphanedShard(db, 1)
+		results2, err = dbfs.GetResultsOrphanedShard(db, 30)
 		Assert.Nil(err)
 		Assert.Equal(1, len(results2), results2)
 
@@ -404,12 +412,12 @@ func TestFragmentHandler(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet,
 			inc.FragmentMissingPath, nil)
 		w := httptest.NewRecorder()
-		req.Header.Add("job_id", "-1")
+		req.Header.Add("job_id", "1")
 		Inc.MissingShardsRoute(w, req)
 		Assert.Equal(http.StatusOK, w.Code)
 
 		time.Sleep(time.Second / 2)
-		results, err = dbfs.GetResultsMissingShard(db, -1)
+		results, err = dbfs.GetResultsMissingShard(db, 1)
 		Assert.Nil(err)
 		Assert.Equal(0, len(results), results)
 
@@ -418,7 +426,7 @@ func TestFragmentHandler(t *testing.T) {
 		Assert.NoError(err)
 		Assert.NoError(os.Remove(path.Join(Inc.ShardsLocation, dir[0].Name())))
 
-		results, err = Inc.LocalMissingShardsCheck(-1, false)
+		results, err = Inc.LocalMissingShardsCheck(1, false)
 		Assert.NoError(err)
 		Assert.Len(results, 1)
 
@@ -426,12 +434,12 @@ func TestFragmentHandler(t *testing.T) {
 		req = httptest.NewRequest(http.MethodGet,
 			inc.FragmentMissingPath, nil)
 		w = httptest.NewRecorder()
-		req.Header.Add("job_id", "0")
+		req.Header.Add("job_id", "44")
 		Inc.MissingShardsRoute(w, req)
 		Assert.Equal(http.StatusOK, w.Code)
 
 		time.Sleep(time.Second / 2)
-		results, err = dbfs.GetResultsMissingShard(db, 0)
+		results, err = dbfs.GetResultsMissingShard(db, 44)
 		Assert.Nil(err)
 		Assert.Equal(1, len(results), results)
 
@@ -442,7 +450,7 @@ func TestFragmentHandler(t *testing.T) {
 		Assert.NoError(err)
 	})
 
-	defer Inc.HttpServer.Shutdown(context.Background())
+	Inc.HttpServer.Close()
 
 }
 
@@ -493,7 +501,8 @@ func TestStitchFragment(t *testing.T) {
 		},
 	}
 
-	Inc := inc.NewInc(configFile, db)
+	fakeLogger, _ := zap.NewDevelopment()
+	Inc := inc.NewInc(configFile, db, fakeLogger)
 	inc.RegisterIncServices(Inc)
 
 	logger := config.NewLogger(configFile)
@@ -790,6 +799,8 @@ func TestStitchFragment(t *testing.T) {
 		Assert.Equal(1, len(results), results)
 
 	})
+
+	Inc.HttpServer.Close()
 
 }
 

@@ -62,7 +62,7 @@ func TestBackendController(t *testing.T) {
 		Logger:     logger,
 		Path:       configFile.Stitch.ShardsLocation,
 		ServerName: "localhost",
-		Inc:        inc.NewInc(configFile, db),
+		Inc:        inc.NewInc(configFile, db, logger),
 	}
 
 	// Register inc services
@@ -1028,5 +1028,7 @@ func TestBackendController(t *testing.T) {
 		assert.Equal(http.StatusNotFound, w.Code)
 
 	})
+
+	bc.Inc.HttpServer.Close()
 
 }

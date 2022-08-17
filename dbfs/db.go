@@ -15,7 +15,8 @@ func InitDB(db *gorm.DB) error {
 		// Cron Jobs
 		&ResultsCFSHC{}, &JobProgressCFSHC{}, &ResultsAFSHC{}, &JobProgressAFSHC{},
 		&ResultsMissingShard{}, &JobProgressMissingShard{}, &ResultsOrphanedShard{}, &JobProgressOrphanedShard{},
-		&HistoricalStats{})
+		&JobProgressPermissionCheck{}, &JobProgressDeleteFragments{}, &JobProgressOrphanedFile{}, &ResultsOrphanedFile{},
+		&HistoricalStats{}, &Job{})
 
 	if err != nil {
 		return err
@@ -37,6 +38,7 @@ func InitDB(db *gorm.DB) error {
 					RefreshToken: "",
 					AccessToken:  "",
 					Activated:    true,
+					HomeFolderId: "00000000-0000-0000-0000-000000000000",
 					AccountType:  AccountTypeAdmin,
 				}
 				result := db.Create(&userAccount)
