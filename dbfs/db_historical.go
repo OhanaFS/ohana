@@ -177,13 +177,6 @@ func GetHistoricalData(db *gorm.DB, timePeriod, startDate, endDate string, resul
 				// manually loop
 				var tempFile HistoricalStats
 
-				test := startDateTime.Day()
-				fmt.Println(test)
-				test = int(startDateTime.Month())
-				fmt.Println(test)
-				test = startDateTime.Year()
-				fmt.Println(test)
-
 				err := db.Model(&HistoricalStats{}).Where("day = ? AND month = ? and year = ?",
 					startDateTime.Day(), int(startDateTime.Month()), startDateTime.Year()).Find(&tempFile).Error
 

@@ -182,7 +182,7 @@ func EXAMPLECreateFile(tx *gorm.DB, user *dbfs.User, fileParams ExampleFile) (*d
 
 	checksum := hex.EncodeToString(encode.FileHash)
 
-	err = dbfs.FinishFile(tx, &file, user, fileParams.ActualSize, checksum)
+	err = dbfs.FinishFile(tx, &file, user, fileParams.Size, fileParams.ActualSize, checksum)
 	if err != nil {
 		// If fails, delete File record and return error.
 	}

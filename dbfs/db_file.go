@@ -472,7 +472,7 @@ func CreateFragment(tx *gorm.DB, fileId string, dataId string, versionNo int, fr
 }
 
 // FinishFile is called whenever a file has been all written (all fragments written)
-func FinishFile(tx *gorm.DB, file *File, user *User, actualSize int, checksum string) error {
+func FinishFile(tx *gorm.DB, file *File, user *User, size, actualSize int, checksum string) error {
 
 	// Some checks
 	if file.Status != FileStatusWriting {
@@ -485,6 +485,7 @@ func FinishFile(tx *gorm.DB, file *File, user *User, actualSize int, checksum st
 	// Update the file to be finished
 	file.Status = FileStatusGood
 	file.Checksum = checksum
+	file.Size = size
 	file.ActualSize = actualSize
 	file.ModifiedUserUserId = &user.UserId
 	file.ModifiedTime = time.Now()

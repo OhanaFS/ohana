@@ -322,8 +322,8 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 		FileId:             uuid.New().String(),
 		FileName:           fileName,
 		MIMEType:           file.ContentType,
-		ParentFolderFileId: &folderId, // root folder for now
-		Size:               1024,      // placeholder size
+		ParentFolderFileId: &folderId,
+		Size:               1024, // placeholder size
 		VersioningMode:     dbfs.VersioningOff,
 		TotalShards:        totalShards,
 		DataShards:         dataShards,
@@ -428,6 +428,14 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
+	// get the file size
+	fileSizeActual, err := bc.Inc.GetActualFileSize(shardNames, servers)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError,
+			fmt.Sprintf("failed to get file size: %s", err.Error()))
+		return
+	}
+
 	// Insert fragments into the database
 	err = bc.Db.Transaction(func(tx *gorm.DB) error {
 		for i := 1; i <= int(dbfsFile.TotalShards); i++ {
@@ -455,7 +463,7 @@ func (bc *BackendController) UploadFile(w http.ResponseWriter, r *http.Request) 
 	checksum := hex.EncodeToString(result.FileHash)
 
 	dbfsFile.Size = int(result.FileSize)
-	err = dbfs.FinishFile(bc.Db, &dbfsFile, user, int(result.FileSize), checksum)
+	err = dbfs.FinishFile(bc.Db, &dbfsFile, user, int(result.FileSize), int(fileSizeActual), checksum)
 	if err != nil {
 		err2 := dbfsFile.Delete(bc.Db, user, bc.ServerName)
 		errorText := "Error finishing file: " + err.Error()
@@ -633,11 +641,19 @@ func (bc *BackendController) UpdateFile(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
+	// Get new Actual File Size
+	fileSizeActual, err := bc.Inc.GetActualFileSize(shardNames, servers)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError,
+			fmt.Sprintf("failed to get file size: %s", err.Error()))
+		return
+	}
+
 	// checksum
 	checksum := hex.EncodeToString(result.FileHash)
 
 	dbfsFile.Size = int(result.FileSize)
-	dbfsFile.ActualSize = int(result.FileSize)
+	dbfsFile.ActualSize = int(fileSizeActual)
 	err = dbfsFile.FinishUpdateFile(bc.Db, checksum)
 	if err != nil {
 		errString := err.Error()

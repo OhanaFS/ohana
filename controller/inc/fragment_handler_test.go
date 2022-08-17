@@ -153,7 +153,7 @@ func TestFragmentHandler(t *testing.T) {
 			})
 			Assert.NoError(err)
 
-			err = dbfs.FinishFile(db, &dbfsFile, &superUser, 40, "")
+			err = dbfs.FinishFile(db, &dbfsFile, &superUser, 40, 40, "")
 			Assert.NoError(err)
 
 			// Fragment creation

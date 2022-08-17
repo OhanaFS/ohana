@@ -28,8 +28,8 @@ type Server struct {
 	HostName  string `gorm:"not null; unique" json:"hostname"`
 	Port      string `gorm:"not null" json:"port"`
 	Status    int8   `gorm:"not null" json:"status"`
-	FreeSpace uint64 `gorm:"not null" json:"used_space"`
-	UsedSpace uint64 `gorm:"not null" json:"free_space"`
+	FreeSpace uint64 `gorm:"not null" json:"free_space"`
+	UsedSpace uint64 `gorm:"not null" json:"used_space"`
 }
 
 // GetServers returns all servers in the database.

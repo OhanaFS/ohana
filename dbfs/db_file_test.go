@@ -675,7 +675,7 @@ func EXAMPLECreateFile(tx *gorm.DB, user *dbfs.User, filename string, parentFold
 
 	// Now we can update it to indicate that it has been saved successfully.
 
-	err = dbfs.FinishFile(tx, &file, user, 412, "checksum")
+	err = dbfs.FinishFile(tx, &file, user, 412, 412, "checksum")
 	if err != nil {
 		// If fails, delete File record and return error.
 	}
