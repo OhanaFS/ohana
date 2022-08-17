@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -11,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/OhanaFS/ohana/config"
 	"github.com/OhanaFS/ohana/controller/inc"
@@ -1272,6 +1275,29 @@ func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.
 	// get password
 	password := r.Header.Get("password")
 
+	// Get password from HTTP Basic Auth
+	authHeader := r.Header.Get("Authorization")
+	if authHeader != "" {
+		// Base64 decode the header
+		res, err := io.ReadAll(
+			base64.NewDecoder(base64.StdEncoding,
+				bytes.NewReader(
+					[]byte(strings.TrimPrefix(authHeader, "Basic ")),
+				),
+			),
+		)
+		if err != nil {
+			util.HttpError(w, http.StatusBadRequest, "Invalid Authorization header")
+			return
+		}
+		_, pass, found := strings.Cut(string(res), ":")
+		if !found {
+			util.HttpError(w, http.StatusBadRequest, "Invalid Authorization header")
+			return
+		}
+		password = pass
+	}
+
 	if fileID == "" {
 		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
 		return
@@ -1332,8 +1358,9 @@ func (bc *BackendController) DownloadFileVersion(w http.ResponseWriter, r *http.
 
 	hexKey, hexIv, err := version.GetDecryptionKey(bc.Db, user, password)
 	if err != nil {
-		if errors.Is(err, dbfs.ErrIncorrectPassword) {
-			util.HttpError(w, http.StatusForbidden, err.Error())
+		if errors.Is(err, dbfs.ErrIncorrectPassword) || errors.Is(err, dbfs.ErrPasswordRequired) {
+			w.Header().Add("WWW-Authenticate", `Basic realm="Encrypted file, password required"`)
+			util.HttpError(w, http.StatusUnauthorized, err.Error())
 			return
 		}
 		util.HttpError(w, http.StatusInternalServerError, err.Error())
@@ -2308,6 +2335,29 @@ func (bc *BackendController) DownloadSharedLink(w http.ResponseWriter, r *http.R
 	// get password
 	password := r.Header.Get("password")
 
+	// Get password from HTTP Basic Auth
+	authHeader := r.Header.Get("Authorization")
+	if authHeader != "" {
+		// Base64 decode the header
+		res, err := io.ReadAll(
+			base64.NewDecoder(base64.StdEncoding,
+				bytes.NewReader(
+					[]byte(strings.TrimPrefix(authHeader, "Basic ")),
+				),
+			),
+		)
+		if err != nil {
+			util.HttpError(w, http.StatusBadRequest, "Invalid Authorization header")
+			return
+		}
+		_, pass, found := strings.Cut(string(res), ":")
+		if !found {
+			util.HttpError(w, http.StatusBadRequest, "Invalid Authorization header")
+			return
+		}
+		password = pass
+	}
+
 	if shortenedLink == "" {
 		util.HttpError(w, http.StatusBadRequest, "No shortenedLink provided")
 		return
@@ -2348,8 +2398,9 @@ func (bc *BackendController) DownloadSharedLink(w http.ResponseWriter, r *http.R
 
 	hexKey, hexIv, err := file.GetDecryptionKey(bc.Db, nil, password)
 	if err != nil {
-		if errors.Is(err, dbfs.ErrIncorrectPassword) {
-			util.HttpError(w, http.StatusForbidden, err.Error())
+		if errors.Is(err, dbfs.ErrIncorrectPassword) || errors.Is(err, dbfs.ErrPasswordRequired) {
+			w.Header().Add("WWW-Authenticate", `Basic realm="Encrypted file, password required"`)
+			util.HttpError(w, http.StatusUnauthorized, err.Error())
 			return
 		}
 		util.HttpError(w, http.StatusInternalServerError, err.Error())

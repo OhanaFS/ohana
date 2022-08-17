@@ -6,9 +6,10 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"io"
+
 	"golang.org/x/crypto/scrypt"
 	"gorm.io/gorm"
-	"io"
 )
 
 type PasswordProtect struct {
@@ -204,11 +205,11 @@ func (p *PasswordProtect) DecryptWithPassword(password string) (string, string, 
 
 		actualKey, err := aesgcm.Open(nil, passwordNonceBytes, fileKeyBytes, nil)
 		if err != nil {
-			return "", "", ErrPasswordIncorrect
+			return "", "", ErrIncorrectPassword
 		}
 		actualIv, err := aesgcm.Open(nil, passwordNonceBytes, fileIvBytes, nil)
 		if err != nil {
-			return "", "", ErrPasswordIncorrect
+			return "", "", ErrIncorrectPassword
 		}
 
 		return hex.EncodeToString(actualKey), hex.EncodeToString(actualIv), nil

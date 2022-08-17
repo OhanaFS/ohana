@@ -1,4 +1,5 @@
-import { Code, Image, Loader, Text } from '@mantine/core';
+import { Code, Group, Image, Loader, Text } from '@mantine/core';
+import { IconLock } from '@tabler/icons';
 import { useQuery } from '@tanstack/react-query';
 import { APIClient } from '../../api/api';
 import { getFileDownloadURL, useQueryFileMetadata } from '../../api/file';
@@ -25,11 +26,7 @@ const TextFilePreview = ({ url }: TextFilePreviewProps) => {
   );
 };
 
-export type FilePreviewProps =
-  | {
-      fileId: string;
-    }
-  | { shareId: string };
+export type FilePreviewProps = { fileId: string } | { shareId: string };
 
 const FilePreview = (props: FilePreviewProps) => {
   const isShare = 'shareId' in props;
@@ -41,7 +38,12 @@ const FilePreview = (props: FilePreviewProps) => {
     : getSharingLinkURL(props.shareId, 'inline');
   const metadata = !isShare ? qFile.data : qShare.data;
 
-  return metadata?.mime_type.startsWith('image/') ? (
+  return metadata?.password_protected ? (
+    <Group p="xl">
+      <IconLock />
+      <Text>Password protected</Text>
+    </Group>
+  ) : metadata?.mime_type.startsWith('image/') ? (
     <Image src={downloadUrl} />
   ) : metadata?.mime_type.startsWith('video/') ? (
     <video className="w-full" controls playsInline src={downloadUrl}></video>

@@ -118,7 +118,7 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
       });
     } else if (data.id === ChonkyActions.DownloadFiles.id) {
       if (!data.state.selectedFilesForAction[0].isDir)
-        window.location.assign(
+        window.open(
           getFileDownloadURL(data.state.selectedFilesForAction[0].id)
         );
     } else if (data.id === ChonkyActions.OpenFiles.id) {
@@ -194,9 +194,11 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
             size: file.size,
             thumbnailUrl:
               file.entry_type === EntryType.File &&
-              file.mime_type.startsWith('image/')
+              file.mime_type.startsWith('image/') &&
+              !file.password_protected
                 ? getFileDownloadURL(file.file_id, { inline: true })
                 : undefined,
+            isEncrypted: file.password_protected,
           } as FileData)
       ) || [],
     [qFilesList.data]

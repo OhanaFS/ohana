@@ -1,16 +1,11 @@
 import {
   AspectRatio,
   Drawer,
-  Table,
   Accordion,
   ScrollArea,
   Loader,
 } from '@mantine/core';
-import {
-  EntryType,
-  MetadataKeyMap,
-  useQueryFileMetadata,
-} from '../../api/file';
+import { EntryType, useQueryFileMetadata } from '../../api/file';
 import FilePreview from './FilePreview';
 import FileVersions from './Properties/FileVersions';
 import PasswordForm from './Properties/PasswordForm';
