@@ -325,6 +325,15 @@ func TestBackendController_SharedLinks(t *testing.T) {
 		Assert.NoError(err)
 		Assert.Equal(0, len(favorites))
 
+		// Trying to get a favorite that is not in there
+		req = httptest.NewRequest("GET", "/api/v1/favorites/{fileID}", nil).
+			WithContext(ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req = mux.SetURLVars(req, map[string]string{"fileID": file.FileId})
+		w = httptest.NewRecorder()
+		bc.GetFavoriteItem(w, req)
+		Assert.Equal(http.StatusNotFound, w.Code, w.Body.String())
+
 		// Adding a favorite
 		req = httptest.NewRequest("PUT", "/api/v1/favorites/{fileID}", nil).
 			WithContext(ctxutil.WithUser(context.Background(), user))
@@ -344,6 +353,19 @@ func TestBackendController_SharedLinks(t *testing.T) {
 		err = json.Unmarshal(w.Body.Bytes(), &favorites)
 		Assert.NoError(err)
 		Assert.Equal(1, len(favorites))
+
+		// Trying to get a favorite that is not in there
+		req = httptest.NewRequest("GET", "/api/v1/favorites/{fileID}", nil).
+			WithContext(ctxutil.WithUser(context.Background(), user))
+		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
+		req = mux.SetURLVars(req, map[string]string{"fileID": file.FileId})
+		w = httptest.NewRecorder()
+		bc.GetFavoriteItem(w, req)
+		Assert.Equal(http.StatusOK, w.Code)
+		var fileCheck dbfs.File
+		err = json.Unmarshal(w.Body.Bytes(), &fileCheck)
+		Assert.NoError(err)
+		Assert.Equal(file.FileId, fileCheck.FileId)
 
 		// Removing said favorite
 

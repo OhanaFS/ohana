@@ -96,6 +96,7 @@ func NewBackend(
 
 	// Get Favorites, Get Shared
 	r.HandleFunc("/api/v1/favorites", bc.GetFavorites).Methods("GET")
+	r.HandleFunc("/api/v1/favorites/{fileID}", bc.GetFavoriteItem).Methods("GET")
 	r.HandleFunc("/api/v1/favorites/{fileID}", bc.AddFavorite).Methods("PUT")
 	r.HandleFunc("/api/v1/favorites/{fileID}", bc.RemoveFavorite).Methods("DELETE")
 	r.HandleFunc("/api/v1/sharedWith", bc.GetSharedWithUser).Methods("GET")

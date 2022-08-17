@@ -57,6 +57,37 @@ func (bc *BackendController) GetFavorites(w http.ResponseWriter, r *http.Request
 	util.HttpJson(w, http.StatusOK, files)
 }
 
+// GetFavoriteItem returns the favorite item for the given file and user if exists
+func (bc *BackendController) GetFavoriteItem(w http.ResponseWriter, r *http.Request) {
+
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	fileId, ok := mux.Vars(r)["fileID"]
+	if !ok {
+		util.HttpError(w, http.StatusBadRequest, "No fileID specified")
+		return
+	} else if fileId == "" {
+		util.HttpError(w, http.StatusBadRequest, "fileID is required")
+		return
+	}
+
+	file, err := user.GetFavoriteFileByFileId(bc.Db, fileId)
+	if err != nil {
+		if errors.Is(err, dbfs.ErrFileNotFound) {
+			util.HttpError(w, http.StatusNotFound, err.Error())
+		} else {
+			util.HttpError(w, http.StatusInternalServerError, err.Error())
+		}
+	}
+
+	util.HttpJson(w, http.StatusOK, file)
+
+}
+
 // AddFavorite is a route to add a file to the favorites of a user
 func (bc *BackendController) AddFavorite(w http.ResponseWriter, r *http.Request) {
 
