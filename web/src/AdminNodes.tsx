@@ -1,45 +1,21 @@
 import { Group, Text, Accordion, Title, ThemeIcon } from '@mantine/core';
 import { IconExclamationMark } from '@tabler/icons';
+import { useState } from 'react';
+import {
+  useQueryGetAlerts,
+  useQueryGetserverStatuses,
+  useQueryGetserverStatusesID,
+} from './api/cluster';
 import AppBase from './components/AppBase';
-
-const charactersList = [
-  {
-    label: 'Bender Bending Rodríguez',
-    ip: '192.168.1.1',
-    warnings: 1,
-    uptime: 356000,
-    loadavg: [0.5, 0.5, 0.5],
-  },
-
-  {
-    label: 'Carol Miller',
-    ip: '192.168.1.23',
-    warnings: 0,
-    uptime: 350,
-    loadavg: [0.5, 0.5, 0.5],
-  },
-  {
-    label: 'Homer Simpson',
-    ip: '192.168.1.3',
-    warnings: 2,
-    uptime: 30,
-    loadavg: [0.5, 0.5, 0.5],
-  },
-  {
-    label: 'Spongebob Squarepants',
-    ip: '192.168.1.77',
-    warnings: 0,
-    uptime: 35600,
-    loadavg: [0.5, 0.5, 0.5],
-  },
-];
+import { humanFileSize } from './shared/util';
 
 interface AccordionLabelProps {
-  label: string;
+  name: string;
   warnings: number;
+  errors: number;
 }
 
-function AccordionLabel({ label, warnings }: AccordionLabelProps) {
+function AccordionLabel({ name, warnings, errors }: AccordionLabelProps) {
   return (
     <Group noWrap>
       <div
@@ -51,7 +27,7 @@ function AccordionLabel({ label, warnings }: AccordionLabelProps) {
           width: '100%',
         }}
       >
-        <Text>{label}</Text>
+        <Text>{name}</Text>
         <div
           style={{
             display: 'flex',
@@ -60,18 +36,56 @@ function AccordionLabel({ label, warnings }: AccordionLabelProps) {
           }}
         >
           {warnings > 0 ? (
+            <ThemeIcon color="yellow" variant="light">
+              <IconExclamationMark size={30} />
+            </ThemeIcon>
+          ) : null}
+          <Text style={{ padding: '5px' }} color="black">
+            {warnings > 0 ? warnings : ''}
+          </Text>
+          {errors > 0 ? (
             <ThemeIcon color="red" variant="light">
               <IconExclamationMark size={30} />
             </ThemeIcon>
           ) : null}
           <Text style={{ padding: '5px' }} color="red">
-            {warnings > 0 ? warnings : ''}
+            {errors > 0 ? errors : ''}
           </Text>
         </div>
       </div>
     </Group>
   );
 }
+
+const serverStatusCodeConversion = (code: number) => {
+  switch (code) {
+    case 1:
+      return 'Online';
+      break;
+    case 2:
+      return 'Offline';
+      break;
+    case 3:
+      return 'Starting';
+      break;
+    case 4:
+      return 'Stopping';
+      break;
+    case 5:
+      return 'Needs Attention';
+      break;
+    case 6:
+      return 'Error!';
+      break;
+    case 7:
+      return 'Offline Error!';
+      break;
+
+    default:
+      return 'Unknown';
+      break;
+  }
+};
 
 function secondsToDhms(seconds: number) {
   seconds = Number(seconds);
@@ -87,33 +101,82 @@ function secondsToDhms(seconds: number) {
   return dDisplay + hDisplay + mDisplay + sDisplay;
 }
 
-export function AdminNodes() {
-  const items = charactersList.map((item) => (
-    <Accordion.Item value={item.label} key={item.label}>
+interface NodeDetailsProps {
+  name: string;
+}
+
+function NodeDetails({ name }: NodeDetailsProps) {
+  const qServerStatusDetails = useQueryGetserverStatusesID(name);
+
+  return (
+    <Accordion.Item value={name}>
       <Accordion.Control>
-        <AccordionLabel {...item} />
+        <AccordionLabel
+          name={name}
+          warnings={qServerStatusDetails.data?.warnings ?? 0}
+          errors={qServerStatusDetails.data?.errors ?? 0}
+        />
       </Accordion.Control>
       <Accordion.Panel>
         <Text size="md">
           <Text weight={500} component="span">
-            IP-Address:&nbsp;
+            Hostname:{' '}
           </Text>
-          {item.ip}
+          {qServerStatusDetails.data?.hostname}
+        </Text>
+        <Text size="md">
+          <Text weight={500} component="span">
+            Port:{' '}
+          </Text>
+          {qServerStatusDetails.data?.port}
+        </Text>
+        <Text size="md">
+          <Text weight={500} component="span">
+            Status:{' '}
+          </Text>
+          {serverStatusCodeConversion(qServerStatusDetails.data?.status ?? 0)}
+        </Text>
+        <Text size="md">
+          <Text weight={500} component="span">
+            Storage{' (free/total): '}
+          </Text>
+          {humanFileSize(qServerStatusDetails.data?.free_space ?? 0) +
+            ' / ' +
+            humanFileSize(
+              (qServerStatusDetails.data?.used_space ?? 0) +
+                (qServerStatusDetails.data?.free_space ?? 0)
+            )}
+        </Text>
+        <Text size="md">
+          <Text weight={500} component="span">
+            Memory{' (free/total): '}
+          </Text>
+          {humanFileSize(qServerStatusDetails.data?.memory_free ?? 0) +
+            ' / ' +
+            humanFileSize(
+              (qServerStatusDetails.data?.memory_free ?? 0) +
+                (qServerStatusDetails.data?.memory_used ?? 0)
+            )}
         </Text>
         <Text size="md">
           <Text weight={500} component="span">
             Uptime:&nbsp;
           </Text>
-          {secondsToDhms(item.uptime)}
-        </Text>
-        <Text size="md">
-          <Text weight={500} component="span">
-            Load Average:&nbsp;
-          </Text>
-          {item.loadavg.join(', ')}
+          {secondsToDhms(qServerStatusDetails.data?.uptime ?? 0)}
         </Text>
       </Accordion.Panel>
     </Accordion.Item>
+  );
+}
+
+export function AdminNodes() {
+  const qServerStatus = useQueryGetserverStatuses();
+  const serversList = qServerStatus?.data ?? [];
+
+  //console.log(useQueryGetAlerts().data?.log_entries);
+
+  const items = serversList.map((item, i) => (
+    <NodeDetails name={item.name} key={i} />
   ));
 
   return (
@@ -143,7 +206,7 @@ export function AdminNodes() {
                 marginBottom: '20px',
               }}
             >
-              Nodes Summary
+              Nodes Connected: {serversList.length}
             </Title>
             <Accordion>{items}</Accordion>
           </div>
