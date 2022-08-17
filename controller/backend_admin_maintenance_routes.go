@@ -1170,3 +1170,23 @@ func (bc *BackendController) FixOrphanedFilesResult(w http.ResponseWriter, r *ht
 
 	util.HttpJson(w, http.StatusOK, true)
 }
+
+// SetStitchParameters sets the stitch parameters
+func (bc *BackendController) SetStitchParameters(w http.ResponseWriter, r *http.Request) {
+
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// Check if user is admin
+	if user.AccountType != dbfs.AccountTypeAdmin {
+		util.HttpError(w, http.StatusForbidden, "You are not an admin")
+		return
+	}
+
+	r.Header.Get()
+
+	util.HttpJson(w, http.StatusOK, true)
+}
