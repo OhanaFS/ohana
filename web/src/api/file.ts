@@ -408,3 +408,21 @@ export const useQueryFolderPathById = (folderId: string) =>
           .then((res) => res.data)
           .catch(typedError)
   );
+
+/**
+ * Add a file to favorites
+ */
+export const useMutateFavoriteFile = () => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (params: { fileId: string; action: 'put' | 'delete' }) =>
+      APIClient[params.action]<boolean>(`/api/v1/favorites/${params.fileId}`)
+        .then((res) => res.data)
+        .catch(typedError),
+    {
+      onSuccess: () => {
+        queryClient.clear();
+      },
+    }
+  );
+};
