@@ -1,5 +1,6 @@
 import { APIClient, typedError } from './api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { WhoamiResponse } from './auth';
 
 export const K_ROOT_FOLDER_ID = '00000000-0000-0000-0000-000000000000';
 export const K_HOME_PARENT_FOLDER_ID = '00000000-0000-0000-0000-000000000001';
@@ -254,11 +255,12 @@ export type Permission = {
   can_write: boolean;
   can_execute: boolean;
   can_share: boolean;
+  can_audit: boolean;
 };
 
 export type FilePermission = Permission & {
   file_id: string;
-  permission_id: number;
+  permission_id: string;
   user_id: string;
   group_id: string;
   version_no: number;
@@ -266,6 +268,11 @@ export type FilePermission = Permission & {
   created_at: string;
   updated_at: string;
   status: number;
+  User: WhoamiResponse;
+  Group: {
+    group_id: string;
+    group_name: string;
+  };
 };
 
 /**
@@ -282,20 +289,31 @@ export const useQueryFilePermissions = (fileId: string) =>
 
 export type UpdateFilePermissionsRequest = Permission & {
   file_id: string;
-  permission_id: number;
+  permission_id: string;
 };
 
 /**
  * Modify permissions on a file.
  */
-export const useMutateUpdateFilePermissions = () =>
-  useMutation(({ file_id, ...perms }: UpdateFilePermissionsRequest) =>
-    APIClient.patch<boolean>(`/api/v1/file/${file_id}/permissions`, null, {
-      headers: { ...perms },
-    })
-      .then((res) => res.data)
-      .catch(typedError)
+export const useMutateUpdateFilePermissions = () => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ file_id, permission_id, ...perms }: UpdateFilePermissionsRequest) =>
+      APIClient.patch<boolean>(
+        `/api/v1/file/${file_id}/permissions/${permission_id}`,
+        null,
+        { headers: { ...perms } }
+      )
+        .then((res) => res.data)
+        .catch(typedError),
+    {
+      onSuccess: (_, params) => {
+        queryClient.invalidateQueries(['file', 'permissions', params.file_id]);
+        queryClient.invalidateQueries(['file', 'metadata', params.file_id]);
+      },
+    }
   );
+};
 
 export type AddFilePermissionsRequest = Permission & {
   file_id: string;
@@ -306,8 +324,9 @@ export type AddFilePermissionsRequest = Permission & {
 /**
  * Add new permissions to a file with an array of users and groups.
  */
-export const useMutateAddFilePermissions = () =>
-  useMutation(
+export const useMutateAddFilePermissions = () => {
+  const queryClient = useQueryClient();
+  return useMutation(
     ({ file_id, users, groups, ...perms }: AddFilePermissionsRequest) =>
       APIClient.post<boolean>(`/api/v1/file/${file_id}/permissions`, null, {
         headers: {
@@ -317,8 +336,36 @@ export const useMutateAddFilePermissions = () =>
         },
       })
         .then((res) => res.data)
-        .catch(typedError)
+        .catch(typedError),
+    {
+      onSuccess: (_, params) => {
+        queryClient.invalidateQueries(['file', 'permissions', params.file_id]);
+        queryClient.invalidateQueries(['file', 'metadata', params.file_id]);
+      },
+    }
   );
+};
+
+/**
+ * Remove a permission from a file
+ */
+export const useMutateDeleteFilePermissions = () => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (params: { file_id: string; permission_id: string }) =>
+      APIClient.delete(
+        `/api/v1/file/${params.file_id}/permissions/${params.permission_id}`
+      )
+        .then((res) => res.data)
+        .catch(typedError),
+    {
+      onSuccess: (_, params) => {
+        queryClient.invalidateQueries(['file', 'permissions', params.file_id]);
+        queryClient.invalidateQueries(['file', 'metadata', params.file_id]);
+      },
+    }
+  );
+};
 
 /**
  * Get a file version's metadata based on its file ID and version ID.
