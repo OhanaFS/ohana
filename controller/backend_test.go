@@ -589,8 +589,8 @@ func TestBackendController(t *testing.T) {
 			ctxutil.WithUser(context.Background(), user))
 		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
 		req = mux.SetURLVars(req, map[string]string{
-			"fileID":    newFileID,
-			"versionID": "1",
+			"fileID":     newFileID,
+			"versionsID": "1",
 		})
 		w = httptest.NewRecorder()
 		req.Header.Add("password", newPassword)
@@ -602,8 +602,8 @@ func TestBackendController(t *testing.T) {
 			ctxutil.WithUser(context.Background(), user))
 		req.AddCookie(&http.Cookie{Name: middleware.SessionCookieName, Value: sessionId})
 		req = mux.SetURLVars(req, map[string]string{
-			"fileID":    newFileID,
-			"versionID": "0",
+			"fileID":     newFileID,
+			"versionsID": "0",
 		})
 		w = httptest.NewRecorder()
 		bc.DeleteFileVersion(w, req)
