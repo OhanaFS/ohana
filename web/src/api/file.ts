@@ -359,12 +359,27 @@ export type DeleteFileVersionRequest = {
 /**
  * Delete a file version by its ID.
  */
-export const useMutateDeleteFileVersion = () =>
-  useMutation(({ file_id, version_id }: DeleteFileVersionRequest) =>
-    APIClient.delete<boolean>(`/api/v1/file/${file_id}/version/${version_id}`)
-      .then((res) => res.data)
-      .catch(typedError)
+export const useMutateDeleteFileVersion = () => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ file_id, version_id }: DeleteFileVersionRequest) =>
+      APIClient.delete<boolean>(
+        `/api/v1/file/${file_id}/versions/${version_id}`
+      )
+        .then((res) => res.data)
+        .catch(typedError),
+    {
+      onSuccess: (_, params) => {
+        queryClient.invalidateQueries([
+          'file',
+          'version',
+          'history',
+          params.file_id,
+        ]);
+      },
+    }
   );
+};
 
 /**
  * Get a file path by its ID.

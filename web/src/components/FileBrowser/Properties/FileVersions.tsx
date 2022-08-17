@@ -23,7 +23,7 @@ const FileVersions = (props: FileVersionsProps) => {
       <UploadFileModal
         opened={isUploadOpen}
         onClose={() => setUploadOpen(false)}
-        update={true}
+        update
         updateFileId={props.fileId}
       />
       <Table>
@@ -43,7 +43,14 @@ const FileVersions = (props: FileVersionsProps) => {
                 <td>{version.version_no}</td>
                 <td>{version.modified_time}</td>
                 <td>
-                  <ActionIcon>
+                  <ActionIcon
+                    onClick={() =>
+                      mDeleteFileVersion.mutate({
+                        file_id: props.fileId,
+                        version_id: version.version_no,
+                      })
+                    }
+                  >
                     <IconTrash className="text-red-500" />
                   </ActionIcon>
                 </td>

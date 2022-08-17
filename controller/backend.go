@@ -1419,7 +1419,7 @@ func (bc *BackendController) DeleteFileVersion(w http.ResponseWriter, r *http.Re
 		util.HttpError(w, http.StatusBadRequest, "No fileID provided")
 		return
 	}
-	versionID := vars["versionID"]
+	versionID := vars["versionsID"]
 
 	// convert versionID into int
 	versionIDInt, err := strconv.Atoi(versionID)

@@ -84,6 +84,26 @@ services:
                 "ValueType": "json"
               }
             ]
+          },
+          {
+            "SubjectId":"3",
+            "Username":"someone",
+            "Password":"password",
+            "Claims": [
+              {
+                "Type": "name",
+                "Value": "Jane Doe"
+              },
+              {
+                "Type": "email",
+                "Value": "jane@ohanais.live"
+              },
+              {
+                "Type": "roles",
+                "Value": "[\"test123\"]",
+                "ValueType": "json"
+              }
+            ]
           }
         ]
       IDENTITY_RESOURCES_INLINE: |
