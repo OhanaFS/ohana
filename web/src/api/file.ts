@@ -259,7 +259,7 @@ export type Permission = {
 
 export type FilePermission = Permission & {
   file_id: string;
-  permission_id: number;
+  permission_id: string;
   user_id: string;
   group_id: string;
   version_no: number;

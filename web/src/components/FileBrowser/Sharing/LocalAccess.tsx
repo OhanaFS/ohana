@@ -7,38 +7,33 @@ import {
   Avatar,
   createStyles,
   SelectItemProps,
+  Stack,
+  Menu,
+  Button,
+  Accordion,
+  Switch,
 } from '@mantine/core';
 import { useQueryUser, useQueryUsers, WhoamiResponse } from '../../../api/auth';
 import {
+  FilePermission,
+  Permission,
   useMutateAddFilePermissions,
+  useMutateUpdateFilePermissions,
   useQueryFileMetadata,
   useQueryFilePermissions,
 } from '../../../api/file';
-
-const useStyles = createStyles((theme) => ({
-  userButton: {
-    padding: theme.spacing.sm,
-    transition: 'all 0.1s',
-    borderRadius: theme.radius.xl,
-    '&:hover': {
-      backgroundColor: theme.colors.blue[0],
-    },
-  },
-}));
 
 type UserButtonProps = {
   name: string;
   email: string;
   isYou?: boolean;
-  withStyles?: boolean;
 };
 
 const UserLayout = React.forwardRef<HTMLDivElement, UserButtonProps>(
-  ({ name, email, isYou, withStyles, ...rest }: UserButtonProps, ref) => {
-    const { classes } = useStyles();
+  ({ name, email, isYou, ...rest }: UserButtonProps, ref) => {
     return (
       <div ref={ref} {...rest}>
-        <Group className={withStyles ? classes.userButton : ''} noWrap>
+        <Group noWrap>
           <Avatar size={40} color="blue" radius="xl">
             {name
               .split(' ')
@@ -60,11 +55,81 @@ const UserLayout = React.forwardRef<HTMLDivElement, UserButtonProps>(
   }
 );
 
-const UserButton = (props: UserButtonProps) => {
+const UserButton = ({ perm }: { perm: FilePermission }) => {
+  const qUser = useQueryUser();
+  const isYou = perm.User.user_id === qUser.data?.user_id;
+  const [switches, setSwitches] = React.useState<Permission>({
+    can_read: false,
+    can_write: false,
+    can_execute: false,
+    can_share: false,
+  });
+
+  const mUpdate = useMutateUpdateFilePermissions();
+  React.useEffect(() => {}, [mUpdate.data]);
+
   return (
-    <UnstyledButton>
-      <UserLayout {...props} withStyles />
-    </UnstyledButton>
+    <Accordion.Item value={perm.permission_id}>
+      <Accordion.Control>
+        <UserLayout
+          name={perm.User.name}
+          email={perm.User.email}
+          isYou={isYou}
+        />
+      </Accordion.Control>
+      <Accordion.Panel>
+        <Group position="apart">
+          <Group>
+            <Switch
+              disabled={isYou}
+              label="Can view"
+              checked={switches.can_read}
+              onChange={(e) =>
+                setSwitches({
+                  ...switches,
+                  can_read: e.currentTarget.checked,
+                })
+              }
+            />
+            <Switch
+              disabled={isYou}
+              label="Can edit"
+              checked={switches.can_write}
+              onChange={(e) =>
+                setSwitches({
+                  ...switches,
+                  can_write: e.currentTarget.checked,
+                })
+              }
+            />
+            <Switch
+              disabled={isYou}
+              label="Can share"
+              checked={switches.can_share}
+              onChange={(e) =>
+                setSwitches({
+                  ...switches,
+                  can_share: e.currentTarget.checked,
+                })
+              }
+            />
+          </Group>
+          <Button compact color="red" variant="subtle" disabled={isYou}>
+            Revoke access
+          </Button>
+        </Group>
+      </Accordion.Panel>
+    </Accordion.Item>
+  );
+};
+
+const UserButtons = ({ permissions }: { permissions: FilePermission[] }) => {
+  return (
+    <Accordion variant="filled">
+      {permissions.map((perm) => (
+        <UserButton key={perm.permission_id} perm={perm} />
+      ))}
+    </Accordion>
   );
 };
 
@@ -81,7 +146,6 @@ const AutocompleteItem = React.forwardRef<HTMLDivElement, ItemProps>(
 );
 
 const LocalAccess = ({ fileId }: { fileId: string }) => {
-  const qUser = useQueryUser();
   const qFile = useQueryFileMetadata(fileId);
   const qUsers = useQueryUsers();
   const qPerms = useQueryFilePermissions(fileId);
@@ -136,14 +200,7 @@ const LocalAccess = ({ fileId }: { fileId: string }) => {
       <Text weight="bold" pt="sm">
         People with access
       </Text>
-      {currentPerms.map((perm) => (
-        <UserButton
-          key={perm.permission_id}
-          name={perm.User.name}
-          email={perm.User.email}
-          isYou={perm.user_id === qUser.data?.user_id}
-        />
-      ))}
+      <UserButtons permissions={currentPerms} />
     </>
   );
 };
