@@ -10,12 +10,16 @@ import {
   Group,
 } from '@mantine/core';
 import { IconShare, IconStar } from '@tabler/icons';
-import { EntryType, useQueryFileMetadata } from '../../api/file';
+import {
+  EntryType,
+  useMutateFavoriteFile,
+  useQueryFileMetadata,
+  useQueryIsFavoriteFile,
+} from '../../api/file';
 import FilePreview from './FilePreview';
 import FileVersions from './Properties/FileVersions';
 import PasswordForm from './Properties/PasswordForm';
 import PropertiesTable from './Properties/PropertiesTable';
-import SharingProperties from './Properties/Sharing';
 import SharingModal from './SharingModal';
 
 export type FilePropertiesDrawerProps = {
@@ -27,6 +31,10 @@ const FilePropertiesDrawer = (props: FilePropertiesDrawerProps) => {
   const { fileId, onClose } = props;
   const [isSharingModalOpen, setIsSharingModalOpen] = React.useState(false);
   const qFile = useQueryFileMetadata(fileId);
+  const qIsFavorite = useQueryIsFavoriteFile(fileId);
+  const mFavoriteFile = useMutateFavoriteFile();
+
+  const isFavorite = qIsFavorite.isSuccess;
 
   return (
     <>
@@ -60,11 +68,18 @@ const FilePropertiesDrawer = (props: FilePropertiesDrawerProps) => {
               <Button
                 leftIcon={<IconStar size={16} fill="currentColor" />}
                 variant="light"
+                onClick={() =>
+                  mFavoriteFile.mutate({
+                    fileId,
+                    action: isFavorite ? 'delete' : 'put',
+                  })
+                }
+                color={isFavorite ? 'yellow' : 'blue'}
               >
-                Add to favorites
+                {isFavorite ? 'Favorite' : 'Add to favorites'}
               </Button>
               <Button
-                leftIcon={<IconShare size={16} fill="currentColor" />}
+                leftIcon={<IconShare size={16} />}
                 variant="light"
                 onClick={() => setIsSharingModalOpen(true)}
               >

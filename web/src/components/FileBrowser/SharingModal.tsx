@@ -13,13 +13,12 @@ import {
   Stack,
   Switch,
   Text,
-  TextInput,
   Tooltip,
   UnstyledButton,
 } from '@mantine/core';
 import { IconCheck, IconCopy, IconDots, IconX } from '@tabler/icons';
 import { useQueryUser } from '../../api/auth';
-import { useQueryFileMetadata } from '../../api/file';
+import { EntryType, useQueryFileMetadata } from '../../api/file';
 import {
   getSharingLinkURL,
   useMutateCreateSharingLink,
@@ -84,11 +83,7 @@ const SharingModal = (props: SharingModalProps) => {
       size="lg"
       title={`Share "${qFile.data?.file_name}"`}
       overflow="outside"
-      styles={(theme) => ({
-        title: {
-          fontSize: theme.fontSizes.xl,
-        },
-      })}
+      styles={(theme) => ({ title: { fontSize: theme.fontSizes.xl } })}
     >
       <Stack>
         <Autocomplete

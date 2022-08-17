@@ -420,9 +420,25 @@ export const useMutateFavoriteFile = () => {
         .then((res) => res.data)
         .catch(typedError),
     {
-      onSuccess: () => {
-        queryClient.clear();
+      onSuccess: (_, params) => {
+        queryClient.invalidateQueries(['is-favorite', params.fileId]);
+        queryClient.invalidateQueries(['favorites']);
       },
     }
   );
 };
+
+/**
+ * Check if a file is favorited
+ */
+export const useQueryIsFavoriteFile = (fileId: string) =>
+  useQuery(
+    ['is-favorite', fileId],
+    () =>
+      !fileId
+        ? Promise.reject()
+        : APIClient.get<FileMetadata>(`/api/v1/favorites/${fileId}`)
+            .then((res) => res.data)
+            .catch(typedError),
+    { retry: false }
+  );
