@@ -130,7 +130,7 @@ func (a *auth) Callback(ctx context.Context, code string, checkState string) (*c
 	if err := idToken.Claims(&allClaims); err != nil {
 		return nil, fmt.Errorf("Failed to parse ID Token claims: %w", err)
 	}
-	if roles, ok := allClaims["roles"].([]string); ok {
+	if roles, ok := allClaims[a.authConfig.RolesClaimName].([]string); ok {
 		idTokenClaims.Roles = roles
 	}
 
