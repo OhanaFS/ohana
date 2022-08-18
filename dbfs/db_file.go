@@ -1,7 +1,13 @@
 package dbfs
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
+	"golang.org/x/crypto/scrypt"
+	"io"
 	"mime"
 	"path/filepath"
 	"regexp"
@@ -1944,4 +1950,156 @@ func (f *File) RemoveFromFavorites(tx *gorm.DB, user *User) error {
 
 	return nil
 
+}
+
+// RotateKey will rotate the key and IV of a file
+func (f *File) RotateKey(tx *gorm.DB, user *User, password string) error {
+
+	// First, we need to extract out each file versions key and iv.
+
+	var fileVersions []FileVersion
+	if err := tx.Model(&FileVersion{}).Where("file_id = ?", f.FileId).Find(&fileVersions).Error; err != nil {
+		return err
+	}
+
+	type KeyIvPair struct {
+		Key string
+		Iv  string
+	}
+
+	newKeyIvPair := make([]KeyIvPair, len(fileVersions))
+
+	// Generate a new key and iv.
+
+	newFileKey, newFileIv, err := GenerateKeyIV()
+	if err != nil {
+		return err
+	}
+
+	for i, fileVersion := range fileVersions {
+
+		oldKey, oldIv, err := fileVersion.GetDecryptionKey(tx, user, password)
+		if err != nil {
+			return err
+		}
+
+		// encrypt it with the new key and iv
+		newKey, err := EncryptWithKeyIV(oldKey, newFileKey, newFileIv)
+		if err != nil {
+			return err
+		}
+		newIv, err := EncryptWithKeyIV(oldIv, newFileKey, newFileIv)
+		if err != nil {
+			return err
+		}
+
+		newKeyIvPair[i].Key = newKey
+		newKeyIvPair[i].Iv = newIv
+	}
+
+	latestVersionOldKey, latestVersionOldIv, err := f.GetDecryptionKey(tx, user, password)
+	if err != nil {
+		return err
+	}
+
+	latestVersionNewKey, err := EncryptWithKeyIV(latestVersionOldKey, newFileKey, newFileIv)
+	if err != nil {
+		return err
+	}
+	latestVersionNewIv, err := EncryptWithKeyIV(latestVersionOldIv, newFileKey, newFileIv)
+	if err != nil {
+		return err
+	}
+
+	// Encrypt the file key and iv if the password is not empty
+	var nonce, salt []byte
+
+	if password != "" {
+		// Generate a secure salt
+		salt = make([]byte, 32)
+		_, err = rand.Read(salt)
+		if err != nil {
+			return err
+		}
+
+		key, err := scrypt.Key([]byte(password), salt, 16384, 8, 1, 32)
+		if err != nil {
+			return err
+		}
+
+		// ENCRYPT
+		fileKeyBytes, err := hex.DecodeString(newFileKey)
+		if err != nil {
+			return err
+		}
+
+		fileIvBytes, err := hex.DecodeString(newFileIv)
+		if err != nil {
+			return err
+		}
+
+		block, err := aes.NewCipher(key)
+		if err != nil {
+			return err
+		}
+
+		aesgcm, err := cipher.NewGCM(block)
+		if err != nil {
+			return err
+		}
+
+		nonce = make([]byte, aesgcm.NonceSize())
+		if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+			return err
+		}
+
+		var p PasswordProtect
+		err = tx.Model(&p).Where("file_id = ?", f.FileId).First(&p).Error
+		if err != nil {
+			return err
+		}
+
+		p.PasswordNonce = hex.EncodeToString(nonce)
+
+		newFileKeyBytes := aesgcm.Seal(nil, nonce, fileKeyBytes, nil)
+		newFileIvBytes := aesgcm.Seal(nil, nonce, fileIvBytes, nil)
+
+		newFileKey = hex.EncodeToString(newFileKeyBytes)
+		newFileIv = hex.EncodeToString(newFileIvBytes)
+	}
+
+	// Update the db
+
+	err = tx.Transaction(func(tx *gorm.DB) error {
+
+		// Update file (latest version)
+		err = tx.Model(&f).Where("file_id = ?", f.FileId).
+			Update("encryption_key", latestVersionNewKey).
+			Update("encryption_iv", latestVersionNewIv).Error
+		if err != nil {
+			return err
+		}
+
+		// Updating file versions
+		for i, fileVersion := range fileVersions {
+			if err := tx.Model(&fileVersion).Where("file_id = ? AND version_no = ?", f.FileId, fileVersion.VersionNo).
+				Update("encryption_key", newKeyIvPair[i].Key).
+				Update("encryption_iv", newKeyIvPair[i].Iv).Error; err != nil {
+				return err
+			}
+		}
+
+		// Update Password Protect
+		if err := tx.Model(&PasswordProtect{}).Where("file_id = ?", f.FileId).
+			Update("file_key", newFileKey).
+			Update("file_iv", newFileIv).
+			Update("password_nonce", hex.EncodeToString(nonce)).
+			Update("password_salt", hex.EncodeToString(salt)).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return err
 }

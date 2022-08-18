@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	CronErrorTypeInternalError = 1
-	CronErrorTypeNotAvailable  = 2
-	CronErrorTypeCorrupted     = 3
+	CronErrorTypeInternalError = 1 // An error was found
+	CronErrorTypeNotAvailable  = 2 // The shard is not found
+	CronErrorTypeCorrupted     = 3 // The shard is corrupted
 	CronErrorTypeSolved        = 4 // The error was solved
 	JobStatusRunning           = 1
 	JobNoErrors                = 2
@@ -214,10 +214,10 @@ type JobProgressOrphanedFile struct {
 	Msg        string    `json:"msg"`
 }
 
-// GetAllJobs Returns all jobs in the database based on the paramters passed in
-func GetAllJobs(tx *gorm.DB, startNum int, startDate, endDate time.Time, filter int) ([]Job, error) {
+// GetAllJobs Returns all jobs in the database based on the parameters passed in
+func GetAllJobs(tx *gorm.DB, startNum int, startDate, endDate time.Time, filter int) ([]*Job, error) {
 
-	var jobs []Job
+	var jobs []*Job
 	var err error
 	if filter == 0 {
 		err = tx.Where("start_time >= ? AND start_time <= ? ",
@@ -248,7 +248,7 @@ func GetAllJobs(tx *gorm.DB, startNum int, startDate, endDate time.Time, filter 
 	}
 
 	for _, job := range jobs {
-		job.Progress = calculateProgress(job, len(servers))
+		job.Progress = calculateProgress(*job, len(servers))
 		if job.Progress == 100 {
 			// update job via gorm to set status to complete
 			tx.Model(&job).Where("job_id = ?", job.JobId).Update("progress", 100)

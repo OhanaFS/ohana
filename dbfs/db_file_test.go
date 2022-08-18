@@ -505,6 +505,10 @@ func TestFile(t *testing.T) {
 
 		Assert.Nil(err)
 
+		// Trying to rotate the keys
+		err = newFile.RotateKey(db, &superUser, keyphrase)
+		Assert.Nil(err)
+
 	})
 
 	// Encryption stuff testing
