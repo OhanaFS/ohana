@@ -1,10 +1,8 @@
-import { Title, TextInput, Button, useMantineTheme } from '@mantine/core';
-import { Link } from 'react-router-dom';
+import { Title, Button } from '@mantine/core';
 import './assets/styles.css';
 import backgroundimage from './images/2.webp';
 
-export function LoginPage() {
-  const theme = useMantineTheme();
+function LoginPage() {
   return (
     <div
       style={{
@@ -44,3 +42,5 @@ export function LoginPage() {
     </div>
   );
 }
+
+export default LoginPage;
