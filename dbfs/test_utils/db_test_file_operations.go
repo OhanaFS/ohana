@@ -26,13 +26,13 @@ type ExampleFile struct {
 	Server         string
 	FragmentPath   string
 	FileData       string
-	Size           int
-	ActualSize     int
+	Size           int64
+	ActualSize     int64
 }
 
 type ExampleUpdate struct {
-	NewSize       int
-	NewActualSize int
+	NewSize       int64
+	NewActualSize int64
 	FragmentPath  string
 	FileData      string
 	Server        string
@@ -182,7 +182,7 @@ func EXAMPLECreateFile(tx *gorm.DB, user *dbfs.User, fileParams ExampleFile) (*d
 
 	checksum := hex.EncodeToString(encode.FileHash)
 
-	err = dbfs.FinishFile(tx, &file, user, fileParams.ActualSize, checksum)
+	err = dbfs.FinishFile(tx, &file, user, fileParams.Size, fileParams.ActualSize, checksum)
 	if err != nil {
 		// If fails, delete File record and return error.
 	}

@@ -35,6 +35,22 @@ func (i Inc) DeleteShardsByPath(pathOfShard string) error {
 	return os.Remove(path.Join(i.ShardsLocation, pathOfShard))
 }
 
+// GetShardSize returns the size of a shard file
+func (i Inc) GetShardSize(shardPath string) (int64, error) {
+
+	shardFile, err := os.Open(path.Join(i.ShardsLocation, shardPath))
+	// err handling
+	if err != nil {
+		return 0, err
+	}
+
+	fileInfo, err := shardFile.Stat()
+	if err != nil {
+		return 0, err
+	}
+	return fileInfo.Size(), nil
+}
+
 // CronJobDeleteShards scans the DB and nodes for any fragments that should be deleted
 // to clear up space.
 func (i Inc) CronJobDeleteShards(manualRun bool) (string, error) {

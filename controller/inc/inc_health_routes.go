@@ -1,9 +1,11 @@
 package inc
 
 import (
+	"errors"
 	"github.com/OhanaFS/ohana/dbfs"
 	"github.com/OhanaFS/ohana/util"
 	"github.com/gorilla/mux"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -251,4 +253,63 @@ func (i *Inc) ReplaceShardRoute(w http.ResponseWriter, r *http.Request) {
 
 	// return success
 	util.HttpJson(w, http.StatusOK, true)
+}
+
+// GetShardSizeRoute returns the size of a shard in bytes.
+func (i *Inc) GetShardSizeRoute(w http.ResponseWriter, r *http.Request) {
+
+	// check if fragment exists on the server
+
+	vars := mux.Vars(r)
+	shardPath, ok := vars[PathFindString]
+	if !ok {
+		util.HttpError(w, http.StatusBadRequest, "Missing shard path")
+		return
+	} else if shardPath == "" {
+		util.HttpError(w, http.StatusBadRequest, "Missing shard path")
+		return
+	}
+
+	size, err := i.GetShardSize(shardPath)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, "Error getting shard size")
+		return
+	}
+
+	// return the size of the shard in bytes
+	util.HttpJson(w, http.StatusOK, size)
+}
+
+func (i *Inc) GetActualFileSize(shardNames []string, servers []dbfs.Server) (int64, error) {
+
+	if len(shardNames) != len(servers) {
+		return 0, errors.New("shardNames and servers must be the same length")
+	}
+
+	// Get the servers needed
+	urls := make([]string, len(servers))
+	var err error
+	total := int64(0)
+
+	for j, server := range servers {
+		urls[j], err = i.getShardURL(server.Name, shardNames[j])
+		if err != nil {
+			return 0, err
+		}
+		resp, err := i.HttpClient.Get(urls[j])
+		if err != nil {
+			return 0, err
+		} else if resp.StatusCode != http.StatusOK {
+			return 0, err
+		}
+
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return 0, err
+		}
+		total += int64(len(body))
+	}
+
+	return total, nil
 }

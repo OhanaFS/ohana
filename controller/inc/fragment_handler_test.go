@@ -119,7 +119,7 @@ func TestFragmentHandler(t *testing.T) {
 				FileName:           filename,
 				MIMEType:           "",
 				ParentFolderFileId: &rootFolder.FileId, // root folder for now
-				Size:               int(5),
+				Size:               5,
 				VersioningMode:     dbfs.VersioningOff,
 				TotalShards:        totalShards,
 				DataShards:         dataShards,
@@ -153,7 +153,7 @@ func TestFragmentHandler(t *testing.T) {
 			})
 			Assert.NoError(err)
 
-			err = dbfs.FinishFile(db, &dbfsFile, &superUser, 40, "")
+			err = dbfs.FinishFile(db, &dbfsFile, &superUser, 40, 40, "")
 			Assert.NoError(err)
 
 			// Fragment creation
