@@ -1382,7 +1382,7 @@ func TestBackendController_RotateKey(t *testing.T) {
 		ServerName: "localServer",
 		HostName:   "localhost",
 		BindIp:     "127.0.0.1",
-		Port:       "5556",
+		Port:       "5559",
 		CaCert:     certPaths.CaCertPath,
 		PublicCert: certPaths.PublicCertPath,
 		PrivateKey: certPaths.PrivateKeyPath,
