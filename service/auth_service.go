@@ -134,6 +134,15 @@ func (a *auth) Callback(ctx context.Context, code string, checkState string) (*c
 		idTokenClaims.Roles = roles
 	}
 
+	// Check if "admin" role is present
+	isAdmin := false
+	for _, role := range idTokenClaims.Roles {
+		if role == "admin" {
+			isAdmin = true
+			break
+		}
+	}
+
 	// Create user in DBFS if not exists
 	var user *dbfs.User
 	err = ctxutil.GetTransaction(ctx, a.db).Transaction(func(tx *gorm.DB) error {
@@ -155,6 +164,16 @@ func (a *auth) Callback(ctx context.Context, code string, checkState string) (*c
 
 		if err := user.SetGroups(tx, groups); err != nil {
 			return fmt.Errorf("Failed to assign groups: %w", err)
+		}
+
+		// Set admin bit
+		if isAdmin {
+			user.AccountType = dbfs.AccountTypeAdmin
+		} else {
+			user.AccountType = dbfs.AccountTypeEndUser
+		}
+		if err := tx.Save(&user).Error; err != nil {
+			return fmt.Errorf("Failed to assign user type: %w", err)
 		}
 
 		return nil
