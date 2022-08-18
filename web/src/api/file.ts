@@ -123,7 +123,8 @@ export const useMutateUpdateFile = () => {
           .catch(typedError),
         {
           onSuccess: () => {
-            queryClient.invalidateQueries();
+            queryClient.invalidateQueries(['file']);
+            queryClient.invalidateQueries(['folder', 'contents']);
           },
         }
       );
@@ -175,7 +176,7 @@ export const useMutateUpdateFileMetadata = () => {
         .catch(typedError),
     {
       onSuccess: () => {
-        queryClient.invalidateQueries();
+        queryClient.invalidateQueries(['file', 'metadata']);
       },
     }
   );
@@ -202,7 +203,7 @@ export const useMutateMoveFile = () => {
         .catch(typedError),
     {
       onSuccess: () => {
-        queryClient.invalidateQueries();
+        queryClient.invalidateQueries(['folder', 'contents']);
       },
     }
   );
@@ -211,14 +212,22 @@ export const useMutateMoveFile = () => {
 /**
  * Copy a file to a new folder.
  */
-export const useMutateCopyFile = () =>
-  useMutation(({ file_id, folder_id }: MoveFileRequest) =>
-    APIClient.post<boolean>(`/api/v1/file/${file_id}/copy`, null, {
-      headers: { folder_id },
-    })
-      .then((res) => res.data)
-      .catch(typedError)
+export const useMutateCopyFile = () => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ file_id, folder_id }: MoveFileRequest) =>
+      APIClient.post<boolean>(`/api/v1/file/${file_id}/copy`, null, {
+        headers: { folder_id },
+      })
+        .then((res) => res.data)
+        .catch(typedError),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['folder', 'contents']);
+      },
+    }
   );
+};
 
 /**
  * Get the download URL for a file. If a version number is provided, the
@@ -247,7 +256,7 @@ export const useMutateDeleteFile = () => {
         .catch(typedError),
     {
       onSuccess: () => {
-        queryClient.invalidateQueries();
+        queryClient.invalidateQueries(['folder', 'contents']);
       },
     }
   );
