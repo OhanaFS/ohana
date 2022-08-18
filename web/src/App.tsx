@@ -1,20 +1,27 @@
-//import AppBase from "./AppBase";
+import React, { Suspense } from 'react';
 import { Helmet } from 'react-helmet';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import AppBase from './components/AppBase'; //switched to responsive base
-import { VFSBrowser } from './components/FileBrowser/FileBrowser';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { AdminDashboard } from './AdminDashboard';
-import { LoginPage } from './LoginPage';
 import { AdminConfiguration } from './AdminConfiguration';
 import { AdminNodes } from './AdminNodes';
 import { AdminPerformMaintenance } from './AdminPerformMaintenance';
 import { AdminRunMaintenance } from './AdminRunMaintenance';
 import AdminMaintenanceLogs from './AdminMaintenanceLogs';
-import SharingPage from './components/Sharing/SharingPage';
-import SharedFavoritesList from './components/FileBrowser/SharedFavoritesList';
+
+const LoginPage = React.lazy(() => import('./LoginPage'));
+const VFSBrowser = React.lazy(
+  () => import('./components/FileBrowser/FileBrowser')
+);
+const SharingPage = React.lazy(
+  () => import('./components/Sharing/SharingPage')
+);
+const SharedFavoritesList = React.lazy(
+  () => import('./components/FileBrowser/SharedFavoritesList')
+);
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { keepPreviousData: true } },
@@ -36,18 +43,54 @@ export default function Demo() {
               </AppBase>
             }
           />
-          <Route path="/home" element={<VFSBrowser />} />
-          <Route path="/home/:id" element={<VFSBrowser />} />
-          <Route path="/share/:id" element={<SharingPage />} />
+          <Route
+            path="/home"
+            element={
+              <Suspense>
+                <VFSBrowser />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/home/:id"
+            element={
+              <Suspense>
+                <VFSBrowser />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/share/:id"
+            element={
+              <Suspense>
+                <SharingPage />
+              </Suspense>
+            }
+          />
           <Route
             path="/favorites"
-            element={<SharedFavoritesList list="favorites" />}
+            element={
+              <Suspense>
+                <SharedFavoritesList list="favorites" />
+              </Suspense>
+            }
           />
           <Route
             path="/shared"
-            element={<SharedFavoritesList list="shared" />}
+            element={
+              <Suspense>
+                <SharedFavoritesList list="shared" />
+              </Suspense>
+            }
           />
-          <Route path="/" element={<LoginPage />} />
+          <Route
+            path="/"
+            element={
+              <Suspense>
+                <LoginPage />
+              </Suspense>
+            }
+          />
           <Route
             path="/performmaintenance"
             element={<AdminPerformMaintenance />}

@@ -8,7 +8,7 @@ import {
   FileData,
   FullFileBrowser,
 } from 'chonky';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   EntryType,
@@ -26,9 +26,10 @@ import {
 } from '../../api/folder';
 import { useQueryUser } from '../../api/auth';
 import UploadFileModal from './UploadFileModal';
-import FilePreviewModal from './FilePreviewModal';
-import FilePropertiesDrawer from './FilePropertiesDrawer';
 import { handleMultiFileAction } from './multiFileAction';
+
+const FilePreviewModal = React.lazy(() => import('./FilePreviewModal'));
+const FilePropertiesDrawer = React.lazy(() => import('./FilePropertiesDrawer'));
 
 export type VFSProps = Partial<FileBrowserProps>;
 
@@ -65,7 +66,7 @@ const FileProperties = defineFileAction({
   },
 } as const);
 
-export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
+const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
   const [fuOpened, setFuOpened] = useState(false);
   const [previewFileId, setPreviewFileId] = useState('');
   const [propertiesFileId, setPropertiesFileId] = useState('');
@@ -245,14 +246,18 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
         parentFolderId={currentFolderId}
         update={false}
       />
-      <FilePreviewModal
-        fileId={previewFileId}
-        onClose={() => setPreviewFileId('')}
-      />
-      <FilePropertiesDrawer
-        fileId={propertiesFileId}
-        onClose={() => setPropertiesFileId('')}
-      />
+      <Suspense>
+        <FilePreviewModal
+          fileId={previewFileId}
+          onClose={() => setPreviewFileId('')}
+        />
+        <FilePropertiesDrawer
+          fileId={propertiesFileId}
+          onClose={() => setPropertiesFileId('')}
+        />
+      </Suspense>
     </AppBase>
   );
 });
+
+export default VFSBrowser;
