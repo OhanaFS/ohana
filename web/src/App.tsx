@@ -16,7 +16,9 @@ import AdminMaintenanceLogs from './AdminMaintenanceLogs';
 import SharingPage from './components/Sharing/SharingPage';
 import SharedFavoritesList from './components/FileBrowser/SharedFavoritesList';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { keepPreviousData: true } },
+});
 
 export default function Demo() {
   return (

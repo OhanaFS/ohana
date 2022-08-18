@@ -2,19 +2,17 @@ import React from 'react';
 import {
   Autocomplete,
   Text,
-  UnstyledButton,
   Group,
   Avatar,
-  createStyles,
   SelectItemProps,
-  Stack,
-  Menu,
   Button,
   Accordion,
   Switch,
 } from '@mantine/core';
 import { useQueryUser, useQueryUsers, WhoamiResponse } from '../../../api/auth';
 import {
+  EntryType,
+  FileMetadata,
   FilePermission,
   Permission,
   useMutateAddFilePermissions,
@@ -58,6 +56,9 @@ const UserLayout = React.forwardRef<HTMLDivElement, UserButtonProps>(
 
 const UserButton = ({ perm }: { perm: FilePermission }) => {
   const qUser = useQueryUser();
+  const qFile = useQueryFileMetadata(perm.file_id);
+  const is_folder =
+    (qFile.data as FileMetadata | undefined)?.entry_type === EntryType.Folder;
   const isYou = perm.User.user_id === qUser.data?.user_id;
   const [switches, setSwitches] = React.useState<Permission>({
     can_read: perm.can_read,
@@ -66,17 +67,23 @@ const UserButton = ({ perm }: { perm: FilePermission }) => {
     can_share: perm.can_share,
     can_audit: perm.can_audit,
   });
+  const [isSaved, setIsSaved] = React.useState(true);
 
   const mUpdate = useMutateUpdateFilePermissions();
   const mDelete = useMutateDeleteFilePermissions();
 
   React.useEffect(() => {
-    mUpdate.mutate({
-      ...switches,
-      file_id: perm.file_id,
-      permission_id: perm.permission_id,
-    });
-  }, [switches]);
+    if (!isSaved) {
+      mUpdate
+        .mutateAsync({
+          ...switches,
+          file_id: perm.file_id,
+          permission_id: perm.permission_id,
+          is_folder,
+        })
+        .then(() => setIsSaved(true));
+    }
+  }, [switches, isSaved]);
 
   return (
     <Accordion.Item value={perm.permission_id}>
@@ -94,34 +101,37 @@ const UserButton = ({ perm }: { perm: FilePermission }) => {
               disabled={isYou || mUpdate.isLoading}
               label="Can view"
               checked={switches.can_read}
-              onChange={(e) =>
+              onChange={(e) => {
                 setSwitches({
                   ...switches,
                   can_read: e.currentTarget.checked,
-                })
-              }
+                });
+                setIsSaved(false);
+              }}
             />
             <Switch
               disabled={isYou || mUpdate.isLoading}
               label="Can edit"
               checked={switches.can_write}
-              onChange={(e) =>
+              onChange={(e) => {
                 setSwitches({
                   ...switches,
                   can_write: e.currentTarget.checked,
-                })
-              }
+                });
+                setIsSaved(false);
+              }}
             />
             <Switch
               disabled={isYou || mUpdate.isLoading}
               label="Can share"
               checked={switches.can_share}
-              onChange={(e) =>
+              onChange={(e) => {
                 setSwitches({
                   ...switches,
                   can_share: e.currentTarget.checked,
-                })
-              }
+                });
+                setIsSaved(false);
+              }}
             />
           </Group>
           <Button
@@ -133,6 +143,7 @@ const UserButton = ({ perm }: { perm: FilePermission }) => {
               mDelete.mutate({
                 file_id: perm.file_id,
                 permission_id: perm.permission_id,
+                is_folder,
               })
             }
           >
@@ -170,6 +181,8 @@ const LocalAccess = ({ fileId }: { fileId: string }) => {
   const qFile = useQueryFileMetadata(fileId);
   const qUsers = useQueryUsers();
   const qPerms = useQueryFilePermissions(fileId);
+  const is_folder =
+    (qFile.data as FileMetadata | undefined)?.entry_type === EntryType.Folder;
 
   const mCreatePerms = useMutateAddFilePermissions();
 
@@ -189,6 +202,8 @@ const LocalAccess = ({ fileId }: { fileId: string }) => {
       can_execute: false,
       can_share: false,
       can_audit: false,
+
+      is_folder,
     });
     console.log('got new stuff!', { item });
   };

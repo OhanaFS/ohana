@@ -163,7 +163,11 @@ export const VFSBrowser: React.FC<VFSProps> = React.memo((props) => {
         });
       }
     } else if ((data.id as string) === FileProperties.id) {
-      setPropertiesFileId(data.state.selectedFilesForAction[0].id);
+      const files = data.state.selectedFilesForAction;
+      if (Array.isArray(files) && files.length > 0)
+        setPropertiesFileId(files[0].id);
+      else if (currentFolderId !== homeFolderId)
+        setPropertiesFileId(currentFolderId);
     }
   };
 

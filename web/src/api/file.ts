@@ -123,7 +123,8 @@ export const useMutateUpdateFile = () => {
           .catch(typedError),
         {
           onSuccess: () => {
-            queryClient.clear();
+            queryClient.invalidateQueries(['file']);
+            queryClient.invalidateQueries(['folder', 'contents']);
           },
         }
       );
@@ -135,14 +136,17 @@ export const useMutateUpdateFile = () => {
  * Get a file's metadata.
  */
 export const useQueryFileMetadata = (fileId: string) =>
-  useQuery(['file', 'metadata', fileId], () =>
-    !fileId
-      ? Promise.reject()
-      : APIClient.get<FileMetadata<EntryType.File>>(
-          `/api/v1/file/${fileId}/metadata`
-        )
-          .then((res) => res.data)
-          .catch(typedError)
+  useQuery(
+    ['file', 'metadata', fileId],
+    () =>
+      !fileId
+        ? Promise.reject()
+        : APIClient.get<FileMetadata<EntryType.File>>(
+            `/api/v1/file/${fileId}/metadata`
+          )
+            .then((res) => res.data)
+            .catch(typedError),
+    { keepPreviousData: true }
   );
 
 export type FileMetadataUpdateRequest = {
@@ -172,7 +176,7 @@ export const useMutateUpdateFileMetadata = () => {
         .catch(typedError),
     {
       onSuccess: () => {
-        queryClient.clear();
+        queryClient.invalidateQueries(['file', 'metadata']);
       },
     }
   );
@@ -199,7 +203,7 @@ export const useMutateMoveFile = () => {
         .catch(typedError),
     {
       onSuccess: () => {
-        queryClient.clear();
+        queryClient.invalidateQueries(['folder', 'contents']);
       },
     }
   );
@@ -208,14 +212,22 @@ export const useMutateMoveFile = () => {
 /**
  * Copy a file to a new folder.
  */
-export const useMutateCopyFile = () =>
-  useMutation(({ file_id, folder_id }: MoveFileRequest) =>
-    APIClient.post<boolean>(`/api/v1/file/${file_id}/copy`, null, {
-      headers: { folder_id },
-    })
-      .then((res) => res.data)
-      .catch(typedError)
+export const useMutateCopyFile = () => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ file_id, folder_id }: MoveFileRequest) =>
+      APIClient.post<boolean>(`/api/v1/file/${file_id}/copy`, null, {
+        headers: { folder_id },
+      })
+        .then((res) => res.data)
+        .catch(typedError),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['folder', 'contents']);
+      },
+    }
   );
+};
 
 /**
  * Get the download URL for a file. If a version number is provided, the
@@ -244,7 +256,7 @@ export const useMutateDeleteFile = () => {
         .catch(typedError),
     {
       onSuccess: () => {
-        queryClient.clear();
+        queryClient.invalidateQueries(['folder', 'contents']);
       },
     }
   );
@@ -279,17 +291,21 @@ export type FilePermission = Permission & {
  * Check available permissions on a file.
  */
 export const useQueryFilePermissions = (fileId: string) =>
-  useQuery(['file', 'permissions', fileId], () =>
-    !fileId
-      ? Promise.reject()
-      : APIClient.get<FilePermission[]>(`/api/v1/file/${fileId}/permissions`)
-          .then((res) => res.data)
-          .catch(typedError)
+  useQuery(
+    ['file', 'permissions', fileId],
+    () =>
+      !fileId
+        ? Promise.reject()
+        : APIClient.get<FilePermission[]>(`/api/v1/file/${fileId}/permissions`)
+            .then((res) => res.data)
+            .catch(typedError),
+    { keepPreviousData: true }
   );
 
 export type UpdateFilePermissionsRequest = Permission & {
   file_id: string;
   permission_id: string;
+  is_folder?: boolean;
 };
 
 /**
@@ -298,9 +314,16 @@ export type UpdateFilePermissionsRequest = Permission & {
 export const useMutateUpdateFilePermissions = () => {
   const queryClient = useQueryClient();
   return useMutation(
-    ({ file_id, permission_id, ...perms }: UpdateFilePermissionsRequest) =>
+    ({
+      file_id,
+      permission_id,
+      is_folder,
+      ...perms
+    }: UpdateFilePermissionsRequest) =>
       APIClient.patch<boolean>(
-        `/api/v1/file/${file_id}/permissions/${permission_id}`,
+        `/api/v1/${
+          is_folder ? 'folder' : 'file'
+        }/${file_id}/permissions/${permission_id}`,
         null,
         { headers: { ...perms } }
       )
@@ -319,6 +342,7 @@ export type AddFilePermissionsRequest = Permission & {
   file_id: string;
   users: string[];
   groups: string[];
+  is_folder?: boolean;
 };
 
 /**
@@ -327,14 +351,24 @@ export type AddFilePermissionsRequest = Permission & {
 export const useMutateAddFilePermissions = () => {
   const queryClient = useQueryClient();
   return useMutation(
-    ({ file_id, users, groups, ...perms }: AddFilePermissionsRequest) =>
-      APIClient.post<boolean>(`/api/v1/file/${file_id}/permissions`, null, {
-        headers: {
-          ...perms,
-          users: JSON.stringify(users),
-          groups: JSON.stringify(groups),
-        },
-      })
+    ({
+      file_id,
+      users,
+      groups,
+      is_folder,
+      ...perms
+    }: AddFilePermissionsRequest) =>
+      APIClient.post<boolean>(
+        `/api/v1/${is_folder ? 'folder' : 'file'}/${file_id}/permissions`,
+        null,
+        {
+          headers: {
+            ...perms,
+            users: JSON.stringify(users),
+            groups: JSON.stringify(groups),
+          },
+        }
+      )
         .then((res) => res.data)
         .catch(typedError),
     {
@@ -352,9 +386,11 @@ export const useMutateAddFilePermissions = () => {
 export const useMutateDeleteFilePermissions = () => {
   const queryClient = useQueryClient();
   return useMutation(
-    (params: { file_id: string; permission_id: string }) =>
+    (params: { file_id: string; permission_id: string; is_folder?: boolean }) =>
       APIClient.delete(
-        `/api/v1/file/${params.file_id}/permissions/${params.permission_id}`
+        `/api/v1/${params.is_folder ? 'folder' : 'file'}/${
+          params.file_id
+        }/permissions/${params.permission_id}`
       )
         .then((res) => res.data)
         .catch(typedError),
