@@ -33,8 +33,13 @@ export function humanFileSize(bytes: number, si = false, dp = 1) {
   return bytes.toFixed(dp) + ' ' + units[u];
 }
 
-export const formatDateTime = (dateTime: string) =>
-  Intl.DateTimeFormat('en-US', {
-    dateStyle: 'full',
-    timeStyle: 'short',
-  }).format(new Date(dateTime));
+export const formatDateTime = (dateTime: string) => {
+  try {
+    return Intl.DateTimeFormat('en-US', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+    }).format(new Date(dateTime));
+  } catch (e) {
+    return '';
+  }
+};

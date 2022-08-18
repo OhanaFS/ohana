@@ -26,11 +26,11 @@ export const useQueryGetMaintenanceRecords = (
   filter: string
 ) =>
   useQuery(['mainRecords'], () =>
-    APIClient.get<Record>(`/api/v1/maintenance/all`, {
+    APIClient.get<Record[]>(`/api/v1/maintenance/all`, {
       headers: {
-        startNum: startNum,
-        startDate: new Date(startDate).toISOString(),
-        endDate: new Date(endDate).toISOString(),
+        start_num: startNum,
+        start_date: startDate,
+        end_date: endDate,
         filter: filter,
       },
     })
@@ -76,7 +76,7 @@ export type MaintenanceRecordCheck = {
 };
 
 // Start a job based on the ID
-const useMutateStartMainRecordsID = () => {
+export const useMutateStartMainRecordsID = () => {
   return useMutation((params: MaintenanceRecordCheck) =>
     APIClient.post<Record>(`/api/v1/maintenance/start`, {
       headers: {
