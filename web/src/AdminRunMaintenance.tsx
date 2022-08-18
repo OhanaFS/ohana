@@ -3,6 +3,7 @@ import { useForm } from '@mantine/form';
 import AppBase from './components/AppBase';
 import { useMutateStartMainRecordsID } from './api/maintenance';
 import { useNavigate } from 'react-router-dom';
+import { showNotification } from '@mantine/notifications';
 
 export function AdminRunMaintenance() {
   const form = useForm({
@@ -39,11 +40,16 @@ export function AdminRunMaintenance() {
               Run Maintenance
             </Text>
             <form
-              onSubmit={form.onSubmit((values) =>
-                mStartMaintenance
-                  .mutateAsync(values)
-                  .then((e) => navigate(`/maintenance/${e.Id}`))
-              )}
+              onSubmit={form.onSubmit((values) => {
+                Object.values(values).some((val) => val)
+                  ? mStartMaintenance
+                      .mutateAsync(values)
+                      .then((e) => navigate(`/maintenance/${e.id}`))
+                  : showNotification({
+                      title: 'Nothing Checked',
+                      message: 'Please check at least one field!',
+                    });
+              })}
             >
               <Table horizontalSpacing="xl" verticalSpacing="xs" fontSize="xl">
                 <tbody>

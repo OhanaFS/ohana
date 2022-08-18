@@ -1,18 +1,33 @@
 import { APIClient, typedError } from './api';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
+export type MaintenanceProgress = {
+  id: number;
+  start_time: string;
+  end_time: string;
+  server_name: string;
+  in_progress: boolean;
+  msg: string;
+};
+
 export type Record = {
-  Id: 0;
-  date_time_started: string;
-  date_time_ended: string;
-  total_time_taken: string;
-  total_shards_scanned: number;
-  total_files_scanned: number;
-  tasks: {
-    job_type: string;
-    id: number;
-    status: number;
-  }[];
+  id: number;
+  start_time: string;
+  end_time: string;
+  total_time_taken: number;
+  missing_shards_check: boolean;
+  missing_shards_progress: MaintenanceProgress[];
+  orphaned_shards_check: boolean;
+  orphaned_shards_progress: MaintenanceProgress[];
+  quick_shards_health_check: boolean;
+  quick_shards_health_progress: MaintenanceProgress[];
+  all_files_shards_health_check: boolean;
+  all_files_shards_health_progress: MaintenanceProgress[];
+  permission_check: boolean;
+  delete_fragments: boolean;
+  delete_fragments_results: MaintenanceProgress[];
+  orphaned_files_check: boolean;
+  orphaned_files_results: MaintenanceProgress[];
   progress: number;
   status_msg: string;
   status: number;
@@ -78,7 +93,7 @@ export type MaintenanceRecordCheck = {
 // Start a job based on the ID
 export const useMutateStartMainRecordsID = () => {
   return useMutation((params: MaintenanceRecordCheck) =>
-    APIClient.post<Record>(`/api/v1/maintenance/start`, {
+    APIClient.post<Record>(`/api/v1/maintenance/start`, null, {
       headers: {
         full_shards_check: String(params.full_shards_check),
         quick_Shards_check: String(params.quick_Shards_check),

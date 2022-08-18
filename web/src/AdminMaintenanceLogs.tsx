@@ -9,13 +9,7 @@ export function AdminMaintenanceLogs() {
   const maintenanceRecords = qGetMaintenanceRecords.data ?? [];
 
   // variable that show all the logs inside the props.groupList
-  const logsHeader = [
-    'Maintenance date',
-    'Total Scanned (Files/Shards)',
-    'Start Time',
-    'End Time',
-    'Maintenance Type',
-  ];
+  const logsHeader = ['Maintenance date', 'Start Time', 'End Time', 'Status'];
 
   // display table header that is from props
   const ths = logsHeader.map((items, i) => (
@@ -28,14 +22,13 @@ export function AdminMaintenanceLogs() {
   const rows = maintenanceRecords.map((items, i) => (
     <tr key={i}>
       <td>
-        {formatDateTime(items.date_time_started) +
+        {formatDateTime(items.start_time) +
           ' to ' +
-          formatDateTime(items.date_time_ended)}
+          formatDateTime(items.end_time)}
       </td>
-      <td>{items.total_files_scanned + '/' + items.total_shards_scanned}</td>
-      <td>{formatDateTime(items.date_time_started)}</td>
-      <td>{formatDateTime(items.date_time_ended)}</td>
-      <td>{items?.tasks?.[0].job_type}</td>
+      <td>{formatDateTime(items.start_time)}</td>
+      <td>{formatDateTime(items.end_time)}</td>
+      <td>{items.status_msg}</td>
     </tr>
   ));
   return (
