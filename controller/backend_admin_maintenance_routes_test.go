@@ -981,8 +981,7 @@ func TestFixOrphanedFilesResult(t *testing.T) {
 
 func TestOrphanedShardsResult(t *testing.T) {
 
-	t.Skip("Skipping this test due to orphaned shards being broken")
-	// Setting up env
+	// Set up env
 
 	tempDir = t.TempDir()
 	shardDir := filepath.Join(tempDir, "shards")
