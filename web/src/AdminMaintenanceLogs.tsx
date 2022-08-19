@@ -1,18 +1,23 @@
 import { ScrollArea, Button, Table, ActionIcon } from '@mantine/core';
-import { IconInfoCircle } from '@tabler/icons';
+import { showNotification } from '@mantine/notifications';
+import { IconInfoCircle, IconTrash } from '@tabler/icons';
 import { Link, useNavigate } from 'react-router-dom';
-import { useQueryGetMaintenanceRecords } from './api/maintenance';
+import {
+  useMutateDeleteMainRecordsID,
+  useQueryGetMaintenanceRecords,
+} from './api/maintenance';
 import AppBase from './components/AppBase';
 import { formatDateTime } from './shared/util';
 
 export function AdminMaintenanceLogs() {
   const qGetMaintenanceRecords = useQueryGetMaintenanceRecords(0, '', '', '');
+  const mDeleteMaintenanceRecord = useMutateDeleteMainRecordsID();
   const maintenanceRecords = qGetMaintenanceRecords.data ?? [];
 
   const navigate = useNavigate();
 
   // variable that show all the logs inside the props.groupList
-  const logsHeader = ['Maintenance date', 'Time Taken', 'Issues', ''];
+  const logsHeader = ['Maintenance date', 'Time Taken', 'Issues', '', ''];
 
   // display table header that is from props
   const ths = logsHeader.map((items, i) => (
@@ -33,6 +38,20 @@ export function AdminMaintenanceLogs() {
           variant="transparent"
         >
           <IconInfoCircle size={25} />
+        </ActionIcon>
+      </td>
+      <td>
+        <ActionIcon
+          onClick={() => {
+            mDeleteMaintenanceRecord.mutateAsync(items.id).then(() =>
+              showNotification({
+                message: 'Maintenance Record Deleted Successfully',
+              })
+            );
+          }}
+          variant="transparent"
+        >
+          <IconTrash color="red" size={25} />
         </ActionIcon>
       </td>
     </tr>

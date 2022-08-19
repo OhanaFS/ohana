@@ -1,5 +1,5 @@
 import { APIClient, typedError } from './api';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export type MaintenanceProgress = {
   id: number;
@@ -63,11 +63,18 @@ export const useQueryGetMaintenanceRecordsID = (id: number) => {
 };
 
 // Delete the records based on the ID
-const useMutateDeleteMainRecordsID = () => {
-  return useMutation((id: number) =>
-    APIClient.delete<Record>(`/api/v1/maintenance/job/${id}`)
-      .then((res) => res.data)
-      .catch(typedError)
+export const useMutateDeleteMainRecordsID = () => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (id: number) =>
+      APIClient.delete<Record>(`/api/v1/maintenance/job/${id}`)
+        .then((res) => res.data)
+        .catch(typedError),
+    {
+      onSuccess: () => {
+        queryClient.clear();
+      },
+    }
   );
 };
 
