@@ -8,9 +8,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AdminDashboard } from './AdminDashboard';
 import { AdminConfiguration } from './AdminConfiguration';
 import { AdminNodes } from './AdminNodes';
-import { AdminPerformMaintenance } from './AdminPerformMaintenance';
 import { AdminRunMaintenance } from './AdminRunMaintenance';
 import AdminMaintenanceLogs from './AdminMaintenanceLogs';
+import AdminMaintenanceDetails from './AdminMaintenanceDetails';
 
 const LoginPage = React.lazy(() => import('./LoginPage'));
 const VFSBrowser = React.lazy(
@@ -91,14 +91,14 @@ export default function Demo() {
               </Suspense>
             }
           />
-          <Route
-            path="/performmaintenance"
-            element={<AdminPerformMaintenance />}
-          />
           <Route path="/runmaintenance" element={<AdminRunMaintenance />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="/nodes" element={<AdminNodes />} />
           <Route path="/maintenance" element={<AdminMaintenanceLogs />} />
+          <Route
+            path="/maintenance/:id"
+            element={<AdminMaintenanceDetails />}
+          />
           <Route path="/settings" element={<AdminConfiguration />} />
         </Routes>
       </Router>

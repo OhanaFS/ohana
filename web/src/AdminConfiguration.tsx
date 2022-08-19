@@ -6,48 +6,33 @@ import {
   Divider,
   NumberInput,
   Group,
+  TextInput,
+  PasswordInput,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
+import { showNotification } from '@mantine/notifications';
 import { useState } from 'react';
+import { useMutatePostFileKey, useMutateUpdateStitch } from './api/maintenance';
 import AppBase from './components/AppBase';
 
 export function AdminConfiguration() {
+  const mRotateKey = useMutatePostFileKey();
+  const mUpdateStitch = useMutateUpdateStitch();
   //function will be rotate key
   function rotateKey() {}
 
-  var [location, addLocation] = useState('');
-  var [errorMessage, setErrorMessage] = useState('');
-  var [rotateButton, setButton] = useState(true);
-  const allowedChar = /^[A-Za-z0-9\s]*$/;
-  const space = /^\s*$/;
-  function validate() {
-    //if the location is blank
-    if (space.test(location) == true) {
-      errorMessage = 'Do not leave blank';
-      setErrorMessage('Do not leave blank');
-      rotateButton = true;
-      setButton(true);
-    } else if (
-      //if the location contains other than letter and digit
-      allowedChar.test(location) == false
-    ) {
-      errorMessage = 'do not include special characters';
-      setErrorMessage('do not include special characters');
-      rotateButton = true;
-      setButton(true);
-    } else {
-      // all test are pass
-      errorMessage = '';
-      setErrorMessage('');
-      rotateButton = false;
-      setButton(false);
-    }
-  }
+  const keyRotationForm = useForm({
+    initialValues: {
+      file_id: '',
+      password: '',
+    },
+  });
+
   const form = useForm({
     initialValues: {
-      dataShards: 2,
-      parityShards: 1,
-      keyThreshold: 2,
+      data_shards: 2,
+      parity_shards: 1,
+      key_threshold: 2,
     },
   });
 
@@ -87,45 +72,49 @@ export function AdminConfiguration() {
           >
             Settings
           </caption>
-          <div className="flex flex-col">
+          <div className="flex flex-col w-full">
             <Divider
               my="xs"
               label="Rotate Key"
               variant="dotted"
               labelPosition="center"
             />
-            <Textarea
-              label="Specify the file/directory location and the system will
-            auto rotate the key"
-              radius="md"
-              size="lg"
-              error={errorMessage}
-              onChange={(event) => {
-                addLocation(event.target.value),
-                  (location = event.target.value),
-                  validate();
-              }}
-            />
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'row',
-                margin: '20px 0',
-              }}
+            <form
+              className="mt-3"
+              onSubmit={keyRotationForm.onSubmit((values) => {
+                values.file_id === ''
+                  ? showNotification({
+                      message: 'File ID required',
+                    })
+                  : mRotateKey
+                      .mutateAsync(values)
+                      .then((e) =>
+                        showNotification({
+                          message: 'Success',
+                        })
+                      )
+                      .catch((e) =>
+                        showNotification({
+                          message: String(e.message),
+                        })
+                      );
+              })}
             >
-              <Text>Master Key :</Text>
-              <Checkbox style={{ marginLeft: '10px' }}> </Checkbox>
-            </div>
-            <Button
-              variant="default"
-              color="dark"
-              size="md"
-              disabled={rotateButton}
-              style={{ alignSelf: 'flex-end' }}
-              onClick={() => rotateKey()}
-            >
-              Rotate Key
-            </Button>
+              <TextInput
+                label="File ID *"
+                placeholder="Please enter the file ID"
+                {...keyRotationForm.getInputProps('file_id')}
+              />
+              <PasswordInput
+                className="mt-2"
+                placeholder="Password"
+                label="Password"
+                {...keyRotationForm.getInputProps('password')}
+              />
+              <Group position="right" mt="lg">
+                <Button type="submit">Submit</Button>
+              </Group>
+            </form>
           </div>
 
           <div className="flex flex-col w-full mt-5">
@@ -137,14 +126,28 @@ export function AdminConfiguration() {
             />
             <form
               className="mt-3"
-              onSubmit={form.onSubmit((values) => console.log(values))}
+              onSubmit={form.onSubmit((values) => {
+                console.log(values);
+                mUpdateStitch
+                  .mutateAsync(values)
+                  .then((e) =>
+                    showNotification({
+                      message: 'Success',
+                    })
+                  )
+                  .catch((e) =>
+                    showNotification({
+                      message: String(e.message),
+                    })
+                  );
+              })}
             >
               <NumberInput
                 label="Number of Data Shards"
                 description="From 1 to 10"
                 max={10}
                 min={1}
-                {...form.getInputProps('dataShards')}
+                {...form.getInputProps('data_shards')}
               />
               <NumberInput
                 className="mt-2"
@@ -152,7 +155,7 @@ export function AdminConfiguration() {
                 description="From 1 to 10"
                 max={10}
                 min={1}
-                {...form.getInputProps('parityShards')}
+                {...form.getInputProps('parity_shards')}
               />
               <NumberInput
                 className="mt-2"
@@ -160,7 +163,7 @@ export function AdminConfiguration() {
                 description="From 1 to 10"
                 max={10}
                 min={1}
-                {...form.getInputProps('keyThreshold')}
+                {...form.getInputProps('key_threshold')}
               />
               <Group position="right" mt="lg">
                 <Button type="submit">Submit</Button>

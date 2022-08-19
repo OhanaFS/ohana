@@ -1,18 +1,33 @@
 import { APIClient, typedError } from './api';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
+export type MaintenanceProgress = {
+  id: number;
+  start_time: string;
+  end_time: string;
+  server_name: string;
+  in_progress: boolean;
+  msg: string;
+};
+
 export type Record = {
-  Id: 0;
-  date_time_started: string;
-  date_time_ended: string;
-  total_time_taken: string;
-  total_shards_scanned: number;
-  total_files_scanned: number;
-  tasks: {
-    job_type: string;
-    id: number;
-    status: number;
-  }[];
+  id: number;
+  start_time: string;
+  end_time: string;
+  total_time_taken: number;
+  missing_shards_check: boolean;
+  missing_shards_progress: MaintenanceProgress[];
+  orphaned_shards_check: boolean;
+  orphaned_shards_progress: MaintenanceProgress[];
+  quick_shards_health_check: boolean;
+  quick_shards_health_progress: MaintenanceProgress[];
+  all_files_shards_health_check: boolean;
+  all_files_shards_health_progress: MaintenanceProgress[];
+  permission_check: boolean;
+  delete_fragments: boolean;
+  delete_fragments_results: MaintenanceProgress[];
+  orphaned_files_check: boolean;
+  orphaned_files_results: MaintenanceProgress[];
   progress: number;
   status_msg: string;
   status: number;
@@ -26,11 +41,11 @@ export const useQueryGetMaintenanceRecords = (
   filter: string
 ) =>
   useQuery(['mainRecords'], () =>
-    APIClient.get<Record>(`/api/v1/maintenance/all`, {
+    APIClient.get<Record[]>(`/api/v1/maintenance/all`, {
       headers: {
-        startNum: startNum,
-        startDate: new Date(startDate).toISOString(),
-        endDate: new Date(endDate).toISOString(),
+        start_num: startNum,
+        start_date: startDate,
+        end_date: endDate,
         filter: filter,
       },
     })
@@ -67,7 +82,7 @@ const useMutateCreateMainRecordsID = () => {
 
 export type MaintenanceRecordCheck = {
   full_shards_check: boolean;
-  quick_Shards_check: boolean;
+  quick_shards_check: boolean;
   missing_shards_check: boolean;
   orphaned_shards_check: boolean;
   orphaned_files_check: boolean;
@@ -76,12 +91,12 @@ export type MaintenanceRecordCheck = {
 };
 
 // Start a job based on the ID
-const useMutateStartMainRecordsID = () => {
+export const useMutateStartMainRecordsID = () => {
   return useMutation((params: MaintenanceRecordCheck) =>
-    APIClient.post<Record>(`/api/v1/maintenance/start`, {
+    APIClient.post<Record>(`/api/v1/maintenance/start`, null, {
       headers: {
         full_shards_check: String(params.full_shards_check),
-        quick_Shards_check: String(params.quick_Shards_check),
+        quick_Shards_check: String(params.quick_shards_check),
         missing_shards_check: String(params.missing_shards_check),
         orphaned_shards_check: String(params.orphaned_shards_check),
         orphaned_files_check: String(params.orphaned_files_check),
@@ -242,55 +257,31 @@ const useMutateSendBackupKeys = () => {
   );
 };
 
-// needs changes
-const useMutatePostFileKey = () => {
-  return useMutation((fileID: number) =>
-    APIClient.post<boolean>(`/api/v1/maintenance/KEY/${fileID}`)
+export type KeyRotation = {
+  file_id: string;
+  password: string;
+};
+
+export const useMutatePostFileKey = () => {
+  return useMutation((params: KeyRotation) =>
+    APIClient.post(`/api/v1/maintenance/key`, params)
       .then((res) => res.data)
       .catch(typedError)
   );
 };
 
-// Deleting file key
-const useMutateDeleteFileKey = () => {
-  return useMutation((fileID: number) =>
-    APIClient.delete<boolean>(`/api/v1/maintenance/KEY/${fileID}`)
-      .then((res) => res.data)
-      .catch(typedError)
-  );
+export type StichParams = {
+  data_shards: number;
+  parity_shards: number;
+  key_threshold: number;
 };
 
-// needs changes
-const useMutatePostFolderKey = () => {
-  return useMutation((folderID: number) =>
-    APIClient.post<boolean>(`/api/v1/maintenance/key/${folderID}`)
-      .then((res) => res.data)
-      .catch(typedError)
-  );
-};
-
-// Deleting folder key
-const useMutateDeleteFolderKey = () => {
-  return useMutation((folderID: number) =>
-    APIClient.delete<any>(`/api/v1/maintenance/key/${folderID}`)
-      .then((res) => res.data)
-      .catch(typedError)
-  );
-};
-
-// Deletion master key
-const useMutationDeleteMasterKey = () => {
-  return useMutation((serverID: number) =>
-    APIClient.delete<boolean>(`/api/v1/maintenance/key/${serverID}`)
-      .then((res) => res.data)
-      .catch(typedError)
-  );
-};
-
-// Request master key
-export const useMutationRequestMasterKey = () => {
-  return useMutation((serverID: number) =>
-    APIClient.put<boolean>(`/api/v1/maintenance/key/${serverID}`)
+// update redundancy level
+export const useMutateUpdateStitch = () => {
+  return useMutation((params: StichParams) =>
+    APIClient.post(`/api/v1/maintenance/stitch`, null, {
+      headers: { ...params },
+    })
       .then((res) => res.data)
       .catch(typedError)
   );
