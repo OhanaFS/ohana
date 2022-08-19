@@ -1226,3 +1226,71 @@ func (bc *BackendController) SetStitchParameters(w http.ResponseWriter, r *http.
 
 	util.HttpJson(w, http.StatusOK, true)
 }
+
+// GetStitchParameters returns the stitch parameters
+func (bc *BackendController) GetStitchParameters(w http.ResponseWriter, r *http.Request) {
+
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// Check if user is admin
+	if user.AccountType != dbfs.AccountTypeAdmin {
+		util.HttpError(w, http.StatusForbidden, "You are not an admin")
+		return
+	}
+
+	params, err := dbfs.GetStitchParams(bc.Db, bc.Logger)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	util.HttpJson(w, http.StatusOK, params)
+}
+
+// RotateKey rotates the key for a file
+func (bc *BackendController) RotateKey(w http.ResponseWriter, r *http.Request) {
+
+	user, err := ctxutil.GetUser(r.Context())
+	if err != nil {
+		util.HttpError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// Check if user is admin
+	if user.AccountType != dbfs.AccountTypeAdmin {
+		util.HttpError(w, http.StatusForbidden, "You are not an admin")
+		return
+	}
+
+	type InputKeyValue struct {
+		FileID   string `json:"file_id"`
+		Password string `json:"password"`
+	}
+
+	var input InputKeyValue
+	err = json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		util.HttpError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// get file
+	file, err := dbfs.GetFileById(bc.Db, input.FileID, user)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	err = file.RotateKey(bc.Db, user, input.Password)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	util.HttpJson(w, http.StatusOK, true)
+
+}

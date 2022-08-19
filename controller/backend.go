@@ -152,6 +152,9 @@ func NewBackend(
 
 	// Set stitch params
 	r.HandleFunc("/api/v1/maintenance/stitch", bc.SetStitchParameters).Methods("POST")
+	r.HandleFunc("/api/v1/maintenance/stitch", bc.GetStitchParameters).Methods("GET")
+
+	r.HandleFunc("/api/v1/maintenance/key", bc.RotateKey).Methods("POST")
 
 	r.Use(mw.UserAuth)
 
