@@ -2,15 +2,16 @@ package inc
 
 import (
 	"errors"
-	"github.com/OhanaFS/ohana/dbfs"
-	"github.com/OhanaFS/ohana/util"
-	"github.com/gorilla/mux"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"strconv"
+
+	"github.com/OhanaFS/ohana/dbfs"
+	"github.com/OhanaFS/ohana/util"
+	"github.com/gorilla/mux"
 )
 
 const (
@@ -296,19 +297,20 @@ func (i *Inc) GetActualFileSize(shardNames []string, servers []dbfs.Server) (int
 		if err != nil {
 			return 0, err
 		}
-		resp, err := i.HttpClient.Get(urls[j])
+
+		resp, err := i.HttpClient.Head(urls[j])
 		if err != nil {
 			return 0, err
-		} else if resp.StatusCode != http.StatusOK {
+		} else if resp.StatusCode >= 400 {
 			return 0, err
 		}
 
+		contentLength := resp.Header.Get("Content-Length")
+		sz, err := strconv.ParseInt(contentLength, 10, 64)
+		total += sz
+
 		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return 0, err
-		}
-		total += int64(len(body))
+		io.Copy(io.Discard, resp.Body)
 	}
 
 	return total, nil

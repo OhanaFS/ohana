@@ -33,6 +33,7 @@ func (i *Inc) handleShardStream(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodHead:
+		fallthrough
 	case http.MethodGet:
 		// Try to open the file
 		file, err := os.Open(localShardPath)
