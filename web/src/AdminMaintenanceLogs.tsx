@@ -1,5 +1,6 @@
-import { ScrollArea, Button, Table } from '@mantine/core';
-import { Link } from 'react-router-dom';
+import { ScrollArea, Button, Table, ActionIcon } from '@mantine/core';
+import { IconInfoCircle } from '@tabler/icons';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQueryGetMaintenanceRecords } from './api/maintenance';
 import AppBase from './components/AppBase';
 import { formatDateTime } from './shared/util';
@@ -8,8 +9,10 @@ export function AdminMaintenanceLogs() {
   const qGetMaintenanceRecords = useQueryGetMaintenanceRecords(0, '', '', '');
   const maintenanceRecords = qGetMaintenanceRecords.data ?? [];
 
+  const navigate = useNavigate();
+
   // variable that show all the logs inside the props.groupList
-  const logsHeader = ['Maintenance date', 'Start Time', 'End Time', 'Status'];
+  const logsHeader = ['Maintenance date', 'Time Taken', 'Issues', ''];
 
   // display table header that is from props
   const ths = logsHeader.map((items, i) => (
@@ -21,14 +24,17 @@ export function AdminMaintenanceLogs() {
   // display all the rows that is from props
   const rows = maintenanceRecords.map((items, i) => (
     <tr key={i}>
-      <td>
-        {formatDateTime(items.start_time) +
-          ' to ' +
-          formatDateTime(items.end_time)}
-      </td>
       <td>{formatDateTime(items.start_time)}</td>
-      <td>{formatDateTime(items.end_time)}</td>
-      <td>{items.status_msg}</td>
+      <td>{items.total_time_taken}</td>
+      <td>{items.status_msg ? items.status_msg : 'None'}</td>
+      <td>
+        <ActionIcon
+          onClick={() => navigate(`/maintenance/${items.id}`)}
+          variant="transparent"
+        >
+          <IconInfoCircle size={25} />
+        </ActionIcon>
+      </td>
     </tr>
   ));
   return (
@@ -53,7 +59,6 @@ export function AdminMaintenanceLogs() {
               <Table
                 id="maintenanceLogsTable"
                 captionSide="top"
-                striped
                 highlightOnHover
                 verticalSpacing="sm"
               >
