@@ -208,28 +208,7 @@ func (i Inc) DailyUpdate() {
 	// Check if the server is the one to do the update
 
 	logger := dbfs.NewLogger(i.Db, i.ServerName)
-
-	serverNotReady := true
-	attempts := 0
-
-	for serverNotReady {
-
-		var server dbfs.Server
-
-		err := i.Db.Model(&dbfs.Server{}).Where("status = ?", dbfs.ServerStarting).First(&server).Error
-		if err != nil {
-			if err == gorm.ErrRecordNotFound {
-				serverNotReady = false
-				continue
-			}
-			logger.LogError("ERROR. CANNOT UPDATE DAILY STATS. " + err.Error())
-		}
-		attempts += 1
-
-		fmt.Println("Waiting for other server to finish registering... attempt", attempts)
-		time.Sleep(time.Second * 4)
-
-	}
+	logger.LogInfo("Daily update started.")
 
 	servers, err := dbfs.GetServers(i.Db)
 	if err != nil {

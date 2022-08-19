@@ -50,6 +50,7 @@ func NewInc(config *config.Config, db *gorm.DB, logger *zap.Logger) *Inc {
 	tlsConfig := &tls.Config{
 		ClientCAs:  caCertPool,
 		ClientAuth: tls.RequireAndVerifyClientCert,
+		MinVersion: tls.VersionTLS12,
 	}
 
 	incServer := &http.Server{
