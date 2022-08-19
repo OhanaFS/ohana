@@ -10,8 +10,7 @@ import { AdminConfiguration } from './AdminConfiguration';
 import { AdminNodes } from './AdminNodes';
 import { AdminRunMaintenance } from './AdminRunMaintenance';
 import AdminMaintenanceLogs from './AdminMaintenanceLogs';
-import SharingPage from './components/Sharing/SharingPage';
-import SharedFavoritesList from './components/FileBrowser/SharedFavoritesList';
+import AdminMaintenanceDetails from './AdminMaintenanceDetails';
 
 const LoginPage = React.lazy(() => import('./LoginPage'));
 const VFSBrowser = React.lazy(
@@ -91,10 +90,6 @@ export default function Demo() {
                 <LoginPage />
               </Suspense>
             }
-          />
-          <Route
-            path="/performmaintenance"
-            element={<AdminPerformMaintenance />}
           />
           <Route path="/runmaintenance" element={<AdminRunMaintenance />} />
           <Route path="dashboard" element={<AdminDashboard />} />

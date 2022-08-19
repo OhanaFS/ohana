@@ -263,17 +263,25 @@ export type KeyRotation = {
 };
 
 export const useMutatePostFileKey = () => {
-  return useMutation((params: KeyRotation[]) =>
-    APIClient.post(`/api/v1/maintenance/key/`, params)
+  return useMutation((params: KeyRotation) =>
+    APIClient.post(`/api/v1/maintenance/key`, params)
       .then((res) => res.data)
       .catch(typedError)
   );
 };
 
-// Deleting file key
-const useMutateDeleteFileKey = () => {
-  return useMutation((fileID: number) =>
-    APIClient.delete<boolean>(`/api/v1/maintenance/KEY/${fileID}`)
+export type StichParams = {
+  data_shards: number;
+  parity_shards: number;
+  key_threshold: number;
+};
+
+// update redundancy level
+export const useMutateUpdateStitch = () => {
+  return useMutation((params: StichParams) =>
+    APIClient.post(`/api/v1/maintenance/stitch`, null, {
+      headers: { ...params },
+    })
       .then((res) => res.data)
       .catch(typedError)
   );

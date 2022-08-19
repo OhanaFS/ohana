@@ -10,12 +10,14 @@ import {
   PasswordInput,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
+import { showNotification } from '@mantine/notifications';
 import { useState } from 'react';
-import { useMutatePostFileKey } from './api/maintenance';
+import { useMutatePostFileKey, useMutateUpdateStitch } from './api/maintenance';
 import AppBase from './components/AppBase';
 
 export function AdminConfiguration() {
   const mRotateKey = useMutatePostFileKey();
+  const mUpdateStitch = useMutateUpdateStitch();
   //function will be rotate key
   function rotateKey() {}
 
@@ -28,9 +30,9 @@ export function AdminConfiguration() {
 
   const form = useForm({
     initialValues: {
-      dataShards: 2,
-      parityShards: 1,
-      keyThreshold: 2,
+      data_shards: 2,
+      parity_shards: 1,
+      key_threshold: 2,
     },
   });
 
@@ -80,8 +82,22 @@ export function AdminConfiguration() {
             <form
               className="mt-3"
               onSubmit={keyRotationForm.onSubmit((values) => {
-                console.log([values]);
-                mRotateKey.mutate([values]);
+                values.file_id === ''
+                  ? showNotification({
+                      message: 'File ID required',
+                    })
+                  : mRotateKey
+                      .mutateAsync(values)
+                      .then((e) =>
+                        showNotification({
+                          message: 'Success',
+                        })
+                      )
+                      .catch((e) =>
+                        showNotification({
+                          message: String(e.message),
+                        })
+                      );
               })}
             >
               <TextInput
@@ -110,14 +126,28 @@ export function AdminConfiguration() {
             />
             <form
               className="mt-3"
-              onSubmit={form.onSubmit((values) => console.log(values))}
+              onSubmit={form.onSubmit((values) => {
+                console.log(values);
+                mUpdateStitch
+                  .mutateAsync(values)
+                  .then((e) =>
+                    showNotification({
+                      message: 'Success',
+                    })
+                  )
+                  .catch((e) =>
+                    showNotification({
+                      message: String(e.message),
+                    })
+                  );
+              })}
             >
               <NumberInput
                 label="Number of Data Shards"
                 description="From 1 to 10"
                 max={10}
                 min={1}
-                {...form.getInputProps('dataShards')}
+                {...form.getInputProps('data_shards')}
               />
               <NumberInput
                 className="mt-2"
@@ -125,7 +155,7 @@ export function AdminConfiguration() {
                 description="From 1 to 10"
                 max={10}
                 min={1}
-                {...form.getInputProps('parityShards')}
+                {...form.getInputProps('parity_shards')}
               />
               <NumberInput
                 className="mt-2"
@@ -133,7 +163,7 @@ export function AdminConfiguration() {
                 description="From 1 to 10"
                 max={10}
                 min={1}
-                {...form.getInputProps('keyThreshold')}
+                {...form.getInputProps('key_threshold')}
               />
               <Group position="right" mt="lg">
                 <Button type="submit">Submit</Button>
