@@ -130,8 +130,11 @@ func (a *auth) Callback(ctx context.Context, code string, checkState string) (*c
 	if err := idToken.Claims(&allClaims); err != nil {
 		return nil, fmt.Errorf("Failed to parse ID Token claims: %w", err)
 	}
-	if roles, ok := allClaims[a.authConfig.RolesClaimName].([]string); ok {
-		idTokenClaims.Roles = roles
+	if roles, ok := allClaims[a.authConfig.RolesClaimName].([]interface{}); ok {
+		idTokenClaims.Roles = make([]string, len(roles))
+		for i, role := range roles {
+			idTokenClaims.Roles[i] = role.(string)
+		}
 	}
 
 	// Check if "admin" role is present
