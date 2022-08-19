@@ -82,7 +82,7 @@ const useMutateCreateMainRecordsID = () => {
 
 export type MaintenanceRecordCheck = {
   full_shards_check: boolean;
-  quick_Shards_check: boolean;
+  quick_shards_check: boolean;
   missing_shards_check: boolean;
   orphaned_shards_check: boolean;
   orphaned_files_check: boolean;
@@ -96,7 +96,7 @@ export const useMutateStartMainRecordsID = () => {
     APIClient.post<Record>(`/api/v1/maintenance/start`, null, {
       headers: {
         full_shards_check: String(params.full_shards_check),
-        quick_Shards_check: String(params.quick_Shards_check),
+        quick_Shards_check: String(params.quick_shards_check),
         missing_shards_check: String(params.missing_shards_check),
         orphaned_shards_check: String(params.orphaned_shards_check),
         orphaned_files_check: String(params.orphaned_files_check),
@@ -257,10 +257,14 @@ const useMutateSendBackupKeys = () => {
   );
 };
 
-// needs changes
-const useMutatePostFileKey = () => {
-  return useMutation((fileID: number) =>
-    APIClient.post<boolean>(`/api/v1/maintenance/KEY/${fileID}`)
+export type KeyRotation = {
+  file_id: string;
+  password: string;
+};
+
+export const useMutatePostFileKey = () => {
+  return useMutation((params: KeyRotation[]) =>
+    APIClient.post(`/api/v1/maintenance/key/`, params)
       .then((res) => res.data)
       .catch(typedError)
   );
@@ -270,42 +274,6 @@ const useMutatePostFileKey = () => {
 const useMutateDeleteFileKey = () => {
   return useMutation((fileID: number) =>
     APIClient.delete<boolean>(`/api/v1/maintenance/KEY/${fileID}`)
-      .then((res) => res.data)
-      .catch(typedError)
-  );
-};
-
-// needs changes
-const useMutatePostFolderKey = () => {
-  return useMutation((folderID: number) =>
-    APIClient.post<boolean>(`/api/v1/maintenance/key/${folderID}`)
-      .then((res) => res.data)
-      .catch(typedError)
-  );
-};
-
-// Deleting folder key
-const useMutateDeleteFolderKey = () => {
-  return useMutation((folderID: number) =>
-    APIClient.delete<any>(`/api/v1/maintenance/key/${folderID}`)
-      .then((res) => res.data)
-      .catch(typedError)
-  );
-};
-
-// Deletion master key
-const useMutationDeleteMasterKey = () => {
-  return useMutation((serverID: number) =>
-    APIClient.delete<boolean>(`/api/v1/maintenance/key/${serverID}`)
-      .then((res) => res.data)
-      .catch(typedError)
-  );
-};
-
-// Request master key
-export const useMutationRequestMasterKey = () => {
-  return useMutation((serverID: number) =>
-    APIClient.put<boolean>(`/api/v1/maintenance/key/${serverID}`)
       .then((res) => res.data)
       .catch(typedError)
   );

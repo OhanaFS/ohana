@@ -9,7 +9,7 @@ export function AdminRunMaintenance() {
   const form = useForm({
     initialValues: {
       full_shards_check: false,
-      quick_Shards_check: false,
+      quick_shards_check: false,
       missing_shards_check: false,
       orphaned_shards_check: false,
       orphaned_files_check: false,
@@ -21,7 +21,7 @@ export function AdminRunMaintenance() {
   const inputFields = [
     { id: 'full_shards_check', desc: 'Check all the shards for integrity' },
     {
-      id: 'quick_Shards_check',
+      id: 'quick_shards_check',
       desc: 'Check integrity for current version of all shards',
     },
     { id: 'orphaned_shards_check', desc: 'Check if there are garbage shards' },

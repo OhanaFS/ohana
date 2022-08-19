@@ -17,6 +17,7 @@ const PropertiesTable = (props: PropertiesTableProps) => {
   return (
     <Table>
       <tbody>
+        <Row title="File ID">{props.metadata.file_id}</Row>
         <Row title="File name">{props.metadata.file_name}</Row>
         <Row title="Size">{humanFileSize(props.metadata.size)}</Row>
         <Row title="Created at">
