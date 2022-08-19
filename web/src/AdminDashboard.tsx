@@ -96,11 +96,11 @@ export function AdminDashboard() {
   const ClusterHealthChartData = [
     {
       name: 'No of Healthy Nodes',
-      value: 600,
+      value: serversOnline,
     },
     {
       name: 'No of Unhealthy Nodes',
-      value: 400,
+      value: serversOffline,
     },
   ];
 
