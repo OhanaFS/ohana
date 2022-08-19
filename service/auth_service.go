@@ -143,43 +143,52 @@ func (a *auth) Callback(ctx context.Context, code string, checkState string) (*c
 		}
 	}
 
-	// Create user in DBFS if not exists
 	var user *dbfs.User
-	err = ctxutil.GetTransaction(ctx, a.db).Transaction(func(tx *gorm.DB) error {
-		if user, err = dbfs.GetUserByMappedId(tx, idTokenClaims.Subject); err != nil {
-			// User doesn't exist, create
-			if user, err = dbfs.CreateNewUser(tx,
-				idTokenClaims.Email, idTokenClaims.Name, dbfs.AccountTypeEndUser,
-				idTokenClaims.Subject, "TODO", accessToken.AccessToken, rawIDToken, "server",
-			); err != nil {
-				return fmt.Errorf("Failed to create new user: %w", err)
+	tx := ctxutil.GetTransaction(ctx, a.db)
+
+	if isAdmin {
+		// Login as superuser if admin
+		if user, err = dbfs.GetUserById(tx, "00000000-0000-0000-0000-000000000000"); err != nil {
+			return nil, fmt.Errorf("Failed to log in as admin: %w", err)
+		}
+	} else {
+		// Login as normal user otherwise
+		err = tx.Transaction(func(tx *gorm.DB) error {
+			if user, err = dbfs.GetUserByMappedId(tx, idTokenClaims.Subject); err != nil {
+				// User doesn't exist, create
+				if user, err = dbfs.CreateNewUser(tx,
+					idTokenClaims.Email, idTokenClaims.Name, dbfs.AccountTypeEndUser,
+					idTokenClaims.Subject, "TODO", accessToken.AccessToken, rawIDToken, "server",
+				); err != nil {
+					return fmt.Errorf("Failed to create new user: %w", err)
+				}
 			}
-		}
 
-		// Fetch and reassign user's groups
-		groups, err := dbfs.GetGroupsByRoleNames(tx, idTokenClaims.Roles)
+			// Fetch and reassign user's groups
+			groups, err := dbfs.GetGroupsByRoleNames(tx, idTokenClaims.Roles)
+			if err != nil {
+				return fmt.Errorf("Failed to fetch groups: %w", err)
+			}
+
+			if err := user.SetGroups(tx, groups); err != nil {
+				return fmt.Errorf("Failed to assign groups: %w", err)
+			}
+
+			// Set admin bit
+			if isAdmin {
+				user.AccountType = dbfs.AccountTypeAdmin
+			} else {
+				user.AccountType = dbfs.AccountTypeEndUser
+			}
+			if err := tx.Save(&user).Error; err != nil {
+				return fmt.Errorf("Failed to assign user type: %w", err)
+			}
+
+			return nil
+		})
 		if err != nil {
-			return fmt.Errorf("Failed to fetch groups: %w", err)
+			return nil, err
 		}
-
-		if err := user.SetGroups(tx, groups); err != nil {
-			return fmt.Errorf("Failed to assign groups: %w", err)
-		}
-
-		// Set admin bit
-		if isAdmin {
-			user.AccountType = dbfs.AccountTypeAdmin
-		} else {
-			user.AccountType = dbfs.AccountTypeEndUser
-		}
-		if err := tx.Save(&user).Error; err != nil {
-			return fmt.Errorf("Failed to assign user type: %w", err)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
 	}
 
 	// Create session ID from user ID
