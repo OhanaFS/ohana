@@ -1,8 +1,15 @@
-import { Group, Text, Accordion, Title, ThemeIcon } from '@mantine/core';
-import { IconExclamationMark } from '@tabler/icons';
-import { useState } from 'react';
 import {
-  useQueryGetAlerts,
+  Group,
+  Text,
+  Accordion,
+  Title,
+  ThemeIcon,
+  Button,
+} from '@mantine/core';
+import { showNotification } from '@mantine/notifications';
+import { IconExclamationMark } from '@tabler/icons';
+import {
+  useMutationDeleteserverStatusesID,
   useQueryGetserverStatuses,
   useQueryGetserverStatusesID,
 } from './api/cluster';
@@ -107,6 +114,7 @@ interface NodeDetailsProps {
 
 function NodeDetails({ name }: NodeDetailsProps) {
   const qServerStatusDetails = useQueryGetserverStatusesID(name);
+  const mDeleteNode = useMutationDeleteserverStatusesID();
 
   return (
     <Accordion.Item value={name}>
@@ -164,6 +172,27 @@ function NodeDetails({ name }: NodeDetailsProps) {
           </Text>
           {secondsToDhms(qServerStatusDetails.data?.uptime ?? 0)}
         </Text>
+        <Button
+          mt="sm"
+          color="red"
+          size="xs"
+          onClick={() => {
+            mDeleteNode
+              .mutateAsync(name)
+              .then(() =>
+                showNotification({
+                  message: 'Successfully Deleted',
+                })
+              )
+              .catch((e) =>
+                showNotification({
+                  message: e.message,
+                })
+              );
+          }}
+        >
+          Disconnect
+        </Button>
       </Accordion.Panel>
     </Accordion.Item>
   );
