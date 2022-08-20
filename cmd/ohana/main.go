@@ -50,7 +50,6 @@ func main() {
 			service.NewHealth,
 			service.NewSession,
 			service.NewAuth,
-			service.NewUploadService,
 		),
 		fx.Invoke(
 			// HTTP Server
@@ -59,7 +58,6 @@ func main() {
 			// Register routes
 			controller.RegisterHealth,
 			controller.RegisterAuth,
-			controller.RegisterUpload,
 			controller.NewBackend,
 
 			// DB
