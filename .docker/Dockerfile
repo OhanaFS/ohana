@@ -9,16 +9,6 @@ RUN set -ex; \
     npm install -g yarn; \
     node --version;
 
-# Set up the private module
-ENV GOPRIVATE=github.com/OhanaFS/stitch
-COPY ./.docker/deploy.key /root/.ssh/id_ed25519
-RUN set -ex; \
-    chmod 600 /root/.ssh/id_ed25519; \
-    ssh-keyscan github.com >> /root/.ssh/known_hosts; \
-    git config --global \
-        url."ssh://git@github.com/OhanaFS/stitch".insteadOf \
-            "https://github.com/OhanaFS/stitch";
-
 WORKDIR /src
 COPY go.mod go.sum Makefile ./
 COPY web/package.json web/yarn.lock ./web/

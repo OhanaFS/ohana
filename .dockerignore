@@ -20,3 +20,4 @@ coverage.html
 go.work
 
 /web/node_modules
+/shards
