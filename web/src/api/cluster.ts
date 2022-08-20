@@ -1,5 +1,5 @@
 import { APIClient, typedError } from './api';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export type Server = {
   name: string;
@@ -253,9 +253,17 @@ export const useQueryGetserverStatusesID = (serverName: string) =>
   );
 
 // Delete server specific statuses
-export const useMutationDeleteserverStatusesID = (serverName: string) =>
-  useMutation(['deleteserverStatusesID', serverName], () =>
-    APIClient.delete<boolean>(`/api/v1/cluster/stats/servers/${serverName}`)
-      .then((res) => res.data)
-      .catch(typedError)
+export const useMutationDeleteserverStatusesID = () => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (serverName: string) =>
+      APIClient.delete<boolean>(`/api/v1/cluster/stats/servers/${serverName}`)
+        .then((res) => res.data)
+        .catch(typedError),
+    {
+      onSuccess: () => {
+        queryClient.clear();
+      },
+    }
   );
+};
