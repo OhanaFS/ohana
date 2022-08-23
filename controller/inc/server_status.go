@@ -180,12 +180,16 @@ func (i *Inc) GetServerStatusReport(serverName string) (*LocalServerReport, erro
 		}
 
 		// get the server details from the other server
-		request, err := http.NewRequest("GET", server.HostName, nil)
+		request, err := http.NewRequest("GET", fmt.Sprintf("https://%s:%s/api/v1/node/details",
+			server.HostName, server.Port), nil)
 		if err != nil {
 			return nil, err
 		}
-		response := request.Response
-		defer response.Body.Close()
+		response, err := i.HttpClient.Do(request)
+		if err != nil {
+			fmt.Println(err)
+			return nil, err
+		}
 
 		if response.StatusCode != http.StatusOK {
 			return nil, fmt.Errorf("server %s returned status %d", serverName, response.StatusCode)

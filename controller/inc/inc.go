@@ -54,7 +54,7 @@ func NewInc(config *config.Config, db *gorm.DB, logger *zap.Logger) *Inc {
 	}
 
 	incServer := &http.Server{
-		Addr:      config.Inc.HostName + ":" + config.Inc.Port,
+		Addr:      ":" + config.Inc.Port,
 		Handler:   router,
 		TLSConfig: tlsConfig,
 	}
@@ -72,7 +72,7 @@ func NewInc(config *config.Config, db *gorm.DB, logger *zap.Logger) *Inc {
 				Certificates: []tls.Certificate{clientCert},
 			},
 			Dial: func(network, addr string) (net.Conn, error) {
-				return net.DialTimeout(network, addr, time.Millisecond*100)
+				return net.DialTimeout(network, addr, time.Second)
 			},
 		},
 	}

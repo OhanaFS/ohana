@@ -23,7 +23,7 @@ all: clean web test $(TARGET) postbuild
 
 $(TARGET): $(shell find . -name '*.go')
 	mkdir -p bin
-	GOOS=${GOOSNAME} go build -tags osusergo,netgo \
+	GOOS=${GOOSNAME} go build -tags osusergo \
 		-ldflags ${LDFLAGS}\
 		-o $(TARGET) \
 		cmd/ohana/main.go

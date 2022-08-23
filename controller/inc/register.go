@@ -136,10 +136,14 @@ func MarkServerOffline(tx *gorm.DB, requestServer, destServer string) error {
 // Ping returns true if the server is online.
 func (i Inc) Ping(hostname, port string) bool {
 
-	res, err := i.HttpClient.Get("http://" + hostname + ":" + port + "/inc/ping")
+	url := fmt.Sprintf("https://%s:%s/api/v1/node/ping", hostname, port)
+	fmt.Println("Pinging", url)
+	res, err := i.HttpClient.Get(url)
 	if err != nil {
+		fmt.Println(err)
 		return false
 	}
+	fmt.Println(res.StatusCode)
 
 	return res.StatusCode == http.StatusOK
 }

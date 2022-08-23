@@ -2286,6 +2286,10 @@ func (bc *BackendController) GetPath(w http.ResponseWriter, r *http.Request) {
 	// success
 
 	folders, err := folder.GetPath(bc.Db, user)
+	if err != nil {
+		util.HttpError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	util.HttpJson(w, http.StatusOK, folders)
 }
