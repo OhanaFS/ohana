@@ -204,9 +204,9 @@ export function AdminNodes() {
 
   //console.log(useQueryGetAlerts().data?.log_entries);
 
-  const items = serversList.map((item, i) => (
-    <NodeDetails name={item.name} key={i} />
-  ));
+  const items = serversList
+    .filter((item) => !!item.name)
+    .map((item, i) => <NodeDetails name={item.name} key={i} />);
 
   return (
     <>
