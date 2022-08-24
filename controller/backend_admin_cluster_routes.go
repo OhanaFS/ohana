@@ -636,20 +636,22 @@ func (bc *BackendController) DeleteServer(w http.ResponseWriter, r *http.Request
 		// check if server exists, then send shutdown signal. If server doesn't exist, return error.
 
 		hostname, err := dbfs.GetServerAddress(bc.Db, serverName)
-		if err != nil {
-			util.HttpError(w, http.StatusInternalServerError, err.Error())
-			return
+		if !errors.Is(err, dbfs.ErrServerOffline) {
+			if err != nil {
+				util.HttpError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
 		}
 
 		fmt.Println("Marking server offline: " + serverName + " at " + hostname)
-
-		//// timeout of 10 seconds. If it doesn't respond, then it's dead.
 
 		err = dbfs.MarkServerOffline(bc.Db, serverName)
 		if err != nil {
 			util.HttpError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+
+		// TODO Implement graceful shutdown
 
 	}
 	// success

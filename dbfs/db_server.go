@@ -36,7 +36,7 @@ type Server struct {
 func GetServers(tx *gorm.DB) ([]Server, error) {
 
 	var servers []Server
-	err := tx.Find(&servers).Error
+	err := tx.Where("name <> ?", "").Find(&servers).Error
 	if err != nil {
 		return nil, err
 	}
@@ -78,8 +78,7 @@ func MarkServerOffline(tx *gorm.DB, serverName string) error {
 		}
 	}
 
-	server.Status = ServerOffline
-	err = tx.Save(&server).Error
+	err = tx.Model(&server).Where("name = ?", serverName).Update("status", ServerOffline).Error
 	if err != nil {
 		return err
 	}
@@ -87,7 +86,7 @@ func MarkServerOffline(tx *gorm.DB, serverName string) error {
 	// Mark fragments as offline.
 
 	err = tx.Model(&Fragment{}).Where("server_name = ?", serverName).
-		Update("status", ServerOffline).Error
+		Update("status", FragmentStatusOffline).Error
 
 	if err != nil {
 		return err
