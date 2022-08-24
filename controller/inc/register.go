@@ -61,6 +61,7 @@ func (i Inc) RegisterServer(initialRun bool) error {
 	for _, server := range servers {
 		if !i.Ping(server.HostName, server.Port) {
 			fmt.Println("Server", server.HostName, "is unreachable.")
+			i.DBFSLogger.LogError(fmt.Sprintf("%s is unreachable.", server.HostName))
 			err := MarkServerOffline(i.Db, i.HostName, server.HostName)
 			if err != nil {
 				if isNewServer {
@@ -83,6 +84,7 @@ func (i Inc) RegisterServer(initialRun bool) error {
 
 	if initialRun {
 		fmt.Println("Registering server as online...")
+		i.DBFSLogger.LogInfo(fmt.Sprintf("%s is online.", i.ServerName))
 	}
 
 	err = i.Db.Model(&server).Where("name = ?", i.ServerName).Update("status", dbfs.ServerOnline).Error
@@ -180,6 +182,7 @@ func RegisterIncServices(i *Inc) {
 				select {
 				case <-i.Shutdown:
 					registerTicker.Stop()
+					i.DBFSLogger.LogInfo("Shutdown server")
 					fmt.Println("Shutdown signal received. Exiting in 5 seconds...")
 					time.Sleep(time.Second * 5)
 					os.Exit(0)
@@ -198,6 +201,12 @@ func RegisterIncServices(i *Inc) {
 				select {
 				case <-dailyUpdateTicker.C:
 					i.DailyUpdate()
+					if deleted, err := i.CronJobDeleteShards(false); err != nil {
+						fmt.Printf("ERROR. CANNOT DELETE SHARDS. %s\n", err.Error())
+						i.DBFSLogger.LogError(err.Error())
+					} else {
+						i.DBFSLogger.LogInfo(deleted)
+					}
 				}
 			}
 		}()
@@ -211,12 +220,11 @@ func (i Inc) DailyUpdate() {
 	// Daily Update of the stats of the server
 	// Check if the server is the one to do the update
 
-	logger := dbfs.NewLogger(i.Db, i.ServerName)
-	logger.LogInfo("Daily update started.")
+	i.DBFSLogger.LogInfo("Daily update started.")
 
 	servers, err := dbfs.GetServers(i.Db)
 	if err != nil {
-		logger.LogError("ERROR. CANNOT GET SERVERS FROM DATABASE." +
+		i.DBFSLogger.LogError("ERROR. CANNOT GET SERVERS FROM DATABASE." +
 			err.Error())
 	}
 
@@ -232,9 +240,9 @@ func (i Inc) DailyUpdate() {
 
 	if serverWithLeastFreeSpace == i.ServerName {
 		// Log the update
-		logger.LogInfo("Updated server stats...")
+		i.DBFSLogger.LogInfo("Updated server stats...")
 		if dbfs.DumpDailyStats(i.Db) != nil {
-			logger.LogError("ERROR. CANNOT UPDATE DAILY STATS. " + err.Error())
+			i.DBFSLogger.LogError("ERROR. CANNOT UPDATE DAILY STATS. " + err.Error())
 		}
 	}
 

@@ -134,6 +134,12 @@ func MarkOldFileVersions(tx *gorm.DB) (int64, error) {
 	err := tx.First(&days, "key = ?", CronJobDeleteKeepVersionsFor).Error
 	if err != nil {
 		return 0, err
+	} else {
+		if days.ValueInt < 0 {
+			return 0, ErrCronJobPropertyNotSet
+		} else if days.ValueInt == 0 {
+			days.ValueInt = 30
+		}
 	}
 
 	beforeDate := time.Now().AddDate(0, 0, -1*days.ValueInt)
