@@ -3,7 +3,7 @@ FROM golang:1.18-alpine AS builder
 RUN set -ex; \
     mkdir -p /src; \
     apk add --update --no-cache \
-    build-base git wget ca-certificates tzdata nodejs npm openssh; \
+      build-base git wget ca-certificates tzdata nodejs npm openssh; \
     rm -rf /var/cache/apk/*; \
     update-ca-certificates; \
     npm install -g yarn; \

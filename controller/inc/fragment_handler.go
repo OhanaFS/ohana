@@ -327,7 +327,7 @@ func (i Inc) LocalOrphanedShardsCheck(jobId int, storeResults bool) ([]string, e
 		if len(resultsOrphanedShards) > 0 {
 			err = i.Db.Create(&resultsOrphanedShards).Error
 			if err != nil {
-				return nil, fmt.Errorf("failed to create ResultOrphanedShards %s", err)
+				return nil, fmt.Errorf("failed to create ResultOrphanedShards %w", err)
 			}
 		}
 
@@ -335,7 +335,7 @@ func (i Inc) LocalOrphanedShardsCheck(jobId int, storeResults bool) ([]string, e
 		var jobProgressOrphanedShard dbfs.JobProgressOrphanedShard
 		if err = i.Db.Where("job_id = ? AND server_id = ?", jobId, i.ServerName).
 			First(&jobProgressOrphanedShard).Error; err != nil {
-			return nil, fmt.Errorf("failed to get JobProgressOrphanedShard: %s", err)
+			return nil, fmt.Errorf("failed to get JobProgressOrphanedShard: %w", err)
 		}
 
 		// update JobProgressOrphanedShard
@@ -354,7 +354,7 @@ func (i Inc) LocalOrphanedShardsCheck(jobId int, storeResults bool) ([]string, e
 				Error
 		}
 		if err != nil {
-			return nil, fmt.Errorf("failed to update JobProgressOrphanedShard: %s", err)
+			return nil, fmt.Errorf("failed to update JobProgressOrphanedShard: %w", err)
 		}
 
 	}
@@ -380,7 +380,7 @@ func (i Inc) LocalMissingShardsCheck(jobId int, storeResults bool) ([]dbfs.Resul
 			InProgress: true,
 		}
 		if err := i.Db.Create(&jobProgressMissingShard).Error; err != nil {
-			return nil, fmt.Errorf("failed to create JobProgressMissingShard: %s", err)
+			return nil, fmt.Errorf("failed to create JobProgressMissingShard: %w", err)
 		}
 	}
 
@@ -445,14 +445,14 @@ func (i Inc) LocalMissingShardsCheck(jobId int, storeResults bool) ([]dbfs.Resul
 		// dump it into ResultsMissingShard
 		if len(missingShards) > 0 {
 			if err := i.Db.Create(&missingShards).Error; err != nil {
-				return nil, fmt.Errorf("failed to create ResultsMissingShard: %s", err)
+				return nil, fmt.Errorf("failed to create ResultsMissingShard: %w", err)
 			}
 		}
 		// update JobProgressMissingShard
 		if err := i.Db.Model(&dbfs.JobProgressMissingShard{}).
 			Where("job_id = ? and server_id = ?", jobId, i.ServerName).
 			Update("in_progress", false).Error; err != nil {
-			return nil, fmt.Errorf("failed to update JobProgressMissingShard: %s", err)
+			return nil, fmt.Errorf("failed to update JobProgressMissingShard: %w", err)
 		}
 	}
 
@@ -886,7 +886,7 @@ func (i Inc) LocalAllFilesShardsHealthCheck(jobId int) error {
 			Update("msg", fmt.Sprintf("%s\n %d shards are corrupted", jobProgress.Msg, len(resultsMap))).
 			Error; err != nil {
 			log.Println(err)
-			return fmt.Errorf("error updating job progress: %s", err)
+			return fmt.Errorf("error updating job progress: %w", err)
 		}
 	} else {
 		// Update with no error (msg no update)
@@ -894,7 +894,7 @@ func (i Inc) LocalAllFilesShardsHealthCheck(jobId int) error {
 			Where("job_id = ? AND server_id = ?", jobId, i.ServerName).
 			Update("in_progress", false).Error; err != nil {
 			log.Println(err)
-			return fmt.Errorf("error updating job progress: %s", err)
+			return fmt.Errorf("error updating job progress: %w", err)
 		}
 	}
 
@@ -923,13 +923,13 @@ func (i *Inc) ReplaceShard(serverName, oldName, newName string) error {
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		bodyString := string(bodyBytes)
-		return fmt.Errorf("%s: %s", err, bodyString)
+		return fmt.Errorf("replacing Shard Error: %w: %s", err, bodyString)
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Error replacing shard: %s", resp.Status)
+		return fmt.Errorf("error replacing shard: %s", resp.Status)
 	} else {
 		return nil
 	}
@@ -1040,8 +1040,6 @@ func (i *Inc) StartJob(job *dbfs.Job) (map[string]string, error) {
 					"https://"+server.HostName+":"+server.Port+FragmentOrphanedPath, nil)
 				r.Header.Set("job_id", strconv.Itoa(int(job.JobId)))
 				resp, err := i.HttpClient.Do(r)
-				test, err := io.ReadAll(resp.Body)
-				fmt.Println(string(test))
 				if err != nil {
 					allErrors[server.Name] = err.Error()
 					continue
