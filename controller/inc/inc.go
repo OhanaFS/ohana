@@ -72,7 +72,7 @@ func NewInc(config *config.Config, db *gorm.DB, logger *zap.Logger) *Inc {
 				Certificates: []tls.Certificate{clientCert},
 			},
 			Dial: func(network, addr string) (net.Conn, error) {
-				return net.DialTimeout(network, addr, time.Second)
+				return net.DialTimeout(network, addr, time.Second*5)
 			},
 		},
 	}
