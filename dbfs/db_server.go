@@ -78,8 +78,8 @@ func MarkServerOffline(tx *gorm.DB, serverName string) error {
 		}
 	}
 
-	err = tx.Model(&server).Where("name = ?", serverName).Update("status", ServerOffline).Error
-	if err != nil {
+	if err := tx.Model(&server).Where("name = ?", serverName).Update("status", ServerOffline).Error;
+		err != nil {
 		return err
 	}
 

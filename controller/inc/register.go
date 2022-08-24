@@ -62,7 +62,7 @@ func (i Inc) RegisterServer(initialRun bool) error {
 		if !i.Ping(server.HostName, server.Port) {
 			fmt.Println("Server", server.HostName, "is unreachable.")
 			i.DBFSLogger.LogError(fmt.Sprintf("%s is unreachable.", server.HostName))
-			err := MarkServerOffline(i.Db, i.HostName, server.HostName)
+			err := MarkServerOffline(i.Db, i.ServerName, server.Name)
 			if err != nil {
 				if isNewServer {
 					if i.Db.Delete(&server).Error != nil {

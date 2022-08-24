@@ -171,7 +171,7 @@ func (i *Inc) GetServerStatusReport(serverName string) (*LocalServerReport, erro
 		// call other server for status
 		// Check if the server exists
 		var server dbfs.Server
-		err = i.Db.First(&server, "name = ?", serverName).Error
+		err = i.Db.Where("name = ?", serverName).First(&server).Error
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return nil, ErrServerNotFound
@@ -188,7 +188,15 @@ func (i *Inc) GetServerStatusReport(serverName string) (*LocalServerReport, erro
 		response, err := i.HttpClient.Do(request)
 		if err != nil {
 			fmt.Println(err)
-			return nil, err
+
+			offlineServerRequest := LocalServerReport{
+				ServerName: serverName,
+				Hostname:   server.HostName,
+				Port:       server.Port,
+				Status:     int(dbfs.ServerOffline),
+			}
+
+			return &offlineServerRequest, nil
 		}
 
 		if response.StatusCode != http.StatusOK {
