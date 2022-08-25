@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"github.com/OhanaFS/ohana/dbfs"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"net"
@@ -29,6 +30,7 @@ type Inc struct {
 	HttpServer        *http.Server
 	BindIp            string
 	Db                *gorm.DB
+	DBFSLogger        *dbfs.Logger
 	Shutdown          chan bool
 }
 
@@ -72,12 +74,13 @@ func NewInc(config *config.Config, db *gorm.DB, logger *zap.Logger) *Inc {
 				Certificates: []tls.Certificate{clientCert},
 			},
 			Dial: func(network, addr string) (net.Conn, error) {
-				return net.DialTimeout(network, addr, time.Second)
+				return net.DialTimeout(network, addr, time.Second*5)
 			},
 		},
 	}
 
-	// register routes
+	// new dbfs logger
+	dbfsLogger := dbfs.NewLogger(db, config.Inc.ServerName)
 
 	newInc := &Inc{
 		ShardsLocation:    config.Stitch.ShardsLocation,
@@ -93,8 +96,11 @@ func NewInc(config *config.Config, db *gorm.DB, logger *zap.Logger) *Inc {
 		HttpClient:        client,
 		HttpServer:        incServer,
 		Db:                db,
+		DBFSLogger:        dbfsLogger,
 		Shutdown:          make(chan bool),
 	}
+
+	// register routes
 
 	router.HandleFunc("/api/v1/node/ping", Pong)
 	router.HandleFunc("/api/v1/node/details", newInc.ReturnServerDetails)

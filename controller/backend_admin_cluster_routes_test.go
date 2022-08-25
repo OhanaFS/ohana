@@ -690,7 +690,7 @@ func TestAdminClusterRoutes(t *testing.T) {
 		body = w.Body.String()
 
 		Assert.NoError(json.Unmarshal([]byte(body), &logs))
-		Assert.Equal(logCount-100, len(logs))
+		Assert.Equal(logCount-100+1, len(logs)) // The plus 1 is for the server registering
 
 		// setting a start date
 

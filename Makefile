@@ -11,7 +11,6 @@ ifeq ($(UNAME_S),Darwin)
 else
 	GOOSNAME := linux
 	LDFLAGS := " \
-		-extldflags=-static \
 		-X main.BuildTime=`date -uIs` \
 		-X main.GitCommit=`git rev-parse HEAD 2>/dev/null` \
 		"

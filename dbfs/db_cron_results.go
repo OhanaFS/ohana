@@ -73,9 +73,9 @@ type ResultsCFSHC struct {
 // JobProgressCFSHC Current files shards health check job progress
 type JobProgressCFSHC struct {
 	JobId      uint      `gorm:"primary_key" json:"id"`
+	ServerId   string    `gorm:"primary_key" json:"server_name"`
 	StartTime  time.Time `json:"start_time"`
 	EndTime    time.Time `json:"end_time"`
-	ServerId   string    `json:"server_name"`
 	InProgress bool      `json:"in_progress"`
 	Msg        string    `json:"msg"`
 }
@@ -114,9 +114,9 @@ type OrphanedFilesActions struct {
 // JobProgressAFSHC All files fragment health check job progress
 type JobProgressAFSHC struct {
 	JobId      uint      `gorm:"primary_key" json:"id"`
+	ServerId   string    `gorm:"primary_key" json:"server_name"`
 	StartTime  time.Time `json:"start_time"`
 	EndTime    time.Time `json:"end_time"`
-	ServerId   string    `json:"server_name"`
 	InProgress bool      `json:"in_progress"`
 	Msg        string    `json:"msg"`
 }
@@ -136,9 +136,9 @@ type ResultsMissingShard struct {
 // JobProgressMissingShard Missing shards job progress
 type JobProgressMissingShard struct {
 	JobId      uint      `gorm:"primary_key" json:"id"`
+	ServerId   string    `gorm:"primary_key" json:"server_name"`
 	StartTime  time.Time `json:"start_time"`
 	EndTime    time.Time `json:"end_time"`
-	ServerId   string    `json:"server_name"`
 	InProgress bool      `json:"in_progress"`
 	Msg        string    `json:"msg"`
 }
@@ -155,9 +155,9 @@ type ResultsOrphanedShard struct {
 // JobProgressOrphanedShard Orphaned shards job progress
 type JobProgressOrphanedShard struct {
 	JobId      uint      `gorm:"primary_key" json:"id"`
+	ServerId   string    `gorm:"primary_key" json:"server_name"`
 	StartTime  time.Time `json:"start_time"`
 	EndTime    time.Time `json:"end_time"`
-	ServerId   string    `json:"server_name"`
 	InProgress bool      `json:"in_progress"`
 	Msg        string    `json:"msg"`
 }
@@ -165,9 +165,9 @@ type JobProgressOrphanedShard struct {
 // JobProgressPermissionCheck reports the progress of the permission check
 type JobProgressPermissionCheck struct {
 	JobId      uint      `gorm:"primary_key" json:"id"`
+	ServerId   string    `gorm:"primary_key" json:"server_name"`
 	StartTime  time.Time `json:"start_time"`
 	EndTime    time.Time `json:"end_time"`
-	ServerId   string    `json:"server_name"`
 	InProgress bool      `json:"in_progress"`
 	Msg        string    `json:"msg"`
 }
@@ -175,9 +175,9 @@ type JobProgressPermissionCheck struct {
 // JobProgressDeleteFragments reports the progress of deleting fragments
 type JobProgressDeleteFragments struct {
 	JobId      uint      `gorm:"primary_key" json:"id"`
+	ServerId   string    `gorm:"primary_key" json:"server_name"`
 	StartTime  time.Time `json:"start_time"`
 	EndTime    time.Time `json:"end_time"`
-	ServerId   string    `json:"server_name"`
 	InProgress bool      `json:"in_progress"`
 	Msg        string    `json:"msg"`
 }
