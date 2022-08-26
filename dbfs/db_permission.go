@@ -751,6 +751,10 @@ func GetPermissionHistory(tx *gorm.DB, file *File, user *User) ([]PermissionHist
 // HasPermission verifies that the user has the permission requested to a file.
 func (user *User) HasPermission(tx *gorm.DB, file *File, needed *PermissionNeeded) (bool, error) {
 
+	if user.AccountType == AccountTypeAdmin {
+		return true, nil
+	}
+
 	hasPermission := false
 
 	// Sharing permissions are separate from non-sharing permissions
