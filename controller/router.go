@@ -59,9 +59,7 @@ func NewServer(
 		Addr:    config.HTTP.Bind,
 		Handler: handler,
 
-		WriteTimeout: time.Second * 15,
-		ReadTimeout:  time.Second * 15,
-		IdleTimeout:  time.Second * 60,
+		IdleTimeout: time.Second * 60,
 	}
 
 	// Create the lifecycle hook that starts and stops the server
